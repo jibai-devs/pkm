@@ -10,6 +10,7 @@ Usage:
 """
 
 import argparse
+import csv
 import random
 import time
 from pathlib import Path
@@ -175,6 +176,18 @@ def exit_update(
     return {k: v / max(n_batches, 1) for k, v in stats.items()}
 
 
+EXIT_CSV_FIELDS = [
+    "iter",
+    "games",
+    "p0_wins",
+    "p0_losses",
+    "samples",
+    "pi_loss",
+    "v_loss",
+    "time_s",
+]
+
+
 def train(
     deck_path: str = "deck.csv",
     iterations: int = 3,
@@ -184,6 +197,7 @@ def train(
     lr: float = 1e-4,
     init_checkpoint: str = "checkpoints/ppo_latest.pt",
     checkpoint_dir: str = "checkpoints",
+    metrics_path: str = "metrics/exit_train.csv",
     seed: int = 0,
 ) -> PolicyValueNet:
     random.seed(seed)
@@ -201,6 +215,12 @@ def train(
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     ckpt_dir = Path(checkpoint_dir)
     ckpt_dir.mkdir(exist_ok=True)
+
+    metrics_file = Path(metrics_path)
+    metrics_file.parent.mkdir(parents=True, exist_ok=True)
+    csv_f = open(metrics_file, "w", newline="")
+    csv_w = csv.DictWriter(csv_f, fieldnames=EXIT_CSV_FIELDS)
+    csv_w.writeheader()
 
     for it in range(1, iterations + 1):
         t0 = time.time()
@@ -227,14 +247,30 @@ def train(
         model.train()
         stats = exit_update(model, optimizer, data)
         model.eval()
+        dt = time.time() - t0
+        csv_w.writerow(
+            {
+                "iter": it,
+                "games": games_per_iter,
+                "p0_wins": w,
+                "p0_losses": losses,
+                "samples": len(data),
+                "pi_loss": f"{stats['policy_loss']:.6f}",
+                "v_loss": f"{stats['value_loss']:.6f}",
+                "time_s": f"{dt:.2f}",
+            }
+        )
+        csv_f.flush()
         print(
             f"exit iter {it} | games {games_per_iter} (p0 W/L {w}/{losses}) "
             f"| samples {len(data)} | pi_loss {stats['policy_loss']:.4f} "
-            f"| v_loss {stats['value_loss']:.4f} | {time.time() - t0:.1f}s",
+            f"| v_loss {stats['value_loss']:.4f} | {dt:.1f}s",
             flush=True,
         )
         torch.save(model.state_dict(), ckpt_dir / "exit_latest.pt")
 
+    csv_f.close()
+    print(f"metrics saved to {metrics_file}", flush=True)
     return model
 
 
@@ -248,6 +284,7 @@ def main() -> None:
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--init", default="checkpoints/ppo_latest.pt")
     parser.add_argument("--checkpoint-dir", default="checkpoints")
+    parser.add_argument("--metrics", default="metrics/exit_train.csv")
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
     train(
@@ -259,6 +296,7 @@ def main() -> None:
         lr=args.lr,
         init_checkpoint=args.init,
         checkpoint_dir=args.checkpoint_dir,
+        metrics_path=args.metrics,
         seed=args.seed,
     )
 

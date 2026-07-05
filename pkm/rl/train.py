@@ -6,6 +6,7 @@ Usage:
 
 import argparse
 import copy
+import csv
 import random
 import time
 from pathlib import Path
@@ -35,6 +36,24 @@ def evaluate_vs_random(
     return wins / games
 
 
+CSV_FIELDS = [
+    "iter",
+    "games",
+    "wins",
+    "losses",
+    "draws",
+    "decisions",
+    "samples",
+    "pi_loss",
+    "v_loss",
+    "entropy",
+    "clip_frac",
+    "time_s",
+    "eval_win_rate",
+    "eval_games",
+]
+
+
 def train(
     deck_path: str = "deck.csv",
     iterations: int = 50,
@@ -48,6 +67,7 @@ def train(
     eval_every: int = 5,
     eval_games: int = 20,
     checkpoint_dir: str = "checkpoints",
+    metrics_path: str = "metrics/ppo_train.csv",
     init_checkpoint: str | None = None,
     seed: int = 0,
 ) -> PolicyValueNet:
@@ -64,6 +84,12 @@ def train(
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     ckpt_dir = Path(checkpoint_dir)
     ckpt_dir.mkdir(exist_ok=True)
+
+    metrics_file = Path(metrics_path)
+    metrics_file.parent.mkdir(parents=True, exist_ok=True)
+    csv_f = open(metrics_file, "w", newline="")
+    csv_w = csv.DictWriter(csv_f, fieldnames=CSV_FIELDS)
+    csv_w.writeheader()
 
     # opponent pool of past parameters (state_dicts on CPU)
     pool: list[dict] = [copy.deepcopy(model.state_dict())]
@@ -116,6 +142,22 @@ def train(
             pool.pop(0)
 
         dt = time.time() - t0
+        row = {
+            "iter": it,
+            "games": games_per_iter,
+            "wins": w,
+            "losses": losses,
+            "draws": d,
+            "decisions": total_decisions,
+            "samples": len(data),
+            "pi_loss": f"{stats['policy_loss']:.6f}",
+            "v_loss": f"{stats['value_loss']:.6f}",
+            "entropy": f"{stats['entropy']:.6f}",
+            "clip_frac": f"{stats['clip_frac']:.4f}",
+            "time_s": f"{dt:.2f}",
+            "eval_win_rate": "",
+            "eval_games": "",
+        }
         print(
             f"iter {it:3d} | games {games_per_iter} (W/L/D {w}/{losses}/{d}) "
             f"| decisions {total_decisions} | samples {len(data)} "
@@ -126,6 +168,8 @@ def train(
 
         if it % eval_every == 0:
             wr = evaluate_vs_random(model, deck, games=eval_games)
+            row["eval_win_rate"] = f"{wr:.4f}"
+            row["eval_games"] = eval_games
             print(
                 f"iter {it:3d} | eval vs random: {wr:.1%} ({eval_games} games)",
                 flush=True,
@@ -133,7 +177,12 @@ def train(
             torch.save(model.state_dict(), ckpt_dir / f"ppo_iter{it:04d}.pt")
             torch.save(model.state_dict(), ckpt_dir / "ppo_latest.pt")
 
+        csv_w.writerow(row)
+        csv_f.flush()
+
     torch.save(model.state_dict(), ckpt_dir / "ppo_latest.pt")
+    csv_f.close()
+    print(f"metrics saved to {metrics_file}", flush=True)
     return model
 
 
@@ -149,6 +198,7 @@ def main() -> None:
     parser.add_argument("--eval-every", type=int, default=5)
     parser.add_argument("--eval-games", type=int, default=20)
     parser.add_argument("--checkpoint-dir", default="checkpoints")
+    parser.add_argument("--metrics", default="metrics/ppo_train.csv")
     parser.add_argument(
         "--init",
         default=None,
@@ -167,6 +217,7 @@ def main() -> None:
         eval_every=args.eval_every,
         eval_games=args.eval_games,
         checkpoint_dir=args.checkpoint_dir,
+        metrics_path=args.metrics,
         init_checkpoint=args.init,
         seed=args.seed,
     )
