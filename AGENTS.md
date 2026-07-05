@@ -19,10 +19,24 @@ pytest tests/              # run tests
 - `pkm/data/deck.py` — Deck class (CSV load/save, 60-card validation)
 - `pkm/agents/base.py` — `make_agent(deck, strategy_fn)` factory
 - `pkm/agents/random_agent.py` — random legal move agent
+- `pkm/agents/neural_agent.py` — greedy trained-policy agent (numpy inference, no torch)
+- `pkm/search.py` — correct bindings to the engine's SearchBegin/SearchStep API
+- `pkm/rl/` — encoders, pointer-style policy/value net, PPO self-play, expert iteration
+- `pkm/mcts/` — determinization + IS-MCTS over the search API
 - `pkm/strategies/` — future strategy implementations
 - `main.py` — battle runner entry point
 - `deck.csv` — sample deck (60 card IDs, one per line)
 - `submit.sh` — creates `submission.tar.gz` for Kaggle
+- `docs/RL_PLAN.md` — RL self-play design (Phase 1 PPO, Phase 2 IS-MCTS/ExIt)
+
+## RL Training
+```bash
+python -m pkm.rl.train --iterations 50 --games 16       # Phase 1: PPO self-play
+python -m pkm.rl.exit_train --iterations 5 --games 8    # Phase 2: expert iteration (init from ppo_latest.pt)
+python -m pkm.rl.export checkpoints/ppo_latest.pt pkm/policy.npz  # export for torch-free inference
+```
+- Checkpoints land in `checkpoints/`; `pkm/policy.npz` is bundled in the submission (no torch needed at inference).
+- `pkm/search.py` signatures were recovered from the official competition `cg/api.py` (SearchBegin needs `lib.AgentStart()` handle + the observation's `search_begin_input`, returns ApiResult JSON; search ids are int64).
 
 ## cabt Engine API
 - `from kaggle_environments.envs.cabt.cg.sim import lib` → `lib.AllCard()`, `lib.AllAttack()`
