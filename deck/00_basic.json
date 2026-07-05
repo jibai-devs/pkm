@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "name": "Basic {G} Energy",
+    "count": 8
+  },
+  {
+    "id": 2,
+    "name": "Basic {R} Energy",
+    "count": 4
+  },
+  {
+    "id": 3,
+    "name": "Basic {W} Energy",
+    "count": 4
+  },
+  {
+    "id": 4,
+    "name": "Basic {L} Energy",
+    "count": 4
+  },
+  {
+    "id": 5,
+    "name": "Basic {P} Energy",
+    "count": 4
+  },
+  {
+    "id": 6,
+    "name": "Basic {F} Energy",
+    "count": 4
+  },
+  {
+    "id": 7,
+    "name": "Basic {D} Energy",
+    "count": 4
+  },
+  {
+    "id": 8,
+    "name": "Basic {M} Energy",
+    "count": 4
+  },
+  {
+    "id": 22,
+    "name": "Hippopotas",
+    "count": 4
+  },
+  {
+    "id": 24,
+    "name": "Team Rocket's Kangaskhan ex",
+    "count": 4
+  },
+  {
+    "id": 25,
+    "name": "Pinsir",
+    "count": 4
+  },
+  {
+    "id": 27,
+    "name": "Iron Leaves",
+    "count": 4
+  },
+  {
+    "id": 28,
+    "name": "Poltchageist",
+    "count": 4
+  },
+  {
+    "id": 31,
+    "name": "Chi-Yu",
+    "count": 4
+  }
+]
