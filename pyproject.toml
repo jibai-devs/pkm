@@ -5,7 +5,7 @@ description = "Pokémon TCG AI Battle Challenge - Simulation agent"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "kaggle-environments>=1.14.10",
+    "kaggle-environments>=1.30.2",
     "numpy>=2.0",
     "pandas>=2.0",
     "torch>=2.12.1",
@@ -23,3 +23,4 @@ torch = { index = "pytorch-cpu" }
 [[tool.uv.index]]
 name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
+explicit = true

@@ -26,3 +26,5 @@ result.html
 # Training artifacts
 checkpoints/
 pkm/policy.npz
+replay.json
+*.html
