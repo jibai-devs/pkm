@@ -36,13 +36,13 @@ deck-convert name="00_basic" to="json":
 # --- training ---------------------------------------------------------------
 
 # Phase 1: PPO self-play from scratch
-train iterations="200" games="16":
-    python -m pkm.rl.train --iterations {{iterations}} --games {{games}} --eval-every 10
+train iterations="200" games="16" deck="deck/00_basic.csv":
+    python -m pkm.rl.train --iterations {{iterations}} --games {{games}} --eval-every 10 --deck {{deck}}
 
 # Phase 1: resume PPO from the latest checkpoint
-resume iterations="200" games="16":
+resume iterations="200" games="16" deck="deck/00_basic.csv":
     python -m pkm.rl.train --iterations {{iterations}} --games {{games}} --eval-every 10 \
-        --init checkpoints/ppo_latest.pt
+        --init checkpoints/ppo_latest.pt --deck {{deck}}
 
 # Phase 2: expert iteration (inits from checkpoints/ppo_latest.pt by default)
 exit-train iterations="20" games="8" sims="32" dets="2":
@@ -63,12 +63,12 @@ export checkpoint="":
         pkm/policy.npz
 
 # play one rendered match and write result.html + replay.json (agents: random|neural|mcts)
-play p0="neural" p1="random":
-    python -m pkm.rl.play --p0 {{p0}} --p1 {{p1}}
+play p0="neural" p1="random" deck="deck/00_basic.csv":
+    python -m pkm.rl.play --p0 {{p0}} --p1 {{p1}} --deck {{deck}}
 
 # head-to-head win rate over N games (no replay files)
-eval p0="neural" p1="random" games="30":
-    python -m pkm.rl.play --p0 {{p0}} --p1 {{p1}} --games {{games}}
+eval p0="neural" p1="random" games="30" deck="deck/00_basic.csv":
+    python -m pkm.rl.play --p0 {{p0}} --p1 {{p1}} --games {{games}} --deck {{deck}}
 
 # open the latest match replay in the browser
 watch:
