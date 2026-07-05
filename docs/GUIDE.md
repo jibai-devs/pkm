@@ -153,6 +153,21 @@ of search stronger. `exit_train.py` initializes from the PPO checkpoint.
 
 ## 3. How to train
 
+All common workflows are wrapped in the `justfile` — run `just` to list them:
+
+```bash
+just train              # Phase 1 from scratch (200 iters × 16 games)
+just resume             # Phase 1, continuing from checkpoints/ppo_latest.pt
+just exit-train         # Phase 2 (inits from ppo_latest.pt)
+just exit-resume        # Phase 2, continuing from exit_latest.pt
+just export             # freshest checkpoint -> pkm/policy.npz
+just play mcts neural   # rendered match -> result.html + replay.json
+just eval mcts neural 30  # head-to-head win rate
+just submit             # export + build submission.tar.gz
+```
+
+Positional args override the defaults, e.g. `just resume 500 32`.
+
 ### Phase 1 (do this first — fast, builds the foundation)
 
 ```bash

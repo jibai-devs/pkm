@@ -48,6 +48,7 @@ def train(
     eval_every: int = 5,
     eval_games: int = 20,
     checkpoint_dir: str = "checkpoints",
+    init_checkpoint: str | None = None,
     seed: int = 0,
 ) -> PolicyValueNet:
     random.seed(seed)
@@ -55,6 +56,11 @@ def train(
 
     deck = Deck.from_csv(deck_path).card_ids
     model = PolicyValueNet()
+    if init_checkpoint:
+        model.load_state_dict(
+            torch.load(init_checkpoint, map_location="cpu", weights_only=True)
+        )
+        print(f"resumed from {init_checkpoint}", flush=True)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     ckpt_dir = Path(checkpoint_dir)
     ckpt_dir.mkdir(exist_ok=True)
@@ -143,6 +149,11 @@ def main() -> None:
     parser.add_argument("--eval-every", type=int, default=5)
     parser.add_argument("--eval-games", type=int, default=20)
     parser.add_argument("--checkpoint-dir", default="checkpoints")
+    parser.add_argument(
+        "--init",
+        default=None,
+        help="checkpoint to resume from (e.g. checkpoints/ppo_latest.pt)",
+    )
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
     train(
@@ -156,6 +167,7 @@ def main() -> None:
         eval_every=args.eval_every,
         eval_games=args.eval_games,
         checkpoint_dir=args.checkpoint_dir,
+        init_checkpoint=args.init,
         seed=args.seed,
     )
 
