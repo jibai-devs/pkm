@@ -12,6 +12,7 @@ import time
 from pathlib import Path
 
 import torch
+from torch.utils.tensorboard import SummaryWriter
 
 from pkm.data import Deck
 
@@ -68,6 +69,7 @@ def train(
     eval_games: int = 20,
     checkpoint_dir: str = "checkpoints",
     metrics_path: str = "metrics/ppo_train.csv",
+    log_dir: str = "runs/ppo",
     init_checkpoint: str | None = None,
     seed: int = 0,
 ) -> PolicyValueNet:
@@ -90,6 +92,8 @@ def train(
     csv_f = open(metrics_file, "w", newline="")
     csv_w = csv.DictWriter(csv_f, fieldnames=CSV_FIELDS)
     csv_w.writeheader()
+
+    tb = SummaryWriter(log_dir)
 
     # opponent pool of past parameters (state_dicts on CPU)
     pool: list[dict] = [copy.deepcopy(model.state_dict())]
@@ -180,8 +184,21 @@ def train(
         csv_w.writerow(row)
         csv_f.flush()
 
+        tb.add_scalar("loss/policy", stats["policy_loss"], it)
+        tb.add_scalar("loss/value", stats["value_loss"], it)
+        tb.add_scalar("policy/entropy", stats["entropy"], it)
+        tb.add_scalar("policy/clip_frac", stats["clip_frac"], it)
+        tb.add_scalar(
+            "game/win_rate", w / (w + losses + d) if (w + losses + d) else 0, it
+        )
+        tb.add_scalar("game/decisions", total_decisions, it)
+        tb.add_scalar("time/iter_s", dt, it)
+        if row["eval_win_rate"]:
+            tb.add_scalar("eval/win_rate_vs_random", float(row["eval_win_rate"]), it)
+
     torch.save(model.state_dict(), ckpt_dir / "ppo_latest.pt")
     csv_f.close()
+    tb.close()
     print(f"metrics saved to {metrics_file}", flush=True)
     return model
 
@@ -199,6 +216,7 @@ def main() -> None:
     parser.add_argument("--eval-games", type=int, default=20)
     parser.add_argument("--checkpoint-dir", default="checkpoints")
     parser.add_argument("--metrics", default="metrics/ppo_train.csv")
+    parser.add_argument("--log-dir", default="runs/ppo")
     parser.add_argument(
         "--init",
         default=None,
@@ -218,6 +236,7 @@ def main() -> None:
         eval_games=args.eval_games,
         checkpoint_dir=args.checkpoint_dir,
         metrics_path=args.metrics,
+        log_dir=args.log_dir,
         init_checkpoint=args.init,
         seed=args.seed,
     )

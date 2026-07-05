@@ -20,6 +20,9 @@ result.html
 .vscode/
 .idea/
 
+# Jupyter
+.ipynb_checkpoints/
+
 # Nix/direnv
 .direnv/
 
@@ -28,3 +31,4 @@ checkpoints/
 pkm/policy.npz
 replay.json
 *.html
+runs/

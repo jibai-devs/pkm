@@ -18,6 +18,7 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torch.utils.tensorboard import SummaryWriter
 
 from kaggle_environments.envs.cabt.cg.game import (
     battle_finish,
@@ -198,6 +199,7 @@ def train(
     init_checkpoint: str = "checkpoints/ppo_latest.pt",
     checkpoint_dir: str = "checkpoints",
     metrics_path: str = "metrics/exit_train.csv",
+    log_dir: str = "runs/exit",
     seed: int = 0,
 ) -> PolicyValueNet:
     random.seed(seed)
@@ -221,6 +223,8 @@ def train(
     csv_f = open(metrics_file, "w", newline="")
     csv_w = csv.DictWriter(csv_f, fieldnames=EXIT_CSV_FIELDS)
     csv_w.writeheader()
+
+    tb = SummaryWriter(log_dir)
 
     for it in range(1, iterations + 1):
         t0 = time.time()
@@ -261,6 +265,10 @@ def train(
             }
         )
         csv_f.flush()
+        tb.add_scalar("loss/policy", stats["policy_loss"], it)
+        tb.add_scalar("loss/value", stats["value_loss"], it)
+        tb.add_scalar("game/p0_win_rate", w / (w + losses) if (w + losses) else 0, it)
+        tb.add_scalar("time/iter_s", dt, it)
         print(
             f"exit iter {it} | games {games_per_iter} (p0 W/L {w}/{losses}) "
             f"| samples {len(data)} | pi_loss {stats['policy_loss']:.4f} "
@@ -270,6 +278,7 @@ def train(
         torch.save(model.state_dict(), ckpt_dir / "exit_latest.pt")
 
     csv_f.close()
+    tb.close()
     print(f"metrics saved to {metrics_file}", flush=True)
     return model
 
@@ -285,6 +294,7 @@ def main() -> None:
     parser.add_argument("--init", default="checkpoints/ppo_latest.pt")
     parser.add_argument("--checkpoint-dir", default="checkpoints")
     parser.add_argument("--metrics", default="metrics/exit_train.csv")
+    parser.add_argument("--log-dir", default="runs/exit")
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
     train(
@@ -297,6 +307,7 @@ def main() -> None:
         init_checkpoint=args.init,
         checkpoint_dir=args.checkpoint_dir,
         metrics_path=args.metrics,
+        log_dir=args.log_dir,
         seed=args.seed,
     )
 
