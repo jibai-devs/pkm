@@ -2,6 +2,7 @@
 
 Usage:
     python -m pkm.rl.train --iterations 50 --games 8
+    python -m pkm.rl.train --agent 01_psychic --iterations 100
 """
 
 import typer
@@ -14,6 +15,7 @@ from pathlib import Path
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
+from pkm.agents.profile import AgentProfile
 from pkm.data import Deck
 
 from .model import PolicyValueNet
@@ -204,6 +206,7 @@ def train(
 
 
 def main(
+    agent: str | None = typer.Option(None, help="agent profile name (e.g. 00_basic, 01_psychic)"),
     deck: str = typer.Option("deck/00_basic.csv", help="path to deck CSV"),
     iterations: int = typer.Option(50, help="number of training iterations"),
     games: int = typer.Option(8, help="games per iteration"),
@@ -219,6 +222,15 @@ def main(
     init: str | None = typer.Option(None, help="checkpoint to resume from"),
     seed: int = typer.Option(0, help="random seed"),
 ) -> None:
+    if agent:
+        profile = AgentProfile(agent)
+        profile.ensure_dirs()
+        deck = str(profile.deck_path)
+        checkpoint_dir = str(profile.checkpoint_dir)
+        metrics = str(profile.metrics_dir / "ppo_train.csv")
+        log_dir = str(profile.runs_dir / "ppo")
+        if init is None:
+            init = profile.ppo_init()
     train(
         deck_path=deck,
         iterations=iterations,

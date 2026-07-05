@@ -6,10 +6,11 @@
 
 | Phase | Status | Details |
 |-------|--------|---------|
-| Phase 1 — PPO self-play | **Done (200 iters)** | 80% win rate vs random. Checkpoint: `checkpoints/ppo_latest.pt` |
-| Phase 2 — Expert iteration | **Started (1 run)** | MCTS self-play + distillation. Checkpoint: `checkpoints/exit_latest.pt` |
+| Phase 1 — PPO self-play | **Done (200 iters)** | 80% win rate vs random. Agent: `00_basic` |
+| Phase 2 — Expert iteration | **Started (1 run)** | MCTS self-play + distillation. Agent: `00_basic` |
+| Agent profiles | **Done** | Per-agent directories for checkpoints, metrics, runs |
 | Metrics & monitoring | **Done** | CSV logging + Plotly notebook |
-| Kaggle submission | **Ready** | `just submit` exports weights + bundles |
+| Kaggle submission | **Ready** | `just submit 00_basic` exports weights + bundles |
 
 ### What's Working
 - Pointer/scoring policy network handles variable-length action spaces

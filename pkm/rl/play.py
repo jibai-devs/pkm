@@ -4,6 +4,7 @@ Usage:
     python -m pkm.rl.play --p0 neural --p1 random
     python -m pkm.rl.play --p0 mcts --p1 neural --html mcts_vs_neural.html
     python -m pkm.rl.play --p0 neural --p1 random --games 20   # win-rate only
+    python -m pkm.rl.play --agent 01_psychic --p0 neural --p1 random
 
 Agents: random | neural (greedy policy, needs pkm/policy.npz) | mcts
 The HTML file is self-contained — open it in a browser to watch the match.
@@ -18,6 +19,7 @@ from typing import Callable
 from kaggle_environments import make
 
 from pkm.agents import make_neural_agent, make_random_agent
+from pkm.agents.profile import AgentProfile
 from pkm.data import Deck
 
 
@@ -105,12 +107,20 @@ app = typer.Typer(help=__doc__)
 def main(
     p0: str = typer.Option("neural", help="player 0 agent: random|neural|mcts"),
     p1: str = typer.Option("random", help="player 1 agent: random|neural|mcts"),
+    agent: str | None = typer.Option(None, help="agent profile name (resolves deck + weights)"),
     deck: str = typer.Option("deck/00_basic.csv", help="path to deck CSV"),
     weights: str | None = typer.Option(None, help="path to policy .npz"),
     html: str = typer.Option("result.html", help="HTML replay output path"),
     replay: str = typer.Option("replay.json", help="JSON replay output path"),
     games: int = typer.Option(1, help=">1: win-rate mode, no replay"),
 ) -> None:
+    if agent:
+        profile = AgentProfile(agent)
+        deck = str(profile.deck_path)
+        if weights is None:
+            ckpt = profile.checkpoint_dir / "policy.npz"
+            if ckpt.is_file():
+                weights = str(ckpt)
     if games > 1:
         win_rate(p0, p1, games, deck_path=deck, weights=weights)
     else:

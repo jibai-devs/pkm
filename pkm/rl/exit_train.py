@@ -7,6 +7,7 @@ targets.
 
 Usage:
     python -m pkm.rl.exit_train --iterations 3 --games 4 --sims 24 --dets 2
+    python -m pkm.rl.exit_train --agent 01_psychic --iterations 5
 """
 
 import typer
@@ -26,6 +27,7 @@ from kaggle_environments.envs.cabt.cg.game import (
     battle_start,
 )
 
+from pkm.agents.profile import AgentProfile
 from pkm.data import Deck
 from pkm.mcts.search import MCTS, _forced_picks
 from pkm.rl.encoder import EncodedDecision, encode_decision
@@ -284,6 +286,7 @@ def train(
 
 
 def main(
+    agent: str | None = typer.Option(None, help="agent profile name (e.g. 00_basic, 01_psychic)"),
     deck: str = typer.Option("deck/00_basic.csv", help="path to deck CSV"),
     iterations: int = typer.Option(3, help="number of training iterations"),
     games: int = typer.Option(4, help="games per iteration"),
@@ -296,6 +299,15 @@ def main(
     log_dir: str = typer.Option("runs/exit", help="TensorBoard log directory"),
     seed: int = typer.Option(0, help="random seed"),
 ) -> None:
+    if agent:
+        profile = AgentProfile(agent)
+        profile.ensure_dirs()
+        deck = str(profile.deck_path)
+        checkpoint_dir = str(profile.checkpoint_dir)
+        metrics = str(profile.metrics_dir / "exit_train.csv")
+        log_dir = str(profile.runs_dir / "exit")
+        if init == "checkpoints/ppo_latest.pt":
+            init = profile.exit_init()
     train(
         deck_path=deck,
         iterations=iterations,
