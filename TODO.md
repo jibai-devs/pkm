@@ -85,7 +85,12 @@ An "agent name" resolves to:
 - [ ] Investigate textual/rich for interactive agent selection
 - [ ] Browse profiles, compare results, select matchups interactively
 
-### 7. Clean up
+### 7. Deck system
+- [x] `deck/` directory structure (CSV + JSON formats)
+- [x] JSON deck format (id/name/count)
+- [x] Deck CLI (`pkm/cli_deck.py`): list/show/convert subcommands
+
+### 8. Clean up
 - [ ] Update AGENTS.md with new architecture
 - [ ] Update justfile recipes
 - [ ] Update submit.sh to work with profile system

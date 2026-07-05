@@ -92,11 +92,13 @@ class Deck:
 
 DECK_DIR = Path(__file__).parent.parent.parent / "deck"
 
+
 def list_decks() -> list[Path]:
     """List all deck files in the deck directory."""
     if not DECK_DIR.is_dir():
         return []
     return sorted(DECK_DIR.glob("*.csv")) + sorted(DECK_DIR.glob("*.json"))
+
 
 def resolve_deck(name: str) -> Path:
     """Resolve a deck name to a path. Accepts filenames with or without extension."""

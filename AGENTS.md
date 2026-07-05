@@ -33,6 +33,7 @@
 uv sync                    # install deps
 python main.py             # run a battle
 ./submit.sh                # create Kaggle submission bundle
+python -m pkm.cli_deck list  # list decks
 ```
 
 ## Lint & Typecheck
@@ -53,7 +54,8 @@ pytest tests/              # run tests
 - `pkm/mcts/` — determinization + IS-MCTS over the search API
 - `pkm/strategies/` — future strategy implementations
 - `main.py` — battle runner entry point
-- `deck.csv` — sample deck (60 card IDs, one per line)
+- `deck/` — deck files (CSV: one card ID per line; JSON: id/name/count)
+- `deck/00_basic.csv` — default 60-card deck
 - `submit.sh` — creates `submission.tar.gz` for Kaggle
 - `docs/RL_PLAN.md` — RL self-play design (Phase 1 PPO, Phase 2 IS-MCTS/ExIt)
 

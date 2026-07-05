@@ -12,8 +12,11 @@ mkdir -p submission
 # Copy main.py
 cp main.py submission/
 
-# Copy deck.csv
-cp deck.csv submission/
+# Generate flat deck.csv from deck directory for kaggle
+python -c "
+from pkm.data import Deck
+Deck.from_csv('deck/00_basic.csv').to_csv('submission/deck.csv')
+"
 
 # Copy agent code
 cp -r pkm submission/

@@ -21,6 +21,18 @@ fmt:
 test:
     python -m pytest tests/ -q
 
+# list available decks
+deck:
+    python -m pkm.cli_deck list
+
+# show deck contents
+deck-show name="00_basic":
+    python -m pkm.cli_deck show {{name}}
+
+# convert deck format
+deck-convert name="00_basic" to="json":
+    python -m pkm.cli_deck convert {{name}} --to {{to}}
+
 # --- training ---------------------------------------------------------------
 
 # Phase 1: PPO self-play from scratch
