@@ -8,7 +8,9 @@ dependencies = [
     "kaggle-environments>=1.30.2",
     "numpy>=2.0",
     "pandas>=2.0",
+    "rice>=0.4",
     "torch>=2.12.1",
+    "typer>=0.26.8",
 ]
 
 [dependency-groups]

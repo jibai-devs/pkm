@@ -11,7 +11,7 @@ The JSON log is kaggle-environments' full episode record (per-step
 observations, actions, rewards); reload it with json.load for analysis.
 """
 
-import argparse
+import typer
 import json
 from typing import Callable
 
@@ -98,32 +98,26 @@ def win_rate(
     return score / games
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--p0", default="neural", help="random|neural|mcts")
-    parser.add_argument("--p1", default="random", help="random|neural|mcts")
-    parser.add_argument("--deck", default="deck.csv")
-    parser.add_argument("--weights", default=None, help="path to policy .npz")
-    parser.add_argument("--html", default="result.html")
-    parser.add_argument("--replay", default="replay.json")
-    parser.add_argument(
-        "--games", type=int, default=1, help=">1: win-rate mode, no replay"
-    )
-    args = parser.parse_args()
-    if args.games > 1:
-        win_rate(
-            args.p0, args.p1, args.games, deck_path=args.deck, weights=args.weights
-        )
+app = typer.Typer(help=__doc__)
+
+
+@app.command()
+def main(
+    p0: str = typer.Option("neural", help="player 0 agent: random|neural|mcts"),
+    p1: str = typer.Option("random", help="player 1 agent: random|neural|mcts"),
+    deck: str = typer.Option("deck.csv", help="path to deck CSV"),
+    weights: str | None = typer.Option(None, help="path to policy .npz"),
+    html: str = typer.Option("result.html", help="HTML replay output path"),
+    replay: str = typer.Option("replay.json", help="JSON replay output path"),
+    games: int = typer.Option(1, help=">1: win-rate mode, no replay"),
+) -> None:
+    if games > 1:
+        win_rate(p0, p1, games, deck_path=deck, weights=weights)
     else:
         play_match(
-            args.p0,
-            args.p1,
-            deck_path=args.deck,
-            weights=args.weights,
-            html_path=args.html,
-            replay_path=args.replay,
+            p0, p1, deck_path=deck, weights=weights, html_path=html, replay_path=replay
         )
 
 
 if __name__ == "__main__":
-    main()
+    app()

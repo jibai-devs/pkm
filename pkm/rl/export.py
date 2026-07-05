@@ -24,11 +24,16 @@ def export_checkpoint(checkpoint_path: str, out_path: str) -> None:
 
 
 if __name__ == "__main__":
-    import argparse
+    import typer
 
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("checkpoint", help="path to .pt state_dict")
-    parser.add_argument("out", help="output .npz path (e.g. pkm/policy.npz)")
-    args = parser.parse_args()
-    export_checkpoint(args.checkpoint, args.out)
-    print(f"exported {args.checkpoint} -> {args.out}")
+    app = typer.Typer(help=__doc__)
+
+    @app.command()
+    def main(
+        checkpoint: str = typer.Argument(help="path to .pt state_dict"),
+        out: str = typer.Argument(help="output .npz path (e.g. pkm/policy.npz)"),
+    ) -> None:
+        export_checkpoint(checkpoint, out)
+        typer.echo(f"exported {checkpoint} -> {out}")
+
+    app()

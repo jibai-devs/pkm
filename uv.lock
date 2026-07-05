@@ -646,6 +646,15 @@ wheels = [
 ]
 
 [[package]]
+name = "docutils"
+version = "0.14"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/84/f4/5771e41fdf52aabebbadecc9381d11dea0fa34e4759b4071244fa094804c/docutils-0.14.tar.gz", hash = "sha256:51e64ef2ebfb29cae1faa133b3710143496eca21c530f3f71424d77687764274", size = 1727105, upload-time = "2017-08-03T10:06:29.318Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/36/fa/08e9e6e0e3cbd1d362c3bbee8d01d0aedb2155c4ac112b19ef3cae8eed8d/docutils-0.14-py3-none-any.whl", hash = "sha256:02aec4bd92ab067f6ff27a38a38a41173bf01bed8f89157768c1573f53e474a6", size = 543213, upload-time = "2017-08-03T10:18:47.603Z" },
+]
+
+[[package]]
 name = "etils"
 version = "1.14.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1910,6 +1919,27 @@ wheels = [
 ]
 
 [[package]]
+name = "marshmallow"
+version = "2.15.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/97/e5/03fdf9acc5f8524a95563e7aae15e7a295fc869f4ab1671cb38cb439606e/marshmallow-2.15.3.tar.gz", hash = "sha256:171f409d48b44786b7df2793cbd7f1a9062f0fe2c14d547da536b5010f671ade", size = 145730, upload-time = "2018-05-20T17:54:14.182Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bd/c0/b176d4bcb59e973e23029573785ca3dd3a908dac26915f67004dd4ffc356/marshmallow-2.15.3-py2.py3-none-any.whl", hash = "sha256:c231784b5a5d2b26e50c90f3038004a3552ec27658cde6e0a5a7279d0c5a8e26", size = 44469, upload-time = "2018-05-20T17:54:12.722Z" },
+]
+
+[[package]]
+name = "marshmallow-enum"
+version = "1.4.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "marshmallow" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/01/31/f65b2b7c17ab4468726090c2cd0f7cd675e8d1743a2a39a936890bb8d865/marshmallow-enum-1.4.1.tar.gz", hash = "sha256:022400a2196ba55d5e6de67e6e4991e232190d25cbe26efa302c2e889e55ebf1", size = 3822, upload-time = "2017-08-29T04:28:13.481Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8b/c7/9e12f3947830d9d3c51747b6801767a33e5945596c1bcb9def2c2d365ae8/marshmallow_enum-1.4.1-py2.py3-none-any.whl", hash = "sha256:f5ad5dd187bbdca3165159db34e7b26f8a16e75e44aee5fc648ef18a2bd37b42", size = 4838, upload-time = "2017-08-29T04:28:12.24Z" },
+]
+
+[[package]]
 name = "matplotlib"
 version = "3.11.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2713,8 +2743,10 @@ dependencies = [
     { name = "kaggle-environments" },
     { name = "numpy" },
     { name = "pandas" },
+    { name = "rice" },
     { name = "torch", version = "2.12.1", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'darwin'" },
     { name = "torch", version = "2.12.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform != 'darwin'" },
+    { name = "typer" },
 ]
 
 [package.dev-dependencies]
@@ -2733,7 +2765,9 @@ requires-dist = [
     { name = "kaggle-environments", specifier = ">=1.30.2" },
     { name = "numpy", specifier = ">=2.0" },
     { name = "pandas", specifier = ">=2.0" },
+    { name = "rice", specifier = ">=0.4" },
     { name = "torch", specifier = ">=2.12.1", index = "https://download.pytorch.org/whl/cpu" },
+    { name = "typer", specifier = ">=0.26.8" },
 ]
 
 [package.metadata.requires-dev]
@@ -3532,6 +3566,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/2c/06/37c1a5557acf449e8e406a830a05bf885ac47d33270aec454ef78675008d/rfc3987_syntax-1.1.0.tar.gz", hash = "sha256:717a62cbf33cffdd16dfa3a497d81ce48a660ea691b1ddd7be710c22f00b4a0d", size = 14239, upload-time = "2025-07-18T01:05:05.015Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7e/71/44ce230e1b7fadd372515a97e32a83011f906ddded8d03e3c6aafbdedbb7/rfc3987_syntax-1.1.0-py3-none-any.whl", hash = "sha256:6c3d97604e4c5ce9f714898e05401a0445a641cfa276432b0a648c80856f6a3f", size = 8046, upload-time = "2025-07-18T01:05:03.843Z" },
+]
+
+[[package]]
+name = "rice"
+version = "0.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "docutils" },
+    { name = "marshmallow" },
+    { name = "marshmallow-enum" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/90/32/afc90f88bce4549525c9402f662f525e47abc317fe13be76761683328660/rice-0.4-py3-none-any.whl", hash = "sha256:2e2c47f0e121997f896f27cf6ab9edfe9a404cb936bf3bdfdeb5899377df74b6", size = 7431, upload-time = "2018-10-11T16:47:00.087Z" },
 ]
 
 [[package]]

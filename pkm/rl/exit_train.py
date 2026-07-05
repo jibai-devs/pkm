@@ -9,7 +9,7 @@ Usage:
     python -m pkm.rl.exit_train --iterations 3 --games 4 --sims 24 --dets 2
 """
 
-import argparse
+import typer
 import csv
 import random
 import time
@@ -283,34 +283,36 @@ def train(
     return model
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--deck", default="deck.csv")
-    parser.add_argument("--iterations", type=int, default=3)
-    parser.add_argument("--games", type=int, default=4)
-    parser.add_argument("--sims", type=int, default=24)
-    parser.add_argument("--dets", type=int, default=2)
-    parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--init", default="checkpoints/ppo_latest.pt")
-    parser.add_argument("--checkpoint-dir", default="checkpoints")
-    parser.add_argument("--metrics", default="metrics/exit_train.csv")
-    parser.add_argument("--log-dir", default="runs/exit")
-    parser.add_argument("--seed", type=int, default=0)
-    args = parser.parse_args()
+def main(
+    deck: str = typer.Option("deck.csv", help="path to deck CSV"),
+    iterations: int = typer.Option(3, help="number of training iterations"),
+    games: int = typer.Option(4, help="games per iteration"),
+    sims: int = typer.Option(24, help="MCTS simulations per move"),
+    dets: int = typer.Option(2, help="MCTS determinizations"),
+    lr: float = typer.Option(1e-4, help="learning rate"),
+    init: str = typer.Option("checkpoints/ppo_latest.pt", help="initial checkpoint"),
+    checkpoint_dir: str = typer.Option("checkpoints", help="checkpoint directory"),
+    metrics: str = typer.Option("metrics/exit_train.csv", help="metrics CSV path"),
+    log_dir: str = typer.Option("runs/exit", help="TensorBoard log directory"),
+    seed: int = typer.Option(0, help="random seed"),
+) -> None:
     train(
-        deck_path=args.deck,
-        iterations=args.iterations,
-        games_per_iter=args.games,
-        n_simulations=args.sims,
-        n_determinizations=args.dets,
-        lr=args.lr,
-        init_checkpoint=args.init,
-        checkpoint_dir=args.checkpoint_dir,
-        metrics_path=args.metrics,
-        log_dir=args.log_dir,
-        seed=args.seed,
+        deck_path=deck,
+        iterations=iterations,
+        games_per_iter=games,
+        n_simulations=sims,
+        n_determinizations=dets,
+        lr=lr,
+        init_checkpoint=init,
+        checkpoint_dir=checkpoint_dir,
+        metrics_path=metrics,
+        log_dir=log_dir,
+        seed=seed,
     )
 
 
+app = typer.Typer(help=__doc__)
+app.command()(main)
+
 if __name__ == "__main__":
-    main()
+    app()
