@@ -1,0 +1,17 @@
+[project]
+name = "pkm-new"
+version = "0.1.0"
+description = "Pokémon TCG AI Battle Challenge - Simulation agent"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "kaggle-environments>=1.14.10",
+    "numpy>=2.0",
+    "pandas>=2.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+]
