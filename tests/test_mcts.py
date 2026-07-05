@@ -20,7 +20,7 @@ from pkm.search import search_begin, search_end, search_step
 
 def _mid_game_obs(steps: int = 25):
     random.seed(4)
-    deck = Deck.from_csv("deck.csv").card_ids
+    deck = Deck.from_csv("deck/00_basic.csv").card_ids
     obs, _ = battle_start(deck, deck)
     for _ in range(steps):
         if obs["current"]["result"] >= 0:

@@ -38,7 +38,7 @@ def make_agent_by_name(
 def play_match(
     p0: str,
     p1: str,
-    deck_path: str = "deck.csv",
+    deck_path: str = "deck/00_basic.csv",
     weights: str | None = None,
     html_path: str | None = "result.html",
     replay_path: str | None = "replay.json",
@@ -75,7 +75,7 @@ def win_rate(
     p0: str,
     p1: str,
     games: int,
-    deck_path: str = "deck.csv",
+    deck_path: str = "deck/00_basic.csv",
     weights: str | None = None,
 ) -> float:
     """Head-to-head win rate for p0's agent type, alternating sides."""
@@ -105,7 +105,7 @@ app = typer.Typer(help=__doc__)
 def main(
     p0: str = typer.Option("neural", help="player 0 agent: random|neural|mcts"),
     p1: str = typer.Option("random", help="player 1 agent: random|neural|mcts"),
-    deck: str = typer.Option("deck.csv", help="path to deck CSV"),
+    deck: str = typer.Option("deck/00_basic.csv", help="path to deck CSV"),
     weights: str | None = typer.Option(None, help="path to policy .npz"),
     html: str = typer.Option("result.html", help="HTML replay output path"),
     replay: str = typer.Option("replay.json", help="JSON replay output path"),

@@ -6,7 +6,7 @@ from pkm.agents import make_random_agent
 from pkm.data import Deck, get_card_data, get_attack_data
 
 
-def run_battle(deck_path: str = "deck.csv", render: bool = True):
+def run_battle(deck_path: str = "deck/00_basic.csv", render: bool = True):
     """Run a battle between two random agents."""
     deck = Deck.from_csv(deck_path)
     agent = make_random_agent(deck.card_ids)
@@ -31,7 +31,7 @@ def main():
     print(f"Available cards: {len(cards)}")
     print(f"Available attacks: {len(attacks)}")
 
-    deck = Deck.from_csv("deck.csv")
+    deck = Deck.from_csv("deck/00_basic.csv")
     print(f"Deck loaded: {deck}")
 
     env = run_battle()

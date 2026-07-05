@@ -27,7 +27,7 @@ from pkm.rl.rollout import TorchPolicy, play_game
 def _collect_decisions(n_decisions: int = 40) -> list:
     """Advance a random game and encode the first non-trivial decisions."""
     random.seed(0)
-    deck = Deck.from_csv("deck.csv").card_ids
+    deck = Deck.from_csv("deck/00_basic.csv").card_ids
     obs, _ = battle_start(deck, deck)
     out = []
     try:
@@ -60,7 +60,7 @@ def test_act_evaluate_consistency():
     random.seed(0)
     model = PolicyValueNet()
     model.eval()
-    deck = Deck.from_csv("deck.csv").card_ids
+    deck = Deck.from_csv("deck/00_basic.csv").card_ids
     result = play_game((TorchPolicy(model), TorchPolicy(model)), (deck, deck))
     decisions = (result.trajectories[0] + result.trajectories[1])[:80]
     assert len(decisions) > 10
@@ -77,7 +77,7 @@ def test_compute_returns_terminal():
     random.seed(0)
     model = PolicyValueNet()
     model.eval()
-    deck = Deck.from_csv("deck.csv").card_ids
+    deck = Deck.from_csv("deck/00_basic.csv").card_ids
     result = play_game((TorchPolicy(model), TorchPolicy(model)), (deck, deck))
     traj = result.trajectories[0]
     compute_returns(traj, result.rewards[0])

@@ -56,7 +56,7 @@ CSV_FIELDS = [
 
 
 def train(
-    deck_path: str = "deck.csv",
+    deck_path: str = "deck/00_basic.csv",
     iterations: int = 50,
     games_per_iter: int = 8,
     lr: float = 3e-4,
@@ -204,7 +204,7 @@ def train(
 
 
 def main(
-    deck: str = typer.Option("deck.csv", help="path to deck CSV"),
+    deck: str = typer.Option("deck/00_basic.csv", help="path to deck CSV"),
     iterations: int = typer.Option(50, help="number of training iterations"),
     games: int = typer.Option(8, help="games per iteration"),
     lr: float = typer.Option(3e-4, help="learning rate"),
