@@ -1,5 +1,31 @@
 # Agents
 
+## Current Progress (as of Jul 2026)
+
+| Phase | Status | Details |
+|-------|--------|---------|
+| Phase 1 — PPO self-play | **Done (200 iters)** | 80% win rate vs random. Checkpoint: `checkpoints/ppo_latest.pt` |
+| Phase 2 — Expert iteration | **Started (1 run)** | MCTS self-play + distillation. Checkpoint: `checkpoints/exit_latest.pt` |
+| Metrics & monitoring | **Done** | CSV logging + Plotly notebook |
+| Kaggle submission | **Ready** | `just submit` exports weights + bundles |
+
+### What's Working
+- Pointer/scoring policy network handles variable-length action spaces
+- PPO self-play with checkpoint pool opponent sampling
+- Potential-based reward shaping (prize differential)
+- IS-MCTS with determinization for imperfect information
+- Expert iteration (MCTS targets -> network training)
+- Numpy-only inference for Kaggle submission (no torch at eval time)
+- CSV metric logging for all training runs
+
+### What's Next
+1. **Hyperparameter sweep** — LR, games/iter, pool size, eval frequency
+2. **Longer exit training** — run 50+ iters of expert iteration from the PPO baseline
+3. **MCTS vs neural eval** — measure if MCTS agent beats raw policy head-to-head
+4. **Larger model** — wider MLP, more embedding dims, attention over options
+5. **Multi-deck training** — sample opponent decks from a pool for robustness
+6. **Submission** — `just submit` and check Kaggle leaderboard
+
 ## Build & Run
 ```bash
 uv sync                    # install deps
@@ -42,6 +68,26 @@ python -m pkm.rl.play --p0 mcts --p1 neural             # replay -> result.html 
 ```
 - Checkpoints land in `checkpoints/`; `pkm/policy.npz` is bundled in the submission (no torch needed at inference).
 - `pkm/search.py` signatures were recovered from the official competition `cg/api.py` (SearchBegin needs `lib.AgentStart()` handle + the observation's `search_begin_input`, returns ApiResult JSON; search ids are int64).
+
+## Metrics & Monitoring
+Training logs are saved to CSV during training:
+- `metrics/ppo_train.csv` — PPO self-play (iter, wins, losses, pi_loss, v_loss, entropy, clip_frac, eval_win_rate)
+- `metrics/exit_train.csv` — expert iteration (iter, pi_loss, v_loss)
+
+Run the Plotly notebook for interactive charts:
+```bash
+cd notebooks && jupyter notebook training_monitor.ipynb
+# or: jupyter notebook notebooks/training_monitor.ipynb
+```
+
+## Custom Agents
+Agents are plain functions with signature `def agent(obs: dict) -> list[int]`.
+To add your own agent:
+1. Create `pkm/agents/your_agent.py` with a `make_your_agent(deck, **kwargs)` factory
+2. Add a branch in `pkm/rl/play.py:make_agent_by_name()`
+3. Run: `just play your_agent neural` or `just eval your_agent neural 30`
+
+The `make_agent(deck, strategy_fn)` base factory in `pkm/agents/base.py` handles deck submission boilerplate — your strategy_fn only needs to handle `obs["select"] is not None`.
 
 ## cabt Engine API
 - `from kaggle_environments.envs.cabt.cg.sim import lib` → `lib.AllCard()`, `lib.AllAttack()`
