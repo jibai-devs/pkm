@@ -1,5 +1,7 @@
 # Agents
 
+**Reminder: Update this file whenever something significant changes** — new training results, new agents, architecture changes, submission status, etc. Stale docs are worse than no docs.
+
 ## Current Progress (as of Jul 2026)
 
 | Phase | Status | Details |
@@ -74,10 +76,16 @@ Training logs are saved to CSV during training:
 - `metrics/ppo_train.csv` — PPO self-play (iter, wins, losses, pi_loss, v_loss, entropy, clip_frac, eval_win_rate)
 - `metrics/exit_train.csv` — expert iteration (iter, pi_loss, v_loss)
 
-Run the Plotly notebook for interactive charts:
+TensorBoard (live dashboards, run comparison):
 ```bash
-cd notebooks && jupyter notebook training_monitor.ipynb
-# or: jupyter notebook notebooks/training_monitor.ipynb
+tensorboard --logdir=runs          # opens http://localhost:6006
+# Logs: runs/ppo/ (PPO), runs/exit/ (expert iteration)
+# Compare runs: python -m pkm.rl.train --log-dir runs/lr_1e-3
+```
+
+Plotly notebook (interactive charts):
+```bash
+jupyter notebook notebooks/training_monitor.ipynb
 ```
 
 ## Custom Agents
