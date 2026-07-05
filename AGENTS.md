@@ -45,17 +45,19 @@ pytest tests/              # run tests
 
 ## Project Structure
 - `pkm/data/card_data.py` — card/attack metadata from cabt C library
-- `pkm/data/deck.py` — Deck class (CSV load/save, 60-card validation)
+- `pkm/data/deck.py` — Deck class (CSV/JSON load/save, 60-card validation)
 - `pkm/agents/base.py` — `make_agent(deck, strategy_fn)` factory
 - `pkm/agents/random_agent.py` — random legal move agent
 - `pkm/agents/neural_agent.py` — greedy trained-policy agent (numpy inference, no torch)
 - `pkm/search.py` — correct bindings to the engine's SearchBegin/SearchStep API
 - `pkm/rl/` — encoders, pointer-style policy/value net, PPO self-play, expert iteration
+- `pkm/cli_deck.py` — deck management CLI (list, show, convert)
 - `pkm/mcts/` — determinization + IS-MCTS over the search API
 - `pkm/strategies/` — future strategy implementations
 - `main.py` — battle runner entry point
 - `deck/` — deck files (CSV: one card ID per line; JSON: id/name/count)
 - `deck/00_basic.csv` — default 60-card deck
+- `deck/01_psychic.csv` — Psychic Toolbox (Slowking + Mega Kangaskhan ex)
 - `submit.sh` — creates `submission.tar.gz` for Kaggle
 - `docs/RL_PLAN.md` — RL self-play design (Phase 1 PPO, Phase 2 IS-MCTS/ExIt)
 
@@ -72,6 +74,19 @@ python -m pkm.rl.play --p0 mcts --p1 neural             # replay -> result.html 
 ```
 - Checkpoints land in `checkpoints/`; `pkm/policy.npz` is bundled in the submission (no torch needed at inference).
 - `pkm/search.py` signatures were recovered from the official competition `cg/api.py` (SearchBegin needs `lib.AgentStart()` handle + the observation's `search_begin_input`, returns ApiResult JSON; search ids are int64).
+
+## Deck Management
+```bash
+just deck                           # list available decks
+just deck-show 01_psychic           # show deck contents with card names
+just deck-convert 01_psychic json   # convert CSV -> JSON format
+```
+Use `--deck` to specify a non-default deck for training or play:
+```bash
+just play neural random deck/01_psychic.csv
+just eval neural random 30 deck/01_psychic.csv
+just train 200 16 deck/01_psychic.csv
+```
 
 ## Metrics & Monitoring
 Training logs are saved to CSV during training:
