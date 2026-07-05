@@ -54,22 +54,24 @@ An "agent name" resolves to:
 - [x] Migrated train.py, exit_train.py, play.py, export.py from argparse to typer
 - [x] All `--help` outputs now use typer+rich formatting
 - [x] Justfile commands work unchanged (same `--flag` syntax)
+- [x] `--agent` flag on train/exit_train/play/export for profile-based workflows
 - [ ] `pkm/cli_profile.py` — `profile create/list/info` subcommands
 - [ ] Rich output: progress bars for training, tables for eval results, colored status
 
 ### 2. Agent profile system
-- [ ] `pkm/profile.py` — Profile class (load/save YAML, resolve agent)
+- [x] `pkm/agents/profile.py` — AgentProfile class (resolve agent name to paths)
+- [x] `agents/` directory creation logic
+- [x] Profile-aware `--agent` flag on train/exit_train/play/export
 - [ ] Profile YAML schema: strategy, deck_path, created_at, notes
-- [ ] `agents/` directory creation logic
 - [ ] Checkpoint naming: `<profile_name>_MM_DD_HH_MM_SS.pt`
 - [ ] Symlink management for `latest.pt`
 - [ ] Profile-aware `make_agent_by_name()` that resolves profiles
 
 ### 3. Link results to agents
-- [ ] Metrics CSV goes into `agents/<name>/metrics/`
+- [x] Metrics CSV goes into `agents/<name>/metrics/`
+- [x] TensorBoard logs go into `agents/<name>/runs/`
 - [ ] Replays go into `agents/<name>/replays/`
 - [ ] Eval results logged to `agents/<name>/metrics/eval.csv`
-- [ ] Training results logged to `agents/<name>/metrics/train.csv`
 
 ### 4. Per-player deck support
 - [ ] `play.py` accepts per-player deck paths
@@ -91,7 +93,7 @@ An "agent name" resolves to:
 - [x] Deck CLI (`pkm/cli_deck.py`): list/show/convert subcommands
 
 ### 8. Clean up
-- [ ] Update AGENTS.md with new architecture
-- [ ] Update justfile recipes
-- [ ] Update submit.sh to work with profile system
+- [x] Update AGENTS.md with new architecture
+- [x] Update justfile recipes
+- [x] Update submit.sh to work with profile system
 - [ ] Migration: create profile from existing checkpoints + deck.csv
