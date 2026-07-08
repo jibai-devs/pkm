@@ -57,8 +57,9 @@ pytest tests/              # run tests
 - `pkm/strategies/` — future strategy implementations
 - `main.py` — battle runner entry point
 - `deck/` — deck files (CSV: one card ID per line; JSON: id/name/count)
-- `deck/00_basic.csv` — default 60-card deck
+- `deck/00_basic.csv` — starter 60-card deck
 - `deck/01_psychic.csv` — Psychic Toolbox (Slowking + Mega Kangaskhan ex)
+- `deck/02_dragapult.csv` — **default deck**: Dragapult ex / Dusknoir (Psychic/Dark)
 - `submit.sh` — creates `submission.tar.gz` for Kaggle
 - `docs/RL_PLAN.md` — RL self-play design (Phase 1 PPO, Phase 2 IS-MCTS/ExIt)
 

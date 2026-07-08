@@ -192,7 +192,7 @@ EXIT_CSV_FIELDS = [
 
 
 def train(
-    deck_path: str = "deck/00_basic.csv",
+    deck_path: str = "deck/02_dragapult.csv",
     iterations: int = 3,
     games_per_iter: int = 4,
     n_simulations: int = 24,
@@ -287,7 +287,7 @@ def train(
 
 def main(
     agent: str | None = typer.Option(None, help="agent profile name (e.g. 00_basic, 01_psychic)"),
-    deck: str = typer.Option("deck/00_basic.csv", help="path to deck CSV"),
+    deck: str = typer.Option("deck/02_dragapult.csv", help="path to deck CSV"),
     iterations: int = typer.Option(3, help="number of training iterations"),
     games: int = typer.Option(4, help="games per iteration"),
     sims: int = typer.Option(24, help="MCTS simulations per move"),
