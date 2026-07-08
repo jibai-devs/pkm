@@ -34,7 +34,7 @@
 uv sync                    # install deps
 python main.py             # run a battle
 ./submit.sh                # create Kaggle submission bundle
-python -m pkm.cli_deck list  # list decks
+pkm deck list                # list decks
 ```
 
 ## Lint & Typecheck

@@ -1,9 +1,9 @@
 """Deck management CLI.
 
 Usage:
-    python -m pkm.cli_deck list
-    python -m pkm.cli_deck show 00_basic
-    python -m pkm.cli_deck convert 00_basic --to json
+    pkm deck list
+    pkm deck show 00_basic
+    pkm deck convert 00_basic --to json
 """
 
 import json

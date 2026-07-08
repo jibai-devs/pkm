@@ -6,8 +6,8 @@ trained toward the search's visit distribution (policy) and the game outcome
 targets.
 
 Usage:
-    python -m pkm.rl.exit_train --iterations 3 --games 4 --sims 24 --dets 2
-    python -m pkm.rl.exit_train --agent 01_psychic --iterations 5
+    pkm exit-train --iterations 3 --games 4 --sims 24 --dets 2
+    pkm exit-train --agent 01_psychic --iterations 5
 """
 
 import typer
@@ -285,6 +285,10 @@ def train(
     return model
 
 
+app = typer.Typer(help=__doc__)
+
+
+@app.command()
 def main(
     agent: str | None = typer.Option(None, help="agent profile name (e.g. 00_basic, 01_psychic)"),
     deck: str = typer.Option("deck/02_dragapult.csv", help="path to deck CSV"),
@@ -322,9 +326,6 @@ def main(
         seed=seed,
     )
 
-
-app = typer.Typer(help=__doc__)
-app.command()(main)
 
 if __name__ == "__main__":
     app()

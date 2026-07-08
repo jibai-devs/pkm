@@ -1,10 +1,10 @@
 """Play a match between two named agents; save an HTML replay + JSON log.
 
 Usage:
-    python -m pkm.rl.play --p0 neural --p1 random
-    python -m pkm.rl.play --p0 mcts --p1 neural --html mcts_vs_neural.html
-    python -m pkm.rl.play --p0 neural --p1 random --games 20   # win-rate only
-    python -m pkm.rl.play --agent 01_psychic --p0 neural --p1 random
+    pkm play --p0 neural --p1 random
+    pkm play --p0 mcts --p1 neural --html mcts_vs_neural.html
+    pkm play --p0 neural --p1 random --games 20   # win-rate only
+    pkm play --agent 01_psychic --p0 neural --p1 random
 
 Agents: random | neural (greedy policy, needs pkm/policy.npz) | mcts
 The HTML file is self-contained — open it in a browser to watch the match.
