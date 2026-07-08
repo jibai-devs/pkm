@@ -62,6 +62,13 @@ pytest tests/              # run tests
 - `deck/02_dragapult.csv` — **default deck**: Dragapult ex / Dusknoir (Psychic/Dark)
 - `submit.sh` — creates `submission.tar.gz` for Kaggle
 - `docs/RL_PLAN.md` — RL self-play design (Phase 1 PPO, Phase 2 IS-MCTS/ExIt)
+- `replay/` — replay viewer + data
+  - `replay/02_vite_web_app/` — Bun + Vite replay viewer (vanilla JS)
+  - `replay/05_vite_react_app/` — Bun + Vite + React/TS replay viewer
+  - `replay/replay.json` — sample replay log
+  - `replay/cards.json` — card database with attack metadata
+  - `replay/requirements.md` — viewer requirements & data format reference
+  - `replay/ideas_and_recommendations.md` — approach options & design notes
 
 ## RL Training
 Prefer the `justfile` (run `just` to list recipes): `just train` / `just resume`
@@ -76,6 +83,12 @@ python -m pkm.rl.play --p0 mcts --p1 neural             # replay -> result.html 
 ```
 - Checkpoints land in `checkpoints/`; `pkm/policy.npz` is bundled in the submission (no torch needed at inference).
 - `pkm/search.py` signatures were recovered from the official competition `cg/api.py` (SearchBegin needs `lib.AgentStart()` handle + the observation's `search_begin_input`, returns ApiResult JSON; search ids are int64).
+
+## Replay Viewer
+```bash
+just replay                          # start vanilla-JS viewer (Bun + Vite)
+just replay-react                    # start React/TS viewer on :5175
+```
 
 ## Deck Management
 ```bash

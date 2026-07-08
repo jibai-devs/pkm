@@ -79,6 +79,14 @@ eval p0="neural" p1="random" games="30" agent="02_dragapult":
 watch:
     xdg-open result.html
 
+# start the replay viewer dev server (bun + vite)
+replay:
+    cd replay/02_vite_web_app && bun run dev
+
+# start the React replay viewer dev server (bun + vite + react) on :5175
+replay-react:
+    cd replay/05_vite_react_app && bun run dev
+
 # --- submission ---------------------------------------------------------------
 
 # export freshest weights and build submission.tar.gz
