@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Board } from "./components/Board";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { DiffPanel } from "./components/DiffPanel";
@@ -7,31 +7,67 @@ import { StatsPanel } from "./components/StatsPanel";
 import { Timeline } from "./components/Timeline";
 import { CardDb, loadCardDb } from "./data/cardDb";
 import { computeDiff } from "./data/diff";
-import { loadReplay } from "./data/loadReplay";
-import { computeStats, type StepStats } from "./data/stats";
+import {
+  loadReplay,
+  readReplayFile,
+  resolveCardsUrl,
+  resolveReplayUrl,
+} from "./data/loadReplay";
+import { computeStats } from "./data/stats";
 import { mergeStep } from "./data/stepState";
 import type { Replay } from "./data/types";
 import { usePlayback } from "./state/usePlayback";
 
-interface Loaded {
-  replay: Replay;
-  db: CardDb;
-  stats: StepStats[];
-}
-
 export default function App() {
-  const [data, setData] = useState<Loaded | null>(null);
+  const [db, setDb] = useState<CardDb | null>(null);
+  const [replay, setReplay] = useState<Replay | null>(null);
+  const [source, setSource] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
 
+  // Initial load: cards DB (constant) + the resolved replay URL.
   useEffect(() => {
-    Promise.all([loadReplay(), loadCardDb()])
-      .then(([replay, db]) => setData({ replay, db, stats: computeStats(replay) }))
+    const url = resolveReplayUrl();
+    Promise.all([loadReplay(url), loadCardDb(resolveCardsUrl())])
+      .then(([r, d]) => {
+        setDb(d);
+        setReplay(r);
+        setSource(url.split("/").pop() || url);
+      })
       .catch((e) => setError(String(e)));
   }, []);
 
-  if (error) return <div className="fatal">Failed to load: {error}</div>;
-  if (!data) return <div className="loading">Loading replay…</div>;
-  return <Viewer {...data} />;
+  // Swap in a user-picked local file (any .json on disk).
+  const loadFile = useCallback(async (file: File) => {
+    try {
+      const r = await readReplayFile(file);
+      setReplay(r);
+      setSource(file.name);
+      setError(null);
+    } catch (e) {
+      setError(`${file.name}: ${e instanceof Error ? e.message : e}`);
+    }
+  }, []);
+
+  if (error && !replay) return <div className="fatal">Failed to load: {error}</div>;
+  if (!db || !replay) return <div className="loading">Loading replay…</div>;
+  return (
+    <Viewer
+      key={source} // remount -> reset playback when the replay changes
+      replay={replay}
+      db={db}
+      source={source}
+      error={error}
+      onPickFile={loadFile}
+    />
+  );
+}
+
+interface ViewerProps {
+  replay: Replay;
+  db: CardDb;
+  source: string;
+  error: string | null;
+  onPickFile: (file: File) => void;
 }
 
 function initialStep(): number {
@@ -40,15 +76,9 @@ function initialStep(): number {
   return Number.isFinite(n) ? n - 1 : 0; // ?step is 1-based to match the UI
 }
 
-function Viewer({ replay, db, stats }: Loaded) {
+function Viewer({ replay, db, source, error, onPickFile }: ViewerProps) {
   const pb = usePlayback(replay.steps.length, initialStep());
-
-  // Keep ?step= in sync so the current position is shareable / survives reload.
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    url.searchParams.set("step", String(pb.index + 1));
-    window.history.replaceState(null, "", url);
-  }, [pb.index]);
+  const stats = useMemo(() => computeStats(replay), [replay]);
 
   const step = useMemo(() => mergeStep(replay, pb.index), [replay, pb.index]);
   const prev = useMemo(
@@ -56,6 +86,13 @@ function Viewer({ replay, db, stats }: Loaded) {
     [replay, pb.index],
   );
   const diff = useMemo(() => computeDiff(prev, step), [prev, step]);
+
+  // Keep ?step= in sync so the current position is shareable / survives reload.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("step", String(pb.index + 1));
+    window.history.replaceState(null, "", url);
+  }, [pb.index]);
 
   // Keyboard: ← → step, space play/pause, home/end.
   useEffect(() => {
@@ -88,10 +125,27 @@ function Viewer({ replay, db, stats }: Loaded) {
     return () => window.removeEventListener("keydown", onKey);
   }, [pb]);
 
+  // Drag-and-drop a replay file anywhere on the app.
+  const [dragging, setDragging] = useState(false);
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) onPickFile(file);
+  };
+
   return (
-    <div className="app">
+    <div
+      className={`app ${dragging ? "dragging" : ""}`}
+      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={onDrop}
+    >
       <header className="topbar">
-        <h1>{replay.title || replay.name || "PTCG Replay"}</h1>
+        <div className="topline">
+          <h1>{replay.title || replay.name || "PTCG Replay"}</h1>
+          <FilePicker source={source} error={error} onPickFile={onPickFile} />
+        </div>
         <Timeline pb={pb} turn={step.current?.turn ?? null} />
       </header>
 
@@ -105,6 +159,40 @@ function Viewer({ replay, db, stats }: Loaded) {
           <DiffPanel diff={diff} />
         </aside>
       </main>
+
+      {dragging && <div className="drop-hint">Drop a replay .json to load it</div>}
+    </div>
+  );
+}
+
+function FilePicker({
+  source,
+  error,
+  onPickFile,
+}: {
+  source: string;
+  error: string | null;
+  onPickFile: (file: File) => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <div className="source">
+      <button className="file-btn" onClick={() => ref.current?.click()}>
+        Load replay…
+      </button>
+      <input
+        ref={ref}
+        type="file"
+        accept=".json,application/json"
+        hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onPickFile(f);
+          e.target.value = ""; // allow re-picking the same file
+        }}
+      />
+      <span className="source-name" title={source}>{source}</span>
+      {error && <span className="source-err">{error}</span>}
     </div>
   );
 }

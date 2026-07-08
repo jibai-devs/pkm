@@ -14,6 +14,20 @@ bun run dev          # http://localhost:5175
 `replay.json` and `cards.json` are symlinked into `public/` (from `../`), so the
 viewer loads them over `fetch` with no server. Fully offline.
 
+### Loading a different replay
+
+Precedence: **file picker > `?replay=` > `VITE_REPLAY` > default `/replay.json`**.
+
+- **File picker / drag-drop** — click "Load replay…" (top-right) or drop a `.json`
+  onto the page. Reads **any file on disk** via `FileReader`; works in the built
+  app too. The only option for files the dev server doesn't serve.
+- **Query param** — `?replay=/other.json` (or `?file=`). Shareable, no restart;
+  must be a path the dev server serves (under `public/`) or a URL.
+- **Env var (CLI)** — `VITE_REPLAY=/other.json bun run dev`, or
+  `just replay-react file=/other.json`. Same fetch-reachability constraint.
+  (Vite doesn't expose shell env to the client by default, so `vite.config.ts`
+  injects it via `define` as `__REPLAY_URL__`.) `VITE_CARDS` overrides the card DB.
+
 ## Features
 
 - Forward/back, play/pause, first/last, and a timeline scrubber (`Timeline`)

@@ -28,7 +28,23 @@ body {
   border-bottom: 1px solid var(--line);
   background: var(--panel);
 }
-.topbar h1 { margin: 0 0 6px; font-size: 15px; font-weight: 600; }
+.topbar h1 { margin: 0; font-size: 15px; font-weight: 600; }
+.topline { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+.source { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.file-btn {
+  background: var(--panel2); color: var(--text);
+  border: 1px solid var(--line); border-radius: 6px;
+  padding: 3px 10px; cursor: pointer; font-size: 12px;
+}
+.file-btn:hover { border-color: var(--accent); }
+.source-name { color: var(--muted); font-size: 12px; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.source-err { color: var(--p1); font-size: 12px; }
+.app.dragging { outline: 2px dashed var(--accent); outline-offset: -6px; }
+.drop-hint {
+  position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(10,12,16,.6); color: var(--accent); font-size: 20px; font-weight: 700;
+  pointer-events: none; z-index: 50;
+}
 .timeline { display: flex; flex-direction: column; gap: 6px; }
 .controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .controls button {

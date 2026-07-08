@@ -83,9 +83,10 @@ watch:
 replay:
     cd replay/02_vite_web_app && bun run dev
 
-# start the React replay viewer dev server (bun + vite + react) on :5175
-replay-react:
-    cd replay/05_vite_react_app && bun run dev
+# start the React replay viewer on :5175; optionally load another replay
+# (path served under its public/, or a URL). E.g. just replay-react file=/foo.json
+replay-react file="":
+    cd replay/05_vite_react_app && VITE_REPLAY={{file}} bun run dev
 
 # --- submission ---------------------------------------------------------------
 

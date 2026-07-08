@@ -88,7 +88,10 @@ python -m pkm.rl.play --p0 mcts --p1 neural             # replay -> result.html 
 ```bash
 just replay                          # start vanilla-JS viewer (Bun + Vite)
 just replay-react                    # start React/TS viewer on :5175
+just replay-react file=/foo.json     # ...loading a different replay (see its README)
 ```
+The React viewer can also load a replay via a `?replay=/foo.json` URL param or an
+in-app file picker / drag-drop (any local `.json`).
 
 ## Deck Management
 ```bash

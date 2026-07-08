@@ -75,7 +75,8 @@ export function PlayerBoard({ player, index, db, diff, active }: Props) {
         <>
           <div className="zone-label">Discard ({player.discard.length})</div>
           <div className="row discard-row">
-            {player.discard.map((c) => (
+            {/* newest discard on top, like a real discard pile */}
+            {player.discard.slice().reverse().map((c) => (
               <Card key={c.serial} card={c} db={db} variant="hand" {...cardProps(c.serial)} />
             ))}
           </div>
