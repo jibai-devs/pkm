@@ -33,6 +33,10 @@ deck-show name="02_dragapult":
 deck-convert name="02_dragapult" to="json":
     python -m pkm.cli_deck convert {{name}} --to {{to}}
 
+# dump all card data to JSON
+cards-dump out="cards.json":
+    python -m pkm.cli.cards dump {{out}}
+
 # list agent profiles
 agents:
     @ls -1 agents/ 2>/dev/null || echo "no agents/ directory"
