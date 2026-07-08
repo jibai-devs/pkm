@@ -70,6 +70,17 @@ export function PlayerBoard({ player, index, db, diff, active }: Props) {
           </div>
         </>
       )}
+
+      {player.discard.length > 0 && (
+        <>
+          <div className="zone-label">Discard ({player.discard.length})</div>
+          <div className="row discard-row">
+            {player.discard.map((c) => (
+              <Card key={c.serial} card={c} db={db} variant="hand" {...cardProps(c.serial)} />
+            ))}
+          </div>
+        </>
+      )}
     </section>
   );
 }

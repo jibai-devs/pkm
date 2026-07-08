@@ -29,9 +29,25 @@ function mergeCurrent(step: Step): CurrentState | null {
   const players = ([0, 1] as const).map((i) => {
     // player i as seen from their own POV entry (hand revealed), else fallback
     const own = povCurrents[i]?.players?.[i];
-    return own ?? base.players?.[i] ?? emptyPlayer();
+    return normalizePlayer(own ?? base.players?.[i]);
   }) as [PlayerState, PlayerState];
   return { ...base, players };
+}
+
+// Hidden zones come through as null (e.g. an opponent's hand, or a player whose
+// own POV `current` is null at the reset / terminal steps). Coerce every card
+// array to [] so the UI can trust the shape and never crash mid-playback.
+function normalizePlayer(p: PlayerState | undefined): PlayerState {
+  if (!p) return emptyPlayer();
+  return {
+    ...p,
+    active: p.active ?? [],
+    bench: p.bench ?? [],
+    hand: p.hand ?? [],
+    discard: p.discard ?? [],
+    prize: p.prize ?? [],
+    benchMax: p.benchMax ?? 5,
+  };
 }
 
 function emptyPlayer(): PlayerState {

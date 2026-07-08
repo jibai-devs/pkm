@@ -1,19 +1,26 @@
+import type { MouseEvent } from "react";
 import type { Playback } from "../state/usePlayback";
 
 const SPEEDS = [0.5, 1, 2, 4, 8];
 
 export function Timeline({ pb, turn }: { pb: Playback; turn: number | null }) {
   const pct = pb.count > 1 ? (pb.index / (pb.count - 1)) * 100 : 0;
+  // Run the action, then drop focus so the global Space/Enter shortcuts don't
+  // also re-activate this button.
+  const act = (fn: () => void) => (e: MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.blur();
+    fn();
+  };
   return (
     <div className="timeline">
       <div className="controls">
-        <button onClick={() => pb.setIndex(0)} title="First">⏮</button>
-        <button onClick={() => pb.step(-1)} title="Back">◀</button>
-        <button className="play" onClick={pb.togglePlay} title="Play/Pause">
+        <button onClick={act(() => pb.setIndex(0))} title="First (Home)">⏮</button>
+        <button onClick={act(() => pb.step(-1))} title="Back (←)">◀</button>
+        <button className="play" onClick={act(pb.togglePlay)} title="Play/Pause (Space)">
           {pb.playing ? "⏸" : "▶"}
         </button>
-        <button onClick={() => pb.step(1)} title="Forward">▶</button>
-        <button onClick={() => pb.setIndex(pb.count - 1)} title="Last">⏭</button>
+        <button onClick={act(() => pb.step(1))} title="Forward (→)">▶</button>
+        <button onClick={act(() => pb.setIndex(pb.count - 1))} title="Last (End)">⏭</button>
 
         <span className="step-label">
           Step {pb.index + 1}/{pb.count}

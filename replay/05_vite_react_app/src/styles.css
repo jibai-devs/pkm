@@ -75,6 +75,9 @@ body {
 .zone-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; margin: 6px 0 3px; }
 .row { display: flex; flex-wrap: wrap; gap: 6px; }
 .empty { color: var(--muted); padding: 6px; }
+.discard-row { max-height: 132px; overflow-y: auto; align-content: flex-start; }
+.discard-row .card { opacity: .68; min-width: 84px; }
+.discard-row .card:hover, .discard-row .card:focus { opacity: 1; }
 
 /* ---- cards ---- */
 .card {
@@ -177,3 +180,4 @@ body {
 .board-end { align-items: center; justify-content: center; }
 .end-card { text-align: center; margin: auto; padding: 40px; }
 .end-card h2 { margin: 0 0 8px; }
+.err-msg { color: var(--p1); font-family: ui-monospace, monospace; font-size: 12px; }

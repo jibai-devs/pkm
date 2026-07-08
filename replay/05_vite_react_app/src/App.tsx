@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Board } from "./components/Board";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { DiffPanel } from "./components/DiffPanel";
 import { LogPanel } from "./components/LogPanel";
 import { StatsPanel } from "./components/StatsPanel";
@@ -59,11 +60,29 @@ function Viewer({ replay, db, stats }: Loaded) {
   // Keyboard: ← → step, space play/pause, home/end.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") pb.step(1);
-      else if (e.key === "ArrowLeft") pb.step(-1);
-      else if (e.key === " ") { e.preventDefault(); pb.togglePlay(); }
-      else if (e.key === "Home") pb.setIndex(0);
-      else if (e.key === "End") pb.setIndex(pb.count - 1);
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      switch (e.key) {
+        case " ": // space: play/pause (preventDefault stops page scroll + button re-activation)
+          e.preventDefault();
+          pb.togglePlay();
+          break;
+        case "ArrowRight":
+          if (tag === "INPUT") return; // let the focused scrubber handle its own arrows
+          e.preventDefault();
+          pb.step(1);
+          break;
+        case "ArrowLeft":
+          if (tag === "INPUT") return;
+          e.preventDefault();
+          pb.step(-1);
+          break;
+        case "Home":
+          pb.setIndex(0);
+          break;
+        case "End":
+          pb.setIndex(pb.count - 1);
+          break;
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -77,7 +96,9 @@ function Viewer({ replay, db, stats }: Loaded) {
       </header>
 
       <main className="main">
-        <Board step={step} db={db} diff={diff} />
+        <ErrorBoundary resetKey={pb.index}>
+          <Board step={step} db={db} diff={diff} />
+        </ErrorBoundary>
         <aside className="sidebar">
           <LogPanel step={step} db={db} />
           <StatsPanel stats={stats[pb.index]} />
