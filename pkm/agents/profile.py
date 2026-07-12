@@ -81,11 +81,15 @@ class AgentProfile:
     def load_deck(self) -> list[int]:
         return self.spec.load_deck()
 
-    def make_agent(self):
+    def make_agent(
+        self,
+        policy: str | None = None,
+        weights_path: str | None = None,
+    ):
         """Build this profile's plain Kaggle-compatible agent callable."""
         from .factory import make_profile_agent
 
-        return make_profile_agent(self)
+        return make_profile_agent(self, policy=policy, weights_path=weights_path)
 
     def ensure_dirs(self) -> None:
         """Create the agent's directory tree if it doesn't exist."""

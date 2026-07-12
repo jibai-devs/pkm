@@ -30,7 +30,10 @@ def make_agent_by_name(
     profile: AgentProfile | None = None,
 ) -> Callable[[dict], list[int]]:
     if profile is not None:
-        return profile.make_agent()
+        profile_options = {"policy": name}
+        if weights is not None:
+            profile_options["weights_path"] = weights
+        return profile.make_agent(**profile_options)
     if name == "random":
         return make_random_agent(deck)
     if name == "neural":

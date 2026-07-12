@@ -10,8 +10,12 @@ class _Profile:
 
     def __init__(self, agent):
         self._agent = agent
+        self.calls = []
 
-    def make_agent(self):
+    def make_agent(self, **kwargs):
+        self.calls.append(kwargs)
+        if kwargs.get("policy") == "random":
+            return "random-agent"
         return self._agent
 
 
@@ -29,11 +33,37 @@ def test_profile_play_resolution_uses_profile_factory(monkeypatch):
     assert play.make_agent_by_name("neural", [1] * 60, None, profile=profile) is expected
 
 
+def test_profile_play_resolution_respects_independent_player_names():
+    def neural(obs):
+        return [0]
+
+    profile = _Profile(neural)
+
+    p0 = play.make_agent_by_name("neural", [1] * 60, None, profile=profile)
+    p1 = play.make_agent_by_name("random", [1] * 60, None, profile=profile)
+
+    assert p0 is neural
+    assert p1 == "random-agent"
+    assert profile.calls == [{"policy": "neural"}, {"policy": "random"}]
+
+
+def test_profile_play_resolution_passes_explicit_weights_override():
+    profile = _Profile(None)
+
+    play.make_agent_by_name(
+        "neural", [1] * 60, "/tmp/override.npz", profile=profile
+    )
+
+    assert profile.calls == [
+        {"policy": "neural", "weights_path": "/tmp/override.npz"}
+    ]
+
+
 def test_profile_play_resolution_propagates_missing_export_error(monkeypatch):
     error = FileNotFoundError("exported policy weights not found")
     profile = _Profile(None)
 
-    def fail_make_agent():
+    def fail_make_agent(**kwargs):
         raise error
 
     monkeypatch.setattr(profile, "make_agent", fail_make_agent)
