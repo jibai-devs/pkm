@@ -33,6 +33,60 @@ action = policy(obs)
 Training and packaging should use the same policy factory, but the Kaggle
 entry point must not contain training or local battle code.
 
+## Agent-Owned Decks
+
+Each profile owns its deck. The deck should be stored as data in the profile
+configuration or deck directory, not hardcoded into a Python policy:
+
+```text
+agents/02_dragapult/
+    profile.yaml
+    deck.csv
+    checkpoints/
+```
+
+The profile resolves its own deck for training, local play, evaluation, and
+submission packaging. This allows two players to use different decks in the
+same game:
+
+```python
+p0 = AgentProfile("02_dragapult")
+p1 = AgentProfile("01_psychic")
+play_match(agents=(p0.make_agent(), p1.make_agent()), decks=(p0.deck(), p1.deck()))
+```
+
+The submission builder still writes the selected profile's deck as the flat
+bundled `deck.csv` expected by Kaggle.
+
+## Special Agent Logic
+
+Deck ownership and policy behavior should be independent. A profile can select
+special logic through its policy configuration:
+
+```yaml
+name: 02_dragapult
+deck: deck/02_dragapult.csv
+policy: neural
+strategy: dragapult
+trainer: ppo
+```
+
+The `strategy` hook can later select deck-specific heuristics, preprocessing,
+action masks, or a hybrid policy. Policy factories should receive a resolved
+profile/spec rather than only a raw deck, so special logic can inspect the
+profile's deck and configuration without coupling the game runner to a named
+agent.
+
+Examples include:
+
+- `policy: neural` with no special strategy;
+- `policy: heuristic`, `strategy: dragapult`;
+- `policy: hybrid`, combining a neural policy with deck-specific overrides;
+- `policy: mcts`, using the profile's deck and optional neural prior.
+
+Unknown policy and strategy names should fail during profile validation, not
+during a Kaggle match.
+
 ## Proposed Profile API
 
 ```python

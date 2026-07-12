@@ -32,6 +32,7 @@
 - `tests/test_submission.py` — generated bundle and module-level `agent` contract.
 - `tests/test_multi_agent_play.py` — independent decks and policy instances.
 - `agents/02_dragapult/profile.yaml` — explicit default profile configuration.
+- `agents/02_dragapult/deck.csv` — the profile-owned 60-card deck data.
 
 ### Existing files to modify
 
@@ -82,21 +83,25 @@ the resolved path properties do not exist.
 
 - [ ] **Step 3: Add the explicit profile configuration.**
 
-Create `agents/02_dragapult/profile.yaml`:
+Create `agents/02_dragapult/deck.csv` by copying the current Dragapult deck
+data, then create `agents/02_dragapult/profile.yaml`:
 
 ```yaml
 name: 02_dragapult
-deck: deck/02_dragapult.csv
+deck: agents/02_dragapult/deck.csv
 policy: neural
 trainer: ppo
 checkpoint: agents/02_dragapult/checkpoints/ppo_latest.pt
+strategy: null
 ```
 
 - [ ] **Step 4: Implement `AgentSpec` and profile loading.**
 
-Define a frozen dataclass with `name`, `deck_path`, `policy`, `trainer`, and
-`checkpoint_path`. Load YAML relative to the repository root, reject unknown
-required fields, and expose `metrics_dir`, `runs_dir`, and `submissions_dir`.
+Define a frozen dataclass with `name`, `deck_path`, `policy`, `trainer`,
+`strategy`, and `checkpoint_path`. Load YAML relative to the repository root,
+reject unknown required fields, and expose `metrics_dir`, `runs_dir`, and
+`submissions_dir`. `load_deck()` must validate exactly 60 card IDs and return a
+new list for each caller.
 Keep `AgentProfile(name)` as a compatibility constructor that calls
 `AgentProfile.load(name)` internally.
 
@@ -159,16 +164,28 @@ POLICY_FACTORIES = {
 }
 ```
 
+Add a separate strategy registry for optional deck-specific behavior. It starts
+empty because the first profile uses plain neural inference:
+
+```python
+STRATEGY_FACTORIES: dict[str, StrategyFactory] = {}
+```
+
+`strategy: null` must be valid for a plain neural policy. Unknown policy or
+strategy names must raise during profile loading.
+
 Resolve weights from the profile checkpoint/export path. For a configured
 neural profile, raise a clear error when the required exported policy is absent;
 do not silently fall back to random during submission construction.
 
 - [ ] **Step 4: Implement `AgentProfile.make_agent()`.**
 
-Load the validated deck, select the configured factory, and return only the
-callable. The factory must not return a class instance to Kaggle; a closure is
-acceptable and should preserve the existing `obs["select"] is None` deck
-behavior.
+Load the validated profile-owned deck, select the configured policy and
+optional strategy factories, and return only the callable. The factory must
+not return a class instance to Kaggle; a closure is acceptable and should
+preserve the existing `obs["select"] is None` deck behavior. Factories receive
+the resolved profile/spec so special logic can inspect deck metadata without
+hardcoding an agent name.
 
 - [ ] **Step 5: Run all agent tests and the existing suite.**
 
