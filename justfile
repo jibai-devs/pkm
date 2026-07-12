@@ -59,7 +59,7 @@ exit-train agent="02_dragapult" iterations="20" games="8" sims="32" dets="2":
 # Phase 2: resume expert iteration from agent's latest exit checkpoint
 exit-resume agent="02_dragapult" iterations="20" games="8" sims="32" dets="2":
     pkm exit-train --agent {{agent}} --iterations {{iterations}} --games {{games}} \
-        --sims {{sims}} --dets {{dets}}
+        --sims {{sims}} --dets {{dets}} --resume
 
 # --- weights / evaluation / replays -----------------------------------------
 

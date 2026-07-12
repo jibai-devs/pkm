@@ -1,9 +1,13 @@
 from pathlib import Path
 
+import pytest
+
 from pkm.agents.profile import AgentProfile, TrainingResult
 from pkm.agents.spec import AgentSpec, REPO_ROOT
 from pkm.agents import spec as spec_module
 from pkm.agents import profile as profile_module
+from pkm.cli import train as cli_train
+from pkm.cli import exit_train as cli_exit_train
 from pkm.rl import exit_train, train
 
 
@@ -133,6 +137,156 @@ def test_profile_train_exit_forwards_resume_with_custom_checkpoint(
     assert calls["resume_path"] == resume
     assert calls["checkpoint_path"] == profile.exit_checkpoint_path
     assert result.checkpoint == profile.exit_checkpoint_path
+
+
+def test_train_exit_initializes_from_ppo_unless_resuming(monkeypatch):
+    profile = AgentProfile.load("02_dragapult")
+    ppo_checkpoint = profile.checkpoint_path
+    exit_checkpoint = profile.exit_checkpoint_path
+    calls = []
+
+    def fake_exit_train(**kwargs):
+        calls.append(kwargs)
+        return TrainingResult(checkpoint=kwargs["checkpoint_path"])
+
+    monkeypatch.setattr(profile_module, "EXIT_TRAINER", fake_exit_train)
+    monkeypatch.setattr(profile, "ensure_dirs", lambda: None)
+    monkeypatch.setattr(profile, "exit_init", lambda: str(exit_checkpoint))
+
+    profile.train_exit()
+    profile.train_exit(resume=True)
+    profile.train_exit(resume=True, resume_path=Path("explicit.pt"))
+
+    assert calls[0]["resume_path"] == ppo_checkpoint
+    assert calls[1]["resume_path"] == exit_checkpoint
+    assert calls[2]["resume_path"] == Path("explicit.pt")
+
+
+def test_register_trainer_is_used_for_profile_training(monkeypatch, tmp_path):
+    profile = AgentProfile(
+        "custom",
+        _spec=AgentSpec(
+            name="custom",
+            deck_path=REPO_ROOT / "deck/02_dragapult.csv",
+            policy="random",
+            trainer="custom",
+            strategy=None,
+            checkpoint_path=tmp_path / "custom.pt",
+        ),
+    )
+    calls = {}
+
+    def custom_trainer(**kwargs):
+        calls.update(kwargs)
+        return TrainingResult(checkpoint=kwargs["checkpoint_path"])
+
+    monkeypatch.setattr(profile, "ensure_dirs", lambda: None)
+    profile_module.register_trainer("custom", custom_trainer)
+
+    result = profile.train()
+
+    assert calls["deck_path"] == profile.deck_path
+    assert result.checkpoint == profile.checkpoint_path
+
+
+def test_unknown_profile_trainer_fails_clearly(monkeypatch, tmp_path):
+    profile = AgentProfile(
+        "unknown",
+        _spec=AgentSpec(
+            name="unknown",
+            deck_path=REPO_ROOT / "deck/02_dragapult.csv",
+            policy="random",
+            trainer="missing",
+            strategy=None,
+            checkpoint_path=tmp_path / "unknown.pt",
+        ),
+    )
+    monkeypatch.setattr(profile, "ensure_dirs", lambda: None)
+
+    with pytest.raises(ValueError, match="unknown trainer 'missing'"):
+        profile.train()
+
+
+def test_profile_cli_forwards_explicit_paths(monkeypatch, tmp_path):
+    calls = {}
+    profile = AgentProfile.load("02_dragapult")
+
+    def fake_train(self, **kwargs):
+        calls.update(kwargs)
+        return TrainingResult(checkpoint=self.checkpoint_path)
+
+    monkeypatch.setattr(AgentProfile, "train", fake_train)
+
+    cli_train(
+        agent=profile.name,
+        deck="ignored.csv",
+        iterations=1,
+        games=1,
+        lr=0.1,
+        gamma=0.9,
+        shaping=0.1,
+        pool_size=1,
+        eval_every=1,
+        eval_games=1,
+        checkpoint_dir=str(tmp_path / "checkpoints"),
+        metrics=str(tmp_path / "metrics.csv"),
+        log_dir=str(tmp_path / "runs"),
+        init=None,
+        seed=3,
+    )
+
+    assert calls["checkpoint_dir"] == Path(tmp_path / "checkpoints")
+    assert calls["metrics_path"] == Path(tmp_path / "metrics.csv")
+    assert calls["log_dir"] == Path(tmp_path / "runs")
+
+
+def test_profile_exit_cli_forwards_resume_mode(monkeypatch, tmp_path):
+    calls = []
+    profile = AgentProfile.load("02_dragapult")
+
+    def fake_train_exit(self, **kwargs):
+        calls.append(kwargs)
+        return TrainingResult(checkpoint=self.exit_checkpoint_path)
+
+    monkeypatch.setattr(AgentProfile, "train_exit", fake_train_exit)
+
+    cli_exit_train(
+        agent=profile.name,
+        deck="ignored.csv",
+        iterations=1,
+        games=1,
+        sims=1,
+        dets=1,
+        lr=0.1,
+        init=str(tmp_path / "explicit.pt"),
+        checkpoint_dir=str(tmp_path / "checkpoints"),
+        metrics=str(tmp_path / "metrics.csv"),
+        log_dir=str(tmp_path / "runs"),
+        seed=3,
+        resume=False,
+    )
+    cli_exit_train(
+        agent=profile.name,
+        deck="ignored.csv",
+        iterations=1,
+        games=1,
+        sims=1,
+        dets=1,
+        lr=0.1,
+        init=None,
+        checkpoint_dir="checkpoints",
+        metrics="metrics/exit_train.csv",
+        log_dir="runs/exit",
+        seed=3,
+        resume=True,
+    )
+
+    assert calls[0]["resume"] is False
+    assert calls[1]["resume"] is True
+    assert calls[0]["resume_path"] == tmp_path / "explicit.pt"
+    assert calls[0]["checkpoint_dir"] == tmp_path / "checkpoints"
+    assert calls[0]["metrics_path"] == tmp_path / "metrics.csv"
+    assert calls[0]["log_dir"] == tmp_path / "runs"
 
 
 def test_ppo_facade_writes_custom_checkpoint_path(monkeypatch, tmp_path):

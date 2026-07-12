@@ -16,8 +16,8 @@ Directory layout::
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 from collections.abc import Callable
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from .spec import AgentSpec, REPO_ROOT
@@ -38,21 +38,47 @@ class TrainingResult:
 
 
 Trainer = Callable[..., TrainingResult]
-TRAINERS: dict[str, Trainer] = {}
-EXIT_TRAINER: Trainer | None = None
+EXPERT_TRAINER = "expert_iteration"
+
+
+def _ppo_trainer(**kwargs: Any) -> TrainingResult:
+    from pkm.rl.train import train_profile
+
+    return train_profile(**kwargs)
+
+
+def _expert_trainer(**kwargs: Any) -> TrainingResult:
+    from pkm.rl.exit_train import train_profile
+
+    return train_profile(**kwargs)
+
+
+TRAINERS: dict[str, Trainer] = {
+    "ppo": _ppo_trainer,
+    EXPERT_TRAINER: _expert_trainer,
+}
+EXIT_TRAINER: Trainer | None = _expert_trainer
+
+
+def register_trainer(name: str, trainer: Trainer, *, replace: bool = False) -> None:
+    """Register a profile trainer by name."""
+    global EXIT_TRAINER
+    if not name:
+        raise ValueError("trainer name must not be empty")
+    if name in TRAINERS and not replace:
+        raise ValueError(f"trainer {name!r} is already registered")
+    TRAINERS[name] = trainer
+    if name == EXPERT_TRAINER:
+        EXIT_TRAINER = trainer
 
 
 def _registered_trainers() -> tuple[dict[str, Trainer], Trainer]:
     """Load built-in trainers lazily so low-level modules stay importable."""
     global EXIT_TRAINER
-    if "ppo" not in TRAINERS:
-        from pkm.rl.train import train_profile
-
-        TRAINERS["ppo"] = train_profile
-    if EXIT_TRAINER is None:
-        from pkm.rl.exit_train import train_profile
-
-        EXIT_TRAINER = train_profile
+    if EXIT_TRAINER is not None:
+        TRAINERS[EXPERT_TRAINER] = EXIT_TRAINER
+    else:
+        EXIT_TRAINER = TRAINERS[EXPERT_TRAINER]
     return TRAINERS, EXIT_TRAINER
 
 
@@ -151,6 +177,9 @@ class AgentProfile:
         eval_games: int = 20,
         seed: int = 0,
         resume_path: Path | None = None,
+        checkpoint_dir: Path | None = None,
+        metrics_path: Path | None = None,
+        log_dir: Path | None = None,
         **kwargs: Any,
     ) -> TrainingResult:
         """Train this profile with its configured trainer and output paths."""
@@ -160,14 +189,21 @@ class AgentProfile:
             trainer = trainers[self.trainer]
         except KeyError as error:
             raise ValueError(f"unknown trainer {self.trainer!r}") from error
-        resume = str(resume_path) if resume_path is not None else self.ppo_init()
+        resume = resume_path
+        if resume is None:
+            ppo_resume = self.ppo_init()
+            resume = Path(ppo_resume) if ppo_resume else None
+        output_dir = checkpoint_dir or self.checkpoint_dir
+        output_checkpoint = output_dir / self.checkpoint_path.name
         return trainer(
             deck_path=self.deck_path,
-            checkpoint_path=self.checkpoint_path,
-            checkpoint_dir=self.checkpoint_dir,
+            checkpoint_path=output_checkpoint,
+            checkpoint_dir=output_dir,
             metrics_dir=self.metrics_dir,
             runs_dir=self.runs_dir,
-            resume_path=Path(resume) if resume else None,
+            metrics_path=metrics_path,
+            log_dir=log_dir,
+            resume_path=resume,
             iterations=iterations,
             games_per_iter=games,
             lr=lr,
@@ -189,20 +225,34 @@ class AgentProfile:
         n_simulations: int = 24,
         n_determinizations: int = 2,
         seed: int = 0,
+        resume: bool = False,
         resume_path: Path | None = None,
+        checkpoint_dir: Path | None = None,
+        metrics_path: Path | None = None,
+        log_dir: Path | None = None,
         **kwargs: Any,
     ) -> TrainingResult:
         """Train this profile with the expert-iteration trainer."""
         self.ensure_dirs()
         _, trainer = _registered_trainers()
-        resume = str(resume_path) if resume_path is not None else self.exit_init()
+        if resume_path is not None:
+            initialization = resume_path
+        elif resume:
+            exit_resume = self.exit_init()
+            initialization = Path(exit_resume) if exit_resume else None
+        else:
+            initialization = self.checkpoint_path
+        output_dir = checkpoint_dir or self.checkpoint_dir
+        output_checkpoint = output_dir / self.exit_checkpoint_path.name
         return trainer(
             deck_path=self.deck_path,
-            checkpoint_path=self.exit_checkpoint_path,
-            checkpoint_dir=self.checkpoint_dir,
+            checkpoint_path=output_checkpoint,
+            checkpoint_dir=output_dir,
             metrics_dir=self.metrics_dir,
             runs_dir=self.runs_dir,
-            resume_path=Path(resume) if resume else None,
+            metrics_path=metrics_path,
+            log_dir=log_dir,
+            resume_path=initialization,
             iterations=iterations,
             games_per_iter=games,
             lr=lr,

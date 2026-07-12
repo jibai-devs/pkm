@@ -304,6 +304,8 @@ def train_profile(
     n_determinizations: int = 2,
     lr: float = 1e-4,
     seed: int = 0,
+    metrics_path: Path | None = None,
+    log_dir: Path | None = None,
     **kwargs: object,
 ) -> TrainingResult:
     """Profile-facing expert-iteration facade; the legacy ``train`` is unchanged."""
@@ -317,8 +319,8 @@ def train_profile(
         init_checkpoint=str(resume_path) if resume_path else "",
         checkpoint_dir=str(checkpoint_dir),
         checkpoint_path=str(checkpoint_path),
-        metrics_path=str(metrics_dir / "exit_train.csv"),
-        log_dir=str(runs_dir / "exit"),
+        metrics_path=str(metrics_path or metrics_dir / "exit_train.csv"),
+        log_dir=str(log_dir or runs_dir / "exit"),
         seed=seed,
         **kwargs,
     )
@@ -343,11 +345,12 @@ def main(
     sims: int = typer.Option(24, help="MCTS simulations per move"),
     dets: int = typer.Option(2, help="MCTS determinizations"),
     lr: float = typer.Option(1e-4, help="learning rate"),
-    init: str = typer.Option("checkpoints/ppo_latest.pt", help="initial checkpoint"),
-    checkpoint_dir: str = typer.Option("checkpoints", help="checkpoint directory"),
-    metrics: str = typer.Option("metrics/exit_train.csv", help="metrics CSV path"),
-    log_dir: str = typer.Option("runs/exit", help="TensorBoard log directory"),
+    init: str | None = typer.Option(None, help="initial checkpoint"),
+    checkpoint_dir: str | None = typer.Option(None, help="checkpoint directory"),
+    metrics: str | None = typer.Option(None, help="metrics CSV path"),
+    log_dir: str | None = typer.Option(None, help="TensorBoard log directory"),
     seed: int = typer.Option(0, help="random seed"),
+    resume: bool = typer.Option(False, help="resume expert iteration"),
 ) -> None:
     if agent:
         AgentProfile.load(agent).train_exit(
@@ -357,7 +360,11 @@ def main(
             n_determinizations=dets,
             lr=lr,
             seed=seed,
-            resume_path=Path(init) if init != "checkpoints/ppo_latest.pt" else None,
+            resume=resume,
+            resume_path=Path(init) if init else None,
+            checkpoint_dir=Path(checkpoint_dir) if checkpoint_dir else None,
+            metrics_path=Path(metrics) if metrics else None,
+            log_dir=Path(log_dir) if log_dir else None,
         )
         return
     train(
@@ -367,10 +374,10 @@ def main(
         n_simulations=sims,
         n_determinizations=dets,
         lr=lr,
-        init_checkpoint=init,
-        checkpoint_dir=checkpoint_dir,
-        metrics_path=metrics,
-        log_dir=log_dir,
+        init_checkpoint=init or "checkpoints/ppo_latest.pt",
+        checkpoint_dir=checkpoint_dir or "checkpoints",
+        metrics_path=metrics or "metrics/exit_train.csv",
+        log_dir=log_dir or "runs/exit",
         seed=seed,
     )
 

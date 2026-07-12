@@ -227,6 +227,8 @@ def train_profile(
     eval_every: int = 5,
     eval_games: int = 20,
     seed: int = 0,
+    metrics_path: Path | None = None,
+    log_dir: Path | None = None,
     **kwargs: object,
 ) -> TrainingResult:
     """Profile-facing PPO trainer facade; the legacy ``train`` stays unchanged."""
@@ -242,8 +244,8 @@ def train_profile(
         eval_games=eval_games,
         checkpoint_dir=str(checkpoint_dir),
         checkpoint_path=str(checkpoint_path),
-        metrics_path=str(metrics_dir / "ppo_train.csv"),
-        log_dir=str(runs_dir / "ppo"),
+        metrics_path=str(metrics_path or metrics_dir / "ppo_train.csv"),
+        log_dir=str(log_dir or runs_dir / "ppo"),
         init_checkpoint=str(resume_path) if resume_path else None,
         seed=seed,
         **kwargs,
@@ -272,9 +274,9 @@ def main(
     pool_size: int = typer.Option(8, help="opponent checkpoint pool size"),
     eval_every: int = typer.Option(5, help="evaluate every N iterations"),
     eval_games: int = typer.Option(20, help="games for evaluation"),
-    checkpoint_dir: str = typer.Option("checkpoints", help="checkpoint directory"),
-    metrics: str = typer.Option("metrics/ppo_train.csv", help="metrics CSV path"),
-    log_dir: str = typer.Option("runs/ppo", help="TensorBoard log directory"),
+    checkpoint_dir: str | None = typer.Option(None, help="checkpoint directory"),
+    metrics: str | None = typer.Option(None, help="metrics CSV path"),
+    log_dir: str | None = typer.Option(None, help="TensorBoard log directory"),
     init: str | None = typer.Option(None, help="checkpoint to resume from"),
     seed: int = typer.Option(0, help="random seed"),
 ) -> None:
@@ -290,6 +292,9 @@ def main(
             eval_games=eval_games,
             seed=seed,
             resume_path=Path(init) if init is not None else None,
+            checkpoint_dir=Path(checkpoint_dir) if checkpoint_dir else None,
+            metrics_path=Path(metrics) if metrics else None,
+            log_dir=Path(log_dir) if log_dir else None,
         )
         return
     train(
@@ -302,9 +307,9 @@ def main(
         pool_size=pool_size,
         eval_every=eval_every,
         eval_games=eval_games,
-        checkpoint_dir=checkpoint_dir,
-        metrics_path=metrics,
-        log_dir=log_dir,
+        checkpoint_dir=checkpoint_dir or "checkpoints",
+        metrics_path=metrics or "metrics/ppo_train.csv",
+        log_dir=log_dir or "runs/ppo",
         init_checkpoint=init,
         seed=seed,
     )

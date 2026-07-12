@@ -41,9 +41,9 @@ def train(
     pool_size: int = typer.Option(8, help="opponent checkpoint pool size"),
     eval_every: int = typer.Option(5, help="evaluate every N iterations"),
     eval_games: int = typer.Option(20, help="games for evaluation"),
-    checkpoint_dir: str = typer.Option("checkpoints", help="checkpoint directory"),
-    metrics: str = typer.Option("metrics/ppo_train.csv", help="metrics CSV path"),
-    log_dir: str = typer.Option("runs/ppo", help="TensorBoard log directory"),
+    checkpoint_dir: str | None = typer.Option(None, help="checkpoint directory"),
+    metrics: str | None = typer.Option(None, help="metrics CSV path"),
+    log_dir: str | None = typer.Option(None, help="TensorBoard log directory"),
     init: str | None = typer.Option(None, help="checkpoint to resume from"),
     seed: int = typer.Option(0, help="random seed"),
 ) -> None:
@@ -62,6 +62,9 @@ def train(
             eval_games=eval_games,
             seed=seed,
             resume_path=Path(init) if init else None,
+            checkpoint_dir=Path(checkpoint_dir) if checkpoint_dir else None,
+            metrics_path=Path(metrics) if metrics else None,
+            log_dir=Path(log_dir) if log_dir else None,
         )
         return
     from pkm.rl.train import main as _train_main
@@ -77,9 +80,9 @@ def train(
         pool_size=pool_size,
         eval_every=eval_every,
         eval_games=eval_games,
-        checkpoint_dir=checkpoint_dir,
-        metrics=metrics,
-        log_dir=log_dir,
+        checkpoint_dir=checkpoint_dir or "checkpoints",
+        metrics=metrics or "metrics/ppo_train.csv",
+        log_dir=log_dir or "runs/ppo",
         init=init,
         seed=seed,
     )
@@ -96,11 +99,12 @@ def exit_train(
     sims: int = typer.Option(24, help="MCTS simulations per move"),
     dets: int = typer.Option(2, help="MCTS determinizations"),
     lr: float = typer.Option(1e-4, help="learning rate"),
-    init: str = typer.Option("checkpoints/ppo_latest.pt", help="initial checkpoint"),
-    checkpoint_dir: str = typer.Option("checkpoints", help="checkpoint directory"),
-    metrics: str = typer.Option("metrics/exit_train.csv", help="metrics CSV path"),
-    log_dir: str = typer.Option("runs/exit", help="TensorBoard log directory"),
+    init: str | None = typer.Option(None, help="initial checkpoint"),
+    checkpoint_dir: str | None = typer.Option(None, help="checkpoint directory"),
+    metrics: str | None = typer.Option(None, help="metrics CSV path"),
+    log_dir: str | None = typer.Option(None, help="TensorBoard log directory"),
     seed: int = typer.Option(0, help="random seed"),
+    resume: bool = typer.Option(False, help="resume expert iteration"),
 ) -> None:
     """Phase 2: expert iteration (AlphaZero-style)."""
     if agent:
@@ -113,7 +117,11 @@ def exit_train(
             n_determinizations=dets,
             lr=lr,
             seed=seed,
-            resume_path=Path(init) if init != "checkpoints/ppo_latest.pt" else None,
+            resume=resume,
+            resume_path=Path(init) if init else None,
+            checkpoint_dir=Path(checkpoint_dir) if checkpoint_dir else None,
+            metrics_path=Path(metrics) if metrics else None,
+            log_dir=Path(log_dir) if log_dir else None,
         )
         return
     from pkm.rl.exit_train import main as _exit_train_main
@@ -126,10 +134,10 @@ def exit_train(
         sims=sims,
         dets=dets,
         lr=lr,
-        init=init,
-        checkpoint_dir=checkpoint_dir,
-        metrics=metrics,
-        log_dir=log_dir,
+        init=init or "checkpoints/ppo_latest.pt",
+        checkpoint_dir=checkpoint_dir or "checkpoints",
+        metrics=metrics or "metrics/exit_train.csv",
+        log_dir=log_dir or "runs/exit",
         seed=seed,
     )
 
