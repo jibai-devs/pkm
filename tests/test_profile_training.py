@@ -2,12 +2,14 @@ from pathlib import Path
 
 from pkm.agents.profile import AgentProfile, TrainingResult
 from pkm.agents.spec import AgentSpec, REPO_ROOT
+from pkm.agents import spec as spec_module
 from pkm.agents import profile as profile_module
 from pkm.rl import exit_train, train
 
 
 def _custom_profile(tmp_path):
     checkpoint = tmp_path / "agents/custom/checkpoints/custom_model.pt"
+    exit_checkpoint = tmp_path / "agents/custom/checkpoints/custom_exit.pt"
     return AgentProfile(
         "custom",
         _spec=AgentSpec(
@@ -17,6 +19,7 @@ def _custom_profile(tmp_path):
             trainer="ppo",
             strategy=None,
             checkpoint_path=checkpoint,
+            exit_checkpoint_path=exit_checkpoint,
         ),
     )
 
@@ -78,9 +81,36 @@ def test_profile_train_exit_delegates_to_expert_iteration(monkeypatch):
 
     assert result.checkpoint.name == "exit_latest.pt"
     assert calls["deck_path"] == profile.deck_path
+    assert calls["checkpoint_path"] == profile.exit_checkpoint_path
     assert calls["checkpoint_dir"] == profile.checkpoint_dir
     assert calls["metrics_dir"] == profile.metrics_dir
     assert calls["runs_dir"] == profile.runs_dir
+
+
+def test_profile_training_uses_separate_default_checkpoints(monkeypatch):
+    profile = AgentProfile.load("02_dragapult")
+    calls = {}
+
+    def fake_ppo(**kwargs):
+        calls["ppo"] = kwargs
+        return TrainingResult(checkpoint=kwargs["checkpoint_path"])
+
+    def fake_exit(**kwargs):
+        calls["exit"] = kwargs
+        return TrainingResult(checkpoint=kwargs["checkpoint_path"])
+
+    monkeypatch.setitem(profile_module.TRAINERS, "ppo", fake_ppo)
+    monkeypatch.setattr(profile_module, "EXIT_TRAINER", fake_exit)
+    monkeypatch.setattr(profile, "ensure_dirs", lambda: None)
+
+    ppo_result = profile.train()
+    exit_result = profile.train_exit()
+
+    assert ppo_result.checkpoint == profile.checkpoint_dir / "ppo_latest.pt"
+    assert exit_result.checkpoint == profile.checkpoint_dir / "exit_latest.pt"
+    assert calls["ppo"]["checkpoint_path"] == ppo_result.checkpoint
+    assert calls["exit"]["checkpoint_path"] == exit_result.checkpoint
+    assert ppo_result.checkpoint.parent == exit_result.checkpoint.parent
 
 
 def test_profile_train_exit_forwards_resume_with_custom_checkpoint(
@@ -101,8 +131,8 @@ def test_profile_train_exit_forwards_resume_with_custom_checkpoint(
     result = profile.train_exit(resume_path=resume)
 
     assert calls["resume_path"] == resume
-    assert calls["checkpoint_path"] == profile.checkpoint_path
-    assert result.checkpoint == profile.checkpoint_path
+    assert calls["checkpoint_path"] == profile.exit_checkpoint_path
+    assert result.checkpoint == profile.exit_checkpoint_path
 
 
 def test_ppo_facade_writes_custom_checkpoint_path(monkeypatch, tmp_path):
@@ -181,3 +211,24 @@ def test_profiles_have_isolated_training_paths():
     assert first.checkpoint_dir != Path("checkpoints").resolve()
     assert first.metrics_dir != Path("metrics").resolve()
     assert first.runs_dir != Path("runs").resolve()
+
+
+def test_profile_spec_honors_explicit_exit_checkpoint(tmp_path, monkeypatch):
+    profile_dir = tmp_path / "agents/configured"
+    profile_dir.mkdir(parents=True)
+    (profile_dir / "profile.yaml").write_text(
+        "name: configured\n"
+        "deck: deck.csv\n"
+        "policy: random\n"
+        "trainer: ppo\n"
+        "strategy: null\n"
+        "checkpoint: agents/configured/checkpoints/ppo.pt\n"
+        "exit_checkpoint: agents/configured/checkpoints/expert.pt\n"
+    )
+    monkeypatch.setattr(spec_module, "REPO_ROOT", tmp_path)
+
+    spec = AgentSpec.load("configured")
+
+    assert spec.exit_checkpoint_path == (
+        tmp_path / "agents/configured/checkpoints/expert.pt"
+    )

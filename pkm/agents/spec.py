@@ -9,8 +9,16 @@ import yaml
 from pkm.data.deck import Deck
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PROFILE_FIELDS = {"name", "deck", "policy", "trainer", "strategy", "checkpoint"}
-REQUIRED_FIELDS = PROFILE_FIELDS
+PROFILE_FIELDS = {
+    "name",
+    "deck",
+    "policy",
+    "trainer",
+    "strategy",
+    "checkpoint",
+    "exit_checkpoint",
+}
+REQUIRED_FIELDS = PROFILE_FIELDS - {"exit_checkpoint"}
 
 
 def _require_string(values: dict[str, Any], field: str, profile_name: str) -> str:
@@ -33,6 +41,7 @@ class AgentSpec:
     trainer: str
     strategy: str | None
     checkpoint_path: Path
+    exit_checkpoint_path: Path | None = None
 
     @classmethod
     def load(cls, name: str) -> "AgentSpec":
@@ -66,6 +75,12 @@ class AgentSpec:
         policy = _require_string(values, "policy", name)
         trainer = _require_string(values, "trainer", name)
         checkpoint = _require_string(values, "checkpoint", name)
+        exit_checkpoint = values.get("exit_checkpoint")
+        if exit_checkpoint is not None and not isinstance(exit_checkpoint, str):
+            raise ValueError(
+                f"Agent profile {name!r} field 'exit_checkpoint' must be a string, "
+                f"got {type(exit_checkpoint).__name__}"
+            )
         strategy = values["strategy"]
         if strategy is not None and not isinstance(strategy, str):
             raise ValueError(
@@ -89,6 +104,9 @@ class AgentSpec:
             trainer=trainer,
             strategy=strategy,
             checkpoint_path=(REPO_ROOT / checkpoint).resolve(),
+            exit_checkpoint_path=(REPO_ROOT / exit_checkpoint).resolve()
+            if exit_checkpoint
+            else None,
         )
 
     def load_deck(self) -> list[int]:

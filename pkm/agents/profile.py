@@ -99,6 +99,10 @@ class AgentProfile:
         return self.checkpoint_path.parent
 
     @property
+    def exit_checkpoint_path(self) -> Path:
+        return self.spec.exit_checkpoint_path or self.checkpoint_dir / "exit_latest.pt"
+
+    @property
     def exported_weights_path(self) -> Path:
         return self.spec.exported_weights_path
 
@@ -194,7 +198,7 @@ class AgentProfile:
         resume = str(resume_path) if resume_path is not None else self.exit_init()
         return trainer(
             deck_path=self.deck_path,
-            checkpoint_path=self.checkpoint_path,
+            checkpoint_path=self.exit_checkpoint_path,
             checkpoint_dir=self.checkpoint_dir,
             metrics_dir=self.metrics_dir,
             runs_dir=self.runs_dir,
@@ -210,12 +214,10 @@ class AgentProfile:
 
     def latest_checkpoint(self, phase: str = "ppo") -> Path | None:
         """Return the latest checkpoint for *phase* (``ppo`` or ``exit``), or None."""
-        configured_name = self.checkpoint_path.name
-        configured_phase = configured_name.removesuffix("_latest.pt")
-        if phase == configured_phase or (
-            phase == "ppo" and configured_phase not in {"ppo", "exit"}
-        ):
+        if phase == "ppo":
             p = self.checkpoint_path
+        elif phase == "exit":
+            p = self.exit_checkpoint_path
         else:
             p = self.checkpoint_dir / f"{phase}_latest.pt"
         return p if p.is_file() else None
