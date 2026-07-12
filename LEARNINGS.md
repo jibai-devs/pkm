@@ -22,6 +22,7 @@
 - Kaggle env needs `make("cabt", configuration={"decks": [deck, deck]})` — both sides get a deck list
 - Agents must be plain functions `def agent(obs: dict) -> list[int]` for kaggle compatibility
 - Kaggle may execute an agent with a working directory other than `/kaggle_simulations/agent`; bundled resources must be resolved relative to `__file__`, not only the process working directory
+- Kaggle simulation submission runs `main.py` as `__main__`; a guarded local smoke-test call can execute instead of the callable `main(obs)` and must not load files absent from the bundle
 
 ## Codebase Conventions
 - Agent factories: `make_<type>_agent(deck, **kwargs)` pattern

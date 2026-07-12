@@ -3,11 +3,15 @@
 # Usage: ./submit.sh [agent_name]
 #
 # The agent name determines which deck and weights to bundle.
-# Defaults to 00_basic.
+# Only 02_dragapult is currently supported.
 
 set -e
 
-AGENT="${1:-00_basic}"
+AGENT="${1:-02_dragapult}"
+if [ "$AGENT" != "02_dragapult" ]; then
+    echo "Only 02_dragapult is supported" >&2
+    exit 1
+fi
 TS=$(date +%Y%m%d_%H%M%S)
 OUT="submission_${AGENT}_${TS}.tar.gz"
 
