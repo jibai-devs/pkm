@@ -54,6 +54,7 @@ pytest tests/              # run tests
 - `pkm/search.py` — correct bindings to the engine's SearchBegin/SearchStep API
 - `pkm/rl/` — encoders, pointer-style policy/value net, PPO self-play, expert iteration
 - `pkm/cli_deck.py` — deck management CLI (list, show, convert)
+- `docs/ideas/` — architecture ideas and future design notes
 - `pkm/mcts/` — determinization + IS-MCTS over the search API
 - `pkm/strategies/` — future strategy implementations
 - `main.py` — battle runner entry point
