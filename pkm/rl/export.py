@@ -8,9 +8,11 @@ Usage:
     pkm export --agent 01_psychic pkm/policy.npz
 """
 
-import typer
+from pathlib import Path
+
 import numpy as np
 import torch
+import typer
 
 from .model import PolicyValueNet
 
@@ -35,21 +37,24 @@ def main(
     checkpoint: str = typer.Argument(
         "", help="path to .pt state_dict (omit with --agent)"
     ),
-    out: str = typer.Argument("pkm/policy.npz", help="output .npz path"),
+    out: str | None = typer.Argument(None, help="output .npz path"),
     agent: str | None = typer.Option(None, help="agent profile name"),
 ) -> None:
     from pkm.agents.profile import AgentProfile
 
-    if agent:
-        profile = AgentProfile(agent)
+    profile = AgentProfile(agent) if agent else None
+    if profile is not None:
         ckpt = profile.checkpoint_dir / "ppo_latest.pt"
         if not ckpt.is_file():
             ckpt = profile.checkpoint_dir / "ppo_iter0200.pt"
         checkpoint = str(ckpt)
     if not checkpoint:
         raise typer.BadParameter("provide a checkpoint path or --agent")
-    export_checkpoint(checkpoint, out)
-    typer.echo(f"exported {checkpoint} -> {out}")
+    output = out or str(
+        profile.exported_weights_path if profile else Path("pkm/policy.npz")
+    )
+    export_checkpoint(checkpoint, output)
+    typer.echo(f"exported {checkpoint} -> {output}")
 
 
 if __name__ == "__main__":

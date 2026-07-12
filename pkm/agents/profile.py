@@ -13,9 +13,15 @@ Directory layout::
             exit/
 """
 
+from __future__ import annotations
+
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from .spec import AgentSpec, REPO_ROOT
+
+if TYPE_CHECKING:
+    from .registry import Agent
 
 AGENTS_DIR = REPO_ROOT / "agents"
 
@@ -85,7 +91,7 @@ class AgentProfile:
         self,
         policy: str | None = None,
         weights_path: str | None = None,
-    ):
+    ) -> Agent:
         """Build this profile's plain Kaggle-compatible agent callable."""
         from .factory import make_profile_agent
 
@@ -102,7 +108,9 @@ class AgentProfile:
         """Return the latest checkpoint for *phase* (``ppo`` or ``exit``), or None."""
         configured_name = self.checkpoint_path.name
         configured_phase = configured_name.removesuffix("_latest.pt")
-        if phase == configured_phase or (phase == "ppo" and configured_phase not in {"ppo", "exit"}):
+        if phase == configured_phase or (
+            phase == "ppo" and configured_phase not in {"ppo", "exit"}
+        ):
             p = self.checkpoint_path
         else:
             p = self.checkpoint_dir / f"{phase}_latest.pt"

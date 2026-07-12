@@ -108,7 +108,7 @@ def export(
     checkpoint: str = typer.Argument(
         "", help="path to .pt state_dict (omit with --agent)"
     ),
-    out: str = typer.Argument("pkm/policy.npz", help="output .npz path"),
+    out: str | None = typer.Argument(None, help="output .npz path"),
     agent: str | None = typer.Option(None, help="agent profile name"),
 ) -> None:
     """Export checkpoint to .npz for torch-free inference."""

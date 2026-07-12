@@ -117,7 +117,9 @@ app = typer.Typer(help=__doc__)
 def main(
     p0: str = typer.Option("neural", help="player 0 agent: random|neural|mcts"),
     p1: str = typer.Option("random", help="player 1 agent: random|neural|mcts"),
-    agent: str | None = typer.Option(None, help="agent profile name (resolves deck + weights)"),
+    agent: str | None = typer.Option(
+        None, help="agent profile name (resolves deck + weights)"
+    ),
     deck: str = typer.Option("deck/02_dragapult.csv", help="path to deck CSV"),
     weights: str | None = typer.Option(None, help="path to policy .npz"),
     html: str = typer.Option("result.html", help="HTML replay output path"),

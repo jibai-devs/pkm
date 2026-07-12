@@ -65,7 +65,7 @@ exit-resume agent="02_dragapult" iterations="20" games="8" sims="32" dets="2":
 
 # export a checkpoint to .npz for torch-free inference (default: agent's best)
 export agent="02_dragapult":
-    pkm export --agent {{agent}} pkm/policy.npz
+    pkm export --agent {{agent}}
 
 # play one rendered match and write result.html + replay.json
 play p0="neural" p1="random" agent="02_dragapult":
@@ -92,7 +92,7 @@ replay-react file="":
 
 # export freshest weights and build submissions/submission_<agent>_<ts>.tar.gz
 build_submit agent="02_dragapult":
-    pkm export --agent {{agent}} pkm/policy.npz
+    pkm export --agent {{agent}}
     ./submit.sh {{agent}}
 
 # upload a submission bundle to Kaggle (defaults to latest submissions/*.tar.gz)
