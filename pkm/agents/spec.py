@@ -71,6 +71,13 @@ class AgentSpec:
                 f"got {type(strategy).__name__}"
             )
 
+        from .registry import POLICY_FACTORIES, STRATEGY_FACTORIES
+
+        if policy not in POLICY_FACTORIES:
+            raise ValueError(f"Agent profile {name!r} has unknown policy {policy!r}")
+        if strategy is not None and strategy not in STRATEGY_FACTORIES:
+            raise ValueError(f"Agent profile {name!r} has unknown strategy {strategy!r}")
+
         return cls(
             name=name,
             deck_path=(REPO_ROOT / deck).resolve(),

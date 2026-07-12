@@ -77,6 +77,12 @@ class AgentProfile:
     def load_deck(self) -> list[int]:
         return self.spec.load_deck()
 
+    def make_agent(self):
+        """Build this profile's plain Kaggle-compatible agent callable."""
+        from .factory import make_profile_agent
+
+        return make_profile_agent(self)
+
     def ensure_dirs(self) -> None:
         """Create the agent's directory tree if it doesn't exist."""
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)

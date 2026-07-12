@@ -2,7 +2,8 @@
 
 Weight lookup order: explicit path arg, $PKM_POLICY_PATH, policy.npz next to
 the pkm package (bundled in the submission), /kaggle_simulations/agent/.
-Falls back to random legal moves if no weights are found.
+Direct callers fall back to random legal moves if no weights are found. Profile
+factories pass ``require_weights=True`` so configured policies fail clearly.
 """
 
 import os
@@ -26,10 +27,19 @@ def _find_weights(explicit: str | None) -> str | None:
 
 
 def make_neural_agent(
-    deck: list[int], weights_path: str | None = None
+    deck: list[int], weights_path: str | None = None, *, require_weights: bool = False
 ) -> Callable[[dict], list[int]]:
     """Create an agent function that plays greedily with the trained policy."""
-    path = _find_weights(weights_path)
+    path = (
+        weights_path
+        if require_weights and weights_path and Path(weights_path).is_file()
+        else _find_weights(weights_path) if not require_weights else None
+    )
+    if require_weights and path is None:
+        configured = weights_path or "the configured export path"
+        raise FileNotFoundError(
+            f"exported policy weights not found for configured neural agent: {configured}"
+        )
     policy = None
     if path is not None:
         from pkm.rl.numpy_policy import NumpyPolicy
