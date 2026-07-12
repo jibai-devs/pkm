@@ -10,7 +10,7 @@ from pkm.data.deck import Deck
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PROFILE_FIELDS = {"name", "deck", "policy", "trainer", "strategy", "checkpoint"}
-REQUIRED_FIELDS = PROFILE_FIELDS - {"strategy"}
+REQUIRED_FIELDS = PROFILE_FIELDS
 
 
 @dataclass(frozen=True)

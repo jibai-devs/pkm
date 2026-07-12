@@ -106,3 +106,19 @@ def test_unknown_profile_fields_have_clear_error(tmp_path, monkeypatch):
 
     with pytest.raises(ValueError, match="unknown field.*unexpected"):
         AgentProfile.load("unknown")
+
+
+def test_missing_strategy_has_clear_error(tmp_path, monkeypatch):
+    profile_dir = tmp_path / "agents" / "missing-strategy"
+    profile_dir.mkdir(parents=True)
+    (profile_dir / "profile.yaml").write_text(
+        "name: missing-strategy\n"
+        "deck: agents/missing-strategy/deck.csv\n"
+        "policy: neural\n"
+        "trainer: ppo\n"
+        "checkpoint: agents/missing-strategy/checkpoints/ppo_latest.pt\n"
+    )
+    monkeypatch.setattr("pkm.agents.spec.REPO_ROOT", tmp_path)
+
+    with pytest.raises(ValueError, match="missing required field.*strategy"):
+        AgentProfile.load("missing-strategy")
