@@ -14,6 +14,7 @@
 
 ### What's Working
 - Pointer/scoring policy network handles variable-length action spaces
+- Submission `main.py` exposes the Kaggle agent protocol and defaults to the neural Dragapult policy
 - PPO self-play with checkpoint pool opponent sampling
 - Potential-based reward shaping (prize differential)
 - IS-MCTS with determinization for imperfect information

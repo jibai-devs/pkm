@@ -21,6 +21,7 @@
 - `rice>=0.4.0` in dependencies (terminal rendering library, not yet used much)
 - Kaggle env needs `make("cabt", configuration={"decks": [deck, deck]})` — both sides get a deck list
 - Agents must be plain functions `def agent(obs: dict) -> list[int]` for kaggle compatibility
+- Kaggle may execute an agent with a working directory other than `/kaggle_simulations/agent`; bundled resources must be resolved relative to `__file__`, not only the process working directory
 
 ## Codebase Conventions
 - Agent factories: `make_<type>_agent(deck, **kwargs)` pattern

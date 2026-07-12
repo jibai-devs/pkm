@@ -2,6 +2,12 @@
 
 Full project guide (structure, RL training, decks, submission): @AGENTS.md
 
+## Active Context
+
+- Kaggle submission deck lookup is working-directory independent: `main.py` checks paths relative to its own location.
+- `tests/test_main.py` covers resolving bundled `deck.csv` when Kaggle runs from another directory.
+- `main(obs)` is the Kaggle callable agent; `run_local_battle()` is separate for local smoke tests.
+
 ## Replay viewer
 
 Step-by-step viewer for match replays. The maintained one is React/TS at
