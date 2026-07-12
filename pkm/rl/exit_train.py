@@ -309,6 +309,7 @@ def train_profile(
     **kwargs: object,
 ) -> TrainingResult:
     """Profile-facing expert-iteration facade; the legacy ``train`` is unchanged."""
+    effective_metrics_path = metrics_path or metrics_dir / "exit_train.csv"
     train(
         deck_path=str(deck_path),
         iterations=iterations,
@@ -319,14 +320,14 @@ def train_profile(
         init_checkpoint=str(resume_path) if resume_path else "",
         checkpoint_dir=str(checkpoint_dir),
         checkpoint_path=str(checkpoint_path),
-        metrics_path=str(metrics_path or metrics_dir / "exit_train.csv"),
+        metrics_path=str(effective_metrics_path),
         log_dir=str(log_dir or runs_dir / "exit"),
         seed=seed,
         **kwargs,
     )
     return TrainingResult(
         checkpoint=checkpoint_path,
-        metrics=metrics_dir / "exit_train.csv",
+        metrics=effective_metrics_path,
         iterations=iterations,
     )
 

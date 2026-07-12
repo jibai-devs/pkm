@@ -291,6 +291,7 @@ def test_profile_exit_cli_forwards_resume_mode(monkeypatch, tmp_path):
 
 def test_ppo_facade_writes_custom_checkpoint_path(monkeypatch, tmp_path):
     checkpoint = tmp_path / "custom_ppo.pt"
+    metrics = tmp_path / "custom_ppo.csv"
     calls = {}
 
     def fake_train(**kwargs):
@@ -308,10 +309,13 @@ def test_ppo_facade_writes_custom_checkpoint_path(monkeypatch, tmp_path):
         metrics_dir=tmp_path / "metrics",
         runs_dir=tmp_path / "runs",
         resume_path=None,
+        metrics_path=metrics,
     )
 
     assert calls["checkpoint_path"] == str(checkpoint)
+    assert calls["metrics_path"] == str(metrics)
     assert result.checkpoint == checkpoint
+    assert result.metrics == metrics
     assert result.checkpoint.is_file()
 
 
@@ -319,6 +323,7 @@ def test_exit_facade_writes_custom_checkpoint_path_and_forwards_resume(
     monkeypatch, tmp_path
 ):
     checkpoint = tmp_path / "custom_exit.pt"
+    metrics = tmp_path / "custom_exit.csv"
     resume = tmp_path / "resume.pt"
     calls = {}
 
@@ -337,11 +342,14 @@ def test_exit_facade_writes_custom_checkpoint_path_and_forwards_resume(
         metrics_dir=tmp_path / "metrics",
         runs_dir=tmp_path / "runs",
         resume_path=resume,
+        metrics_path=metrics,
     )
 
     assert calls["checkpoint_path"] == str(checkpoint)
     assert calls["init_checkpoint"] == str(resume)
+    assert calls["metrics_path"] == str(metrics)
     assert result.checkpoint == checkpoint
+    assert result.metrics == metrics
     assert result.checkpoint.is_file()
 
 
