@@ -15,19 +15,67 @@ Directory layout::
 
 from pathlib import Path
 
+from .spec import AgentSpec
+
 AGENTS_DIR = Path("agents")
 
 
 class AgentProfile:
-    """Resolves an agent name to its deck and output directories."""
+    """Compatibility facade over a declarative :class:`AgentSpec`."""
 
-    def __init__(self, name: str) -> None:
-        self.name = name
-        self.base_dir = AGENTS_DIR / name
-        self.deck_path = Path(f"deck/{name}.csv")
-        self.checkpoint_dir = self.base_dir / "checkpoints"
-        self.metrics_dir = self.base_dir / "metrics"
-        self.runs_dir = self.base_dir / "runs"
+    def __init__(self, name: str, _spec: AgentSpec | None = None) -> None:
+        self.spec = _spec or AgentSpec.load(name)
+
+    @classmethod
+    def load(cls, name: str) -> "AgentProfile":
+        return cls(name, _spec=AgentSpec.load(name))
+
+    @property
+    def name(self) -> str:
+        return self.spec.name
+
+    @property
+    def deck_path(self) -> Path:
+        return self.spec.deck_path
+
+    @property
+    def policy(self) -> str:
+        return self.spec.policy
+
+    @property
+    def trainer(self) -> str:
+        return self.spec.trainer
+
+    @property
+    def strategy(self) -> str | None:
+        return self.spec.strategy
+
+    @property
+    def checkpoint_path(self) -> Path:
+        return self.spec.checkpoint_path
+
+    @property
+    def base_dir(self) -> Path:
+        return AGENTS_DIR / self.name
+
+    @property
+    def checkpoint_dir(self) -> Path:
+        return self.base_dir / "checkpoints"
+
+    @property
+    def metrics_dir(self) -> Path:
+        return self.spec.metrics_dir
+
+    @property
+    def runs_dir(self) -> Path:
+        return self.spec.runs_dir
+
+    @property
+    def submissions_dir(self) -> Path:
+        return self.spec.submissions_dir
+
+    def load_deck(self) -> list[int]:
+        return self.spec.load_deck()
 
     def ensure_dirs(self) -> None:
         """Create the agent's directory tree if it doesn't exist."""

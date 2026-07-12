@@ -1,0 +1,6 @@
+name: 02_dragapult
+deck: agents/02_dragapult/deck.csv
+policy: neural
+trainer: ppo
+checkpoint: agents/02_dragapult/checkpoints/ppo_latest.pt
+strategy: null
