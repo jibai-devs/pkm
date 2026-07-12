@@ -203,6 +203,7 @@ def train(
     metrics_path: str = "metrics/exit_train.csv",
     log_dir: str = "runs/exit",
     seed: int = 0,
+    checkpoint_path: str | None = None,
 ) -> PolicyValueNet:
     random.seed(seed)
     torch.manual_seed(seed)
@@ -219,6 +220,10 @@ def train(
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     ckpt_dir = Path(checkpoint_dir)
     ckpt_dir.mkdir(exist_ok=True)
+    output_checkpoint = (
+        Path(checkpoint_path) if checkpoint_path else ckpt_dir / "exit_latest.pt"
+    )
+    output_checkpoint.parent.mkdir(parents=True, exist_ok=True)
 
     metrics_file = Path(metrics_path)
     metrics_file.parent.mkdir(parents=True, exist_ok=True)
@@ -277,7 +282,7 @@ def train(
             f"| v_loss {stats['value_loss']:.4f} | {dt:.1f}s",
             flush=True,
         )
-        torch.save(model.state_dict(), ckpt_dir / "exit_latest.pt")
+        torch.save(model.state_dict(), output_checkpoint)
 
     csv_f.close()
     tb.close()
@@ -311,6 +316,7 @@ def train_profile(
         lr=lr,
         init_checkpoint=str(resume_path) if resume_path else "",
         checkpoint_dir=str(checkpoint_dir),
+        checkpoint_path=str(checkpoint_path),
         metrics_path=str(metrics_dir / "exit_train.csv"),
         log_dir=str(runs_dir / "exit"),
         seed=seed,

@@ -3,6 +3,22 @@ from pathlib import Path
 from pkm.agents.profile import AgentProfile, TrainingResult
 from pkm.agents.spec import AgentSpec, REPO_ROOT
 from pkm.agents import profile as profile_module
+from pkm.rl import exit_train, train
+
+
+def _custom_profile(tmp_path):
+    checkpoint = tmp_path / "agents/custom/checkpoints/custom_model.pt"
+    return AgentProfile(
+        "custom",
+        _spec=AgentSpec(
+            name="custom",
+            deck_path=REPO_ROOT / "deck/02_dragapult.csv",
+            policy="random",
+            trainer="ppo",
+            strategy=None,
+            checkpoint_path=checkpoint,
+        ),
+    )
 
 
 def test_profile_train_delegates_to_registered_trainer(monkeypatch):
@@ -65,6 +81,84 @@ def test_profile_train_exit_delegates_to_expert_iteration(monkeypatch):
     assert calls["checkpoint_dir"] == profile.checkpoint_dir
     assert calls["metrics_dir"] == profile.metrics_dir
     assert calls["runs_dir"] == profile.runs_dir
+
+
+def test_profile_train_exit_forwards_resume_with_custom_checkpoint(
+    monkeypatch, tmp_path
+):
+    profile = _custom_profile(tmp_path)
+    resume = tmp_path / "resume.pt"
+    resume.write_bytes(b"checkpoint")
+    calls = {}
+
+    def fake_exit_train(**kwargs):
+        calls.update(kwargs)
+        return TrainingResult(checkpoint=kwargs["checkpoint_path"])
+
+    monkeypatch.setattr(profile_module, "EXIT_TRAINER", fake_exit_train)
+    monkeypatch.setattr(profile, "ensure_dirs", lambda: None)
+
+    result = profile.train_exit(resume_path=resume)
+
+    assert calls["resume_path"] == resume
+    assert calls["checkpoint_path"] == profile.checkpoint_path
+    assert result.checkpoint == profile.checkpoint_path
+
+
+def test_ppo_facade_writes_custom_checkpoint_path(monkeypatch, tmp_path):
+    checkpoint = tmp_path / "custom_ppo.pt"
+    calls = {}
+
+    def fake_train(**kwargs):
+        calls.update(kwargs)
+        output = Path(kwargs["checkpoint_path"])
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_bytes(b"checkpoint")
+
+    monkeypatch.setattr(train, "train", fake_train)
+
+    result = train.train_profile(
+        deck_path=REPO_ROOT / "deck/02_dragapult.csv",
+        checkpoint_path=checkpoint,
+        checkpoint_dir=tmp_path / "checkpoints",
+        metrics_dir=tmp_path / "metrics",
+        runs_dir=tmp_path / "runs",
+        resume_path=None,
+    )
+
+    assert calls["checkpoint_path"] == str(checkpoint)
+    assert result.checkpoint == checkpoint
+    assert result.checkpoint.is_file()
+
+
+def test_exit_facade_writes_custom_checkpoint_path_and_forwards_resume(
+    monkeypatch, tmp_path
+):
+    checkpoint = tmp_path / "custom_exit.pt"
+    resume = tmp_path / "resume.pt"
+    calls = {}
+
+    def fake_train(**kwargs):
+        calls.update(kwargs)
+        output = Path(kwargs["checkpoint_path"])
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_bytes(b"checkpoint")
+
+    monkeypatch.setattr(exit_train, "train", fake_train)
+
+    result = exit_train.train_profile(
+        deck_path=REPO_ROOT / "deck/02_dragapult.csv",
+        checkpoint_path=checkpoint,
+        checkpoint_dir=tmp_path / "checkpoints",
+        metrics_dir=tmp_path / "metrics",
+        runs_dir=tmp_path / "runs",
+        resume_path=resume,
+    )
+
+    assert calls["checkpoint_path"] == str(checkpoint)
+    assert calls["init_checkpoint"] == str(resume)
+    assert result.checkpoint == checkpoint
+    assert result.checkpoint.is_file()
 
 
 def test_profiles_have_isolated_training_paths():

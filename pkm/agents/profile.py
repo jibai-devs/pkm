@@ -194,7 +194,7 @@ class AgentProfile:
         resume = str(resume_path) if resume_path is not None else self.exit_init()
         return trainer(
             deck_path=self.deck_path,
-            checkpoint_path=self.checkpoint_dir / "exit_latest.pt",
+            checkpoint_path=self.checkpoint_path,
             checkpoint_dir=self.checkpoint_dir,
             metrics_dir=self.metrics_dir,
             runs_dir=self.runs_dir,
