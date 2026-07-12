@@ -30,5 +30,4 @@ result.html
 checkpoints/
 pkm/policy.npz
 replay.json
-*.html
 runs/
