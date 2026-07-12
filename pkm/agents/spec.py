@@ -95,6 +95,11 @@ class AgentSpec:
         return list(Deck.from_csv(path).card_ids)
 
     @property
+    def exported_weights_path(self) -> Path:
+        """Path to the policy export owned by this profile."""
+        return self.checkpoint_path.parent / "policy.npz"
+
+    @property
     def metrics_dir(self) -> Path:
         return (REPO_ROOT / "agents" / self.name / "metrics").resolve()
 

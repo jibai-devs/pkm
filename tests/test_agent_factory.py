@@ -40,6 +40,29 @@ def test_neural_profile_requires_exported_weights(tmp_path, monkeypatch):
         profile.make_agent()
 
 
+def test_neural_profile_uses_profile_owned_export(tmp_path, monkeypatch):
+    profile = _profile(tmp_path, monkeypatch, policy="neural")
+    profile.checkpoint_dir.mkdir()
+    profile.exported_weights_path.write_bytes(b"profile weights")
+    seen = {}
+
+    def factory(deck, weights, **kwargs):
+        seen["weights"] = weights
+        seen["require_weights"] = kwargs["require_weights"]
+        return lambda obs: deck
+
+    monkeypatch.setattr("pkm.agents.factory.make_neural_agent", factory)
+
+    policy = profile.make_agent()
+
+    assert profile.exported_weights_path == profile.checkpoint_dir / "policy.npz"
+    assert seen == {
+        "weights": str(profile.exported_weights_path),
+        "require_weights": True,
+    }
+    assert policy({"select": None}) == [1] * 60
+
+
 def test_profile_passes_resolved_profile_to_strategy_factory(tmp_path, monkeypatch):
     profile = _profile(tmp_path, monkeypatch, policy="random", strategy=None)
     seen = {}

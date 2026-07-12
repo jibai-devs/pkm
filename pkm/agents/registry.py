@@ -32,15 +32,20 @@ def _neural_factory(profile: "AgentProfile", deck: list[int]) -> Agent:
 
     return make_neural_agent(
         deck,
-        str(profile.checkpoint_path.with_suffix(".npz")),
+        str(profile.exported_weights_path),
         require_weights=True,
     )
 
 
 def _mcts_factory(profile: "AgentProfile", deck: list[int]) -> Agent:
+    if not profile.exported_weights_path.is_file():
+        raise FileNotFoundError(
+            "exported policy weights not found for configured agent: "
+            f"{profile.exported_weights_path}"
+        )
     return make_mcts_agent(
         deck,
-        weights_path=str(profile.checkpoint_path.with_suffix(".npz")),
+        weights_path=str(profile.exported_weights_path),
     )
 
 

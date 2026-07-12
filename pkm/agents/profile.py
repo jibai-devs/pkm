@@ -63,6 +63,10 @@ class AgentProfile:
         return self.checkpoint_path.parent
 
     @property
+    def exported_weights_path(self) -> Path:
+        return self.spec.exported_weights_path
+
+    @property
     def metrics_dir(self) -> Path:
         return self.spec.metrics_dir
 
