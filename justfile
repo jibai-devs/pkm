@@ -102,12 +102,12 @@ upload file=`ls -t submission_*.tar.gz 2>/dev/null | head -1`:
 # poll latest submission until it finishes (PENDING -> ERROR/DONE)
 poll:
     @while true; do \
-      line=$$(kaggle competitions submissions -c pokemon-tcg-ai-battle --csv 2>/dev/null | head -2 | tail -1); \
-      status=$$(echo "$$line" | cut -d',' -f5); \
-      score=$$(echo "$$line" | cut -d',' -f6); \
-      file=$$(echo "$$line" | cut -d',' -f2); \
-      echo "$$(date +%H:%M:%S) — $$file — $$status$${score:+ (score: $$score)}"; \
-      if [ "$$status" != "SubmissionStatus.PENDING" ]; then break; fi; \
+      line=$(kaggle competitions submissions -c pokemon-tcg-ai-battle --csv 2>/dev/null | head -2 | tail -1); \
+      status=$(echo "$line" | cut -d',' -f5); \
+      score=$(echo "$line" | cut -d',' -f6); \
+      file=$(echo "$line" | cut -d',' -f2); \
+      echo "$(date +%H:%M:%S) — $file — $status${score:+ (score: $score)}"; \
+      if [ "$status" != "SubmissionStatus.PENDING" ]; then break; fi; \
       sleep 15; \
     done
 
