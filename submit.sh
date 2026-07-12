@@ -8,6 +8,8 @@
 set -e
 
 AGENT="${1:-00_basic}"
+TS=$(date +%Y%m%d_%H%M%S)
+OUT="submission_${AGENT}_${TS}.tar.gz"
 
 echo "Creating submission bundle for agent: $AGENT"
 
@@ -27,10 +29,10 @@ Deck.from_csv('deck/${AGENT}.csv').to_csv('submission/deck.csv')
 cp -r pkm submission/
 
 # Create tar.gz
-tar -czvf submission.tar.gz -C submission .
+tar -czvf "$OUT" -C submission .
 
 # Cleanup
 rm -rf submission
 
-echo "Submission bundle created: submission.tar.gz"
-echo "Upload this file to Kaggle."
+echo "Submission bundle created: $OUT"
+echo "Upload with: just upload $OUT"

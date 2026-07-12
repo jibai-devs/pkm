@@ -90,10 +90,15 @@ replay-react file="":
 
 # --- submission ---------------------------------------------------------------
 
-# export freshest weights and build submission.tar.gz
-submit: export
-    ./submit.sh
+# export freshest weights and build submission_<agent>_<ts>.tar.gz
+build_submit agent="02_dragapult":
+    pkm export --agent {{agent}} pkm/policy.npz
+    ./submit.sh {{agent}}
+
+# upload a submission bundle to Kaggle (defaults to latest submission_*.tar.gz)
+upload file=`ls -t submission_*.tar.gz 2>/dev/null | head -1`:
+    kaggle competitions submit -c pokemon-tcg-ai-battle -f {{file}} -m "auto"
 
 # remove training/replay artifacts (keeps checkpoints)
 clean:
-    rm -f result.html replay.json submission.tar.gz
+    rm -f result.html replay.json submission_*.tar.gz

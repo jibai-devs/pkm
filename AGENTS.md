@@ -10,7 +10,7 @@
 | Phase 2 — Expert iteration | **Started (1 run)** | MCTS self-play + distillation. Agent: `00_basic` |
 | Agent profiles | **Done** | Per-agent directories for checkpoints, metrics, runs |
 | Metrics & monitoring | **Done** | CSV logging + Plotly notebook |
-| Kaggle submission | **Ready** | `just submit 00_basic` exports weights + bundles |
+| Kaggle submission | **Ready** | `just build_submit 00_basic` exports weights + bundles |
 
 ### What's Working
 - Pointer/scoring policy network handles variable-length action spaces
@@ -27,7 +27,7 @@
 3. **MCTS vs neural eval** — measure if MCTS agent beats raw policy head-to-head
 4. **Larger model** — wider MLP, more embedding dims, attention over options
 5. **Multi-deck training** — sample opponent decks from a pool for robustness
-6. **Submission** — `just submit` and check Kaggle leaderboard
+6. **Submission** — `just build_submit` + `just upload` and check Kaggle leaderboard
 
 ## Build & Run
 ```bash
@@ -73,7 +73,7 @@ pytest tests/              # run tests
 ## RL Training
 Prefer the `justfile` (run `just` to list recipes): `just train` / `just resume`
 (Phase 1 PPO), `just exit-train` / `just exit-resume` (Phase 2), `just export`,
-`just play mcts neural`, `just eval mcts neural 30`, `just submit`.
+`just play mcts neural`, `just eval mcts neural 30`, `just build_submit`, `just upload`.
 Underlying commands:
 ```bash
 python -m pkm.rl.train --iterations 50 --games 16 [--init checkpoints/ppo_latest.pt]
