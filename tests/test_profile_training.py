@@ -1,0 +1,89 @@
+from pathlib import Path
+
+from pkm.agents.profile import AgentProfile, TrainingResult
+from pkm.agents.spec import AgentSpec, REPO_ROOT
+from pkm.agents import profile as profile_module
+
+
+def test_profile_train_delegates_to_registered_trainer(monkeypatch):
+    profile = AgentProfile.load("02_dragapult")
+    calls = {}
+
+    def fake_train(**kwargs):
+        calls.update(kwargs)
+        return TrainingResult(
+            checkpoint=profile.checkpoint_dir / "ppo_latest.pt", iterations=1
+        )
+
+    monkeypatch.setitem(profile_module.TRAINERS, "ppo", fake_train)
+    monkeypatch.setattr(profile, "ensure_dirs", lambda: None)
+
+    result = profile.train(iterations=1, games=1)
+
+    assert result.checkpoint.name == "ppo_latest.pt"
+    assert calls["deck_path"] == profile.deck_path
+    assert calls["checkpoint_path"] == profile.checkpoint_path
+    assert calls["checkpoint_dir"] == profile.checkpoint_dir
+    assert calls["metrics_dir"] == profile.metrics_dir
+    assert calls["runs_dir"] == profile.runs_dir
+
+
+def test_profile_train_passes_existing_resume_checkpoint(monkeypatch, tmp_path):
+    profile = AgentProfile.load("02_dragapult")
+    resume = tmp_path / "resume.pt"
+    resume.write_bytes(b"checkpoint")
+    monkeypatch.setattr(profile, "ppo_init", lambda: str(resume))
+    calls = {}
+
+    def fake_train(**kwargs):
+        calls.update(kwargs)
+        return TrainingResult(checkpoint=resume)
+
+    monkeypatch.setitem(profile_module.TRAINERS, "ppo", fake_train)
+    monkeypatch.setattr(profile, "ensure_dirs", lambda: None)
+
+    profile.train(iterations=2, games=3)
+
+    assert calls["resume_path"] == resume
+
+
+def test_profile_train_exit_delegates_to_expert_iteration(monkeypatch):
+    profile = AgentProfile.load("02_dragapult")
+    calls = {}
+
+    def fake_exit_train(**kwargs):
+        calls.update(kwargs)
+        return TrainingResult(checkpoint=profile.checkpoint_dir / "exit_latest.pt")
+
+    monkeypatch.setattr(profile_module, "EXIT_TRAINER", fake_exit_train)
+    monkeypatch.setattr(profile, "ensure_dirs", lambda: None)
+
+    result = profile.train_exit(iterations=1, games=1)
+
+    assert result.checkpoint.name == "exit_latest.pt"
+    assert calls["deck_path"] == profile.deck_path
+    assert calls["checkpoint_dir"] == profile.checkpoint_dir
+    assert calls["metrics_dir"] == profile.metrics_dir
+    assert calls["runs_dir"] == profile.runs_dir
+
+
+def test_profiles_have_isolated_training_paths():
+    first = AgentProfile.load("02_dragapult")
+    second = AgentProfile(
+        "test_agent",
+        _spec=AgentSpec(
+            name="test_agent",
+            deck_path=first.deck_path,
+            policy="random",
+            trainer="ppo",
+            strategy=None,
+            checkpoint_path=REPO_ROOT / "agents/test_agent/checkpoints/ppo_latest.pt",
+        ),
+    )
+
+    assert first.checkpoint_dir != second.checkpoint_dir
+    assert first.metrics_dir != second.metrics_dir
+    assert first.runs_dir != second.runs_dir
+    assert first.checkpoint_dir != Path("checkpoints").resolve()
+    assert first.metrics_dir != Path("metrics").resolve()
+    assert first.runs_dir != Path("runs").resolve()

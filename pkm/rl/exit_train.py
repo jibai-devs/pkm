@@ -27,7 +27,7 @@ from kaggle_environments.envs.cabt.cg.game import (
     battle_start,
 )
 
-from pkm.agents.profile import AgentProfile
+from pkm.agents.profile import AgentProfile, TrainingResult
 from pkm.data import Deck
 from pkm.mcts.search import MCTS, _forced_picks
 from pkm.rl.encoder import EncodedDecision, encode_decision
@@ -285,12 +285,52 @@ def train(
     return model
 
 
+def train_profile(
+    *,
+    deck_path: Path,
+    checkpoint_path: Path,
+    checkpoint_dir: Path,
+    metrics_dir: Path,
+    runs_dir: Path,
+    resume_path: Path | None,
+    iterations: int = 3,
+    games_per_iter: int = 4,
+    n_simulations: int = 24,
+    n_determinizations: int = 2,
+    lr: float = 1e-4,
+    seed: int = 0,
+    **kwargs: object,
+) -> TrainingResult:
+    """Profile-facing expert-iteration facade; the legacy ``train`` is unchanged."""
+    train(
+        deck_path=str(deck_path),
+        iterations=iterations,
+        games_per_iter=games_per_iter,
+        n_simulations=n_simulations,
+        n_determinizations=n_determinizations,
+        lr=lr,
+        init_checkpoint=str(resume_path) if resume_path else "",
+        checkpoint_dir=str(checkpoint_dir),
+        metrics_path=str(metrics_dir / "exit_train.csv"),
+        log_dir=str(runs_dir / "exit"),
+        seed=seed,
+        **kwargs,
+    )
+    return TrainingResult(
+        checkpoint=checkpoint_path,
+        metrics=metrics_dir / "exit_train.csv",
+        iterations=iterations,
+    )
+
+
 app = typer.Typer(help=__doc__)
 
 
 @app.command()
 def main(
-    agent: str | None = typer.Option(None, help="agent profile name (e.g. 00_basic, 01_psychic)"),
+    agent: str | None = typer.Option(
+        None, help="agent profile name (e.g. 00_basic, 01_psychic)"
+    ),
     deck: str = typer.Option("deck/02_dragapult.csv", help="path to deck CSV"),
     iterations: int = typer.Option(3, help="number of training iterations"),
     games: int = typer.Option(4, help="games per iteration"),
@@ -304,14 +344,16 @@ def main(
     seed: int = typer.Option(0, help="random seed"),
 ) -> None:
     if agent:
-        profile = AgentProfile(agent)
-        profile.ensure_dirs()
-        deck = str(profile.deck_path)
-        checkpoint_dir = str(profile.checkpoint_dir)
-        metrics = str(profile.metrics_dir / "exit_train.csv")
-        log_dir = str(profile.runs_dir / "exit")
-        if init == "checkpoints/ppo_latest.pt":
-            init = profile.exit_init()
+        AgentProfile.load(agent).train_exit(
+            iterations=iterations,
+            games=games,
+            n_simulations=sims,
+            n_determinizations=dets,
+            lr=lr,
+            seed=seed,
+            resume_path=Path(init) if init != "checkpoints/ppo_latest.pt" else None,
+        )
+        return
     train(
         deck_path=deck,
         iterations=iterations,

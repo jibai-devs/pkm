@@ -15,7 +15,7 @@ from pathlib import Path
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from pkm.agents.profile import AgentProfile
+from pkm.agents.profile import AgentProfile, TrainingResult
 from pkm.data import Deck
 
 from .model import PolicyValueNet
@@ -205,12 +205,58 @@ def train(
     return model
 
 
+def train_profile(
+    *,
+    deck_path: Path,
+    checkpoint_path: Path,
+    checkpoint_dir: Path,
+    metrics_dir: Path,
+    runs_dir: Path,
+    resume_path: Path | None,
+    iterations: int = 50,
+    games_per_iter: int = 8,
+    lr: float = 3e-4,
+    gamma: float = 0.99,
+    shaping_coef: float = 0.2,
+    pool_size: int = 8,
+    eval_every: int = 5,
+    eval_games: int = 20,
+    seed: int = 0,
+    **kwargs: object,
+) -> TrainingResult:
+    """Profile-facing PPO trainer facade; the legacy ``train`` stays unchanged."""
+    train(
+        deck_path=str(deck_path),
+        iterations=iterations,
+        games_per_iter=games_per_iter,
+        lr=lr,
+        gamma=gamma,
+        shaping_coef=shaping_coef,
+        pool_size=pool_size,
+        eval_every=eval_every,
+        eval_games=eval_games,
+        checkpoint_dir=str(checkpoint_dir),
+        metrics_path=str(metrics_dir / "ppo_train.csv"),
+        log_dir=str(runs_dir / "ppo"),
+        init_checkpoint=str(resume_path) if resume_path else None,
+        seed=seed,
+        **kwargs,
+    )
+    return TrainingResult(
+        checkpoint=checkpoint_path,
+        metrics=metrics_dir / "ppo_train.csv",
+        iterations=iterations,
+    )
+
+
 app = typer.Typer(help=__doc__)
 
 
 @app.command()
 def main(
-    agent: str | None = typer.Option(None, help="agent profile name (e.g. 00_basic, 01_psychic)"),
+    agent: str | None = typer.Option(
+        None, help="agent profile name (e.g. 00_basic, 01_psychic)"
+    ),
     deck: str = typer.Option("deck/02_dragapult.csv", help="path to deck CSV"),
     iterations: int = typer.Option(50, help="number of training iterations"),
     games: int = typer.Option(8, help="games per iteration"),
@@ -227,14 +273,19 @@ def main(
     seed: int = typer.Option(0, help="random seed"),
 ) -> None:
     if agent:
-        profile = AgentProfile(agent)
-        profile.ensure_dirs()
-        deck = str(profile.deck_path)
-        checkpoint_dir = str(profile.checkpoint_dir)
-        metrics = str(profile.metrics_dir / "ppo_train.csv")
-        log_dir = str(profile.runs_dir / "ppo")
-        if init is None:
-            init = profile.ppo_init()
+        AgentProfile.load(agent).train(
+            iterations=iterations,
+            games=games,
+            lr=lr,
+            gamma=gamma,
+            shaping=shaping,
+            pool_size=pool_size,
+            eval_every=eval_every,
+            eval_games=eval_games,
+            seed=seed,
+            resume_path=Path(init) if init is not None else None,
+        )
+        return
     train(
         deck_path=deck,
         iterations=iterations,

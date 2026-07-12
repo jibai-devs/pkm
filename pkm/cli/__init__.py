@@ -10,6 +10,8 @@ Usage:
     pkm play --p0 mcts --p1 neural
 """
 
+from pathlib import Path
+
 import typer
 
 from pkm.cli.deck import app as deck_app
@@ -46,6 +48,22 @@ def train(
     seed: int = typer.Option(0, help="random seed"),
 ) -> None:
     """Phase 1: PPO self-play training."""
+    if agent:
+        from pkm.agents.profile import AgentProfile
+
+        AgentProfile.load(agent).train(
+            iterations=iterations,
+            games=games,
+            lr=lr,
+            gamma=gamma,
+            shaping=shaping,
+            pool_size=pool_size,
+            eval_every=eval_every,
+            eval_games=eval_games,
+            seed=seed,
+            resume_path=Path(init) if init else None,
+        )
+        return
     from pkm.rl.train import main as _train_main
 
     _train_main(
@@ -85,6 +103,19 @@ def exit_train(
     seed: int = typer.Option(0, help="random seed"),
 ) -> None:
     """Phase 2: expert iteration (AlphaZero-style)."""
+    if agent:
+        from pkm.agents.profile import AgentProfile
+
+        AgentProfile.load(agent).train_exit(
+            iterations=iterations,
+            games=games,
+            n_simulations=sims,
+            n_determinizations=dets,
+            lr=lr,
+            seed=seed,
+            resume_path=Path(init) if init != "checkpoints/ppo_latest.pt" else None,
+        )
+        return
     from pkm.rl.exit_train import main as _exit_train_main
 
     _exit_train_main(

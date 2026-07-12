@@ -15,8 +15,10 @@ Directory layout::
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from .spec import AgentSpec, REPO_ROOT
 
@@ -24,6 +26,34 @@ if TYPE_CHECKING:
     from .registry import Agent
 
 AGENTS_DIR = REPO_ROOT / "agents"
+
+
+@dataclass(frozen=True)
+class TrainingResult:
+    """Outputs produced by a profile training facade."""
+
+    checkpoint: Path
+    metrics: Path | None = None
+    iterations: int = 0
+
+
+Trainer = Callable[..., TrainingResult]
+TRAINERS: dict[str, Trainer] = {}
+EXIT_TRAINER: Trainer | None = None
+
+
+def _registered_trainers() -> tuple[dict[str, Trainer], Trainer]:
+    """Load built-in trainers lazily so low-level modules stay importable."""
+    global EXIT_TRAINER
+    if "ppo" not in TRAINERS:
+        from pkm.rl.train import train_profile
+
+        TRAINERS["ppo"] = train_profile
+    if EXIT_TRAINER is None:
+        from pkm.rl.exit_train import train_profile
+
+        EXIT_TRAINER = train_profile
+    return TRAINERS, EXIT_TRAINER
 
 
 class AgentProfile:
@@ -103,6 +133,80 @@ class AgentProfile:
         self.metrics_dir.mkdir(parents=True, exist_ok=True)
         (self.runs_dir / "ppo").mkdir(parents=True, exist_ok=True)
         (self.runs_dir / "exit").mkdir(parents=True, exist_ok=True)
+
+    def train(
+        self,
+        *,
+        iterations: int = 50,
+        games: int = 8,
+        lr: float = 3e-4,
+        gamma: float = 0.99,
+        shaping: float = 0.2,
+        pool_size: int = 8,
+        eval_every: int = 5,
+        eval_games: int = 20,
+        seed: int = 0,
+        resume_path: Path | None = None,
+        **kwargs: Any,
+    ) -> TrainingResult:
+        """Train this profile with its configured trainer and output paths."""
+        self.ensure_dirs()
+        trainers, _ = _registered_trainers()
+        try:
+            trainer = trainers[self.trainer]
+        except KeyError as error:
+            raise ValueError(f"unknown trainer {self.trainer!r}") from error
+        resume = str(resume_path) if resume_path is not None else self.ppo_init()
+        return trainer(
+            deck_path=self.deck_path,
+            checkpoint_path=self.checkpoint_path,
+            checkpoint_dir=self.checkpoint_dir,
+            metrics_dir=self.metrics_dir,
+            runs_dir=self.runs_dir,
+            resume_path=Path(resume) if resume else None,
+            iterations=iterations,
+            games_per_iter=games,
+            lr=lr,
+            gamma=gamma,
+            shaping_coef=shaping,
+            pool_size=pool_size,
+            eval_every=eval_every,
+            eval_games=eval_games,
+            seed=seed,
+            **kwargs,
+        )
+
+    def train_exit(
+        self,
+        *,
+        iterations: int = 3,
+        games: int = 4,
+        lr: float = 1e-4,
+        n_simulations: int = 24,
+        n_determinizations: int = 2,
+        seed: int = 0,
+        resume_path: Path | None = None,
+        **kwargs: Any,
+    ) -> TrainingResult:
+        """Train this profile with the expert-iteration trainer."""
+        self.ensure_dirs()
+        _, trainer = _registered_trainers()
+        resume = str(resume_path) if resume_path is not None else self.exit_init()
+        return trainer(
+            deck_path=self.deck_path,
+            checkpoint_path=self.checkpoint_dir / "exit_latest.pt",
+            checkpoint_dir=self.checkpoint_dir,
+            metrics_dir=self.metrics_dir,
+            runs_dir=self.runs_dir,
+            resume_path=Path(resume) if resume else None,
+            iterations=iterations,
+            games_per_iter=games,
+            lr=lr,
+            n_simulations=n_simulations,
+            n_determinizations=n_determinizations,
+            seed=seed,
+            **kwargs,
+        )
 
     def latest_checkpoint(self, phase: str = "ppo") -> Path | None:
         """Return the latest checkpoint for *phase* (``ppo`` or ``exit``), or None."""
