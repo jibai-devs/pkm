@@ -12,9 +12,9 @@ def test_profile_make_agent_returns_kaggle_callable(monkeypatch):
     monkeypatch.setattr(profile, "load_deck", lambda: expected)
     monkeypatch.setattr(
         "pkm.agents.factory.make_neural_agent",
-        lambda deck, weights, **kwargs: lambda obs: deck
-        if obs["select"] is None
-        else [0],
+        lambda deck, weights, **kwargs: (
+            lambda obs: deck if obs["select"] is None else [0]
+        ),
     )
 
     policy = profile.make_agent()

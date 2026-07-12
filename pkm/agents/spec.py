@@ -38,7 +38,9 @@ class AgentSpec:
     def load(cls, name: str) -> "AgentSpec":
         profile_path = REPO_ROOT / "agents" / name / "profile.yaml"
         if not profile_path.is_file():
-            raise FileNotFoundError(f"Agent profile not found: {name!r} ({profile_path})")
+            raise FileNotFoundError(
+                f"Agent profile not found: {name!r} ({profile_path})"
+            )
 
         with profile_path.open() as profile_file:
             values: Any = yaml.safe_load(profile_file)
@@ -76,7 +78,9 @@ class AgentSpec:
         if policy not in POLICY_FACTORIES:
             raise ValueError(f"Agent profile {name!r} has unknown policy {policy!r}")
         if strategy is not None and strategy not in STRATEGY_FACTORIES:
-            raise ValueError(f"Agent profile {name!r} has unknown strategy {strategy!r}")
+            raise ValueError(
+                f"Agent profile {name!r} has unknown strategy {strategy!r}"
+            )
 
         return cls(
             name=name,
@@ -91,7 +95,9 @@ class AgentSpec:
         """Load and validate this profile's deck, returning a fresh card list."""
         path = self.deck_path
         if not path.is_file():
-            raise FileNotFoundError(f"Deck for agent profile {self.name!r} not found: {path}")
+            raise FileNotFoundError(
+                f"Deck for agent profile {self.name!r} not found: {path}"
+            )
         return list(Deck.from_csv(path).card_ids)
 
     @property

@@ -44,10 +44,7 @@ def main(
 
     profile = AgentProfile(agent) if agent else None
     if profile is not None:
-        ckpt = profile.checkpoint_dir / "ppo_latest.pt"
-        if not ckpt.is_file():
-            ckpt = profile.checkpoint_dir / "ppo_iter0200.pt"
-        checkpoint = str(ckpt)
+        checkpoint = str(profile.checkpoint_path)
     if not checkpoint:
         raise typer.BadParameter("provide a checkpoint path or --agent")
     output = out or str(

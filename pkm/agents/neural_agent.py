@@ -33,7 +33,9 @@ def make_neural_agent(
     path = (
         weights_path
         if require_weights and weights_path and Path(weights_path).is_file()
-        else _find_weights(weights_path) if not require_weights else None
+        else _find_weights(weights_path)
+        if not require_weights
+        else None
     )
     if require_weights and path is None:
         configured = weights_path or "the configured export path"
