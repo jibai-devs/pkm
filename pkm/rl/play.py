@@ -24,8 +24,13 @@ from pkm.data import Deck
 
 
 def make_agent_by_name(
-    name: str, deck: list[int], weights: str | None
+    name: str,
+    deck: list[int],
+    weights: str | None,
+    profile: AgentProfile | None = None,
 ) -> Callable[[dict], list[int]]:
+    if profile is not None:
+        return profile.make_agent()
     if name == "random":
         return make_random_agent(deck)
     if name == "neural":
@@ -44,12 +49,13 @@ def play_match(
     weights: str | None = None,
     html_path: str | None = "result.html",
     replay_path: str | None = "replay.json",
+    profile: AgentProfile | None = None,
 ):
     """Run one rendered match; returns the finished kaggle environment."""
     deck = Deck.from_csv(deck_path).card_ids
     agents = [
-        make_agent_by_name(p0, deck, weights),
-        make_agent_by_name(p1, deck, weights),
+        make_agent_by_name(p0, deck, weights, profile=profile),
+        make_agent_by_name(p1, deck, weights, profile=profile),
     ]
     env = make("cabt", configuration={"decks": [deck, deck]})
     env.run(agents)
@@ -79,13 +85,14 @@ def win_rate(
     games: int,
     deck_path: str = "deck/02_dragapult.csv",
     weights: str | None = None,
+    profile: AgentProfile | None = None,
 ) -> float:
     """Head-to-head win rate for p0's agent type, alternating sides."""
     deck = Deck.from_csv(deck_path).card_ids
     score = 0.0
     for g in range(games):
-        a = make_agent_by_name(p0, deck, weights)
-        b = make_agent_by_name(p1, deck, weights)
+        a = make_agent_by_name(p0, deck, weights, profile=profile)
+        b = make_agent_by_name(p1, deck, weights, profile=profile)
         agents = [a, b] if g % 2 == 0 else [b, a]
         side = g % 2
         env = make("cabt", configuration={"decks": [deck, deck]})
@@ -114,18 +121,21 @@ def main(
     replay: str = typer.Option("replay.json", help="JSON replay output path"),
     games: int = typer.Option(1, help=">1: win-rate mode, no replay"),
 ) -> None:
+    profile = None
     if agent:
         profile = AgentProfile(agent)
         deck = str(profile.deck_path)
-        if weights is None:
-            ckpt = profile.checkpoint_dir / "policy.npz"
-            if ckpt.is_file():
-                weights = str(ckpt)
     if games > 1:
-        win_rate(p0, p1, games, deck_path=deck, weights=weights)
+        win_rate(p0, p1, games, deck_path=deck, weights=weights, profile=profile)
     else:
         play_match(
-            p0, p1, deck_path=deck, weights=weights, html_path=html, replay_path=replay
+            p0,
+            p1,
+            deck_path=deck,
+            weights=weights,
+            html_path=html,
+            replay_path=replay,
+            profile=profile,
         )
 
 
