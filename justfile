@@ -90,14 +90,18 @@ replay-react file="":
 
 # --- submission ---------------------------------------------------------------
 
-# export freshest weights and build submission_<agent>_<ts>.tar.gz
+# export freshest weights and build submissions/submission_<agent>_<ts>.tar.gz
 build_submit agent="02_dragapult":
     pkm export --agent {{agent}} pkm/policy.npz
     ./submit.sh {{agent}}
 
-# upload a submission bundle to Kaggle (defaults to latest submission_*.tar.gz)
-upload file=`ls -t submission_*.tar.gz 2>/dev/null | head -1`:
+# upload a submission bundle to Kaggle (defaults to latest submissions/*.tar.gz)
+upload file=`ls -t submissions/submission_*.tar.gz 2>/dev/null | head -1`:
     kaggle competitions submit -c pokemon-tcg-ai-battle -f {{file}} -m "auto"
+
+# download an episode's agent log into submissions/
+logs episode agent:
+    kaggle competitions logs {{episode}} {{agent}} -p submissions
 
 # poll latest submission until it finishes (PENDING -> ERROR/DONE)
 poll:
@@ -113,4 +117,4 @@ poll:
 
 # remove training/replay artifacts (keeps checkpoints)
 clean:
-    rm -f result.html replay.json submission_*.tar.gz
+    rm -f result.html replay.json submissions/submission_*.tar.gz

@@ -12,6 +12,7 @@ wheels/
 # Kaggle submission
 submission/
 submission.tar.gz
+submissions/
 
 # Battle results
 result.html

@@ -13,12 +13,13 @@ if [ "$AGENT" != "02_dragapult" ]; then
     exit 1
 fi
 TS=$(date +%Y%m%d_%H%M%S)
-OUT="submission_${AGENT}_${TS}.tar.gz"
+OUT="submissions/submission_${AGENT}_${TS}.tar.gz"
 
 echo "Creating submission bundle for agent: $AGENT"
 
 # Create submission directory
 mkdir -p submission
+mkdir -p submissions
 
 # Copy main.py
 cp main.py submission/
