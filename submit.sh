@@ -1,6 +1,6 @@
 #!/run/current-system/sw/bin/bash
 # Create submission bundle for Kaggle
-# Usage: ./submit.sh [agent_name]
+# Usage: ./submit.sh [agent_name] [policy_path]
 #
 # The agent name determines which deck and weights to bundle.
 # Only 02_dragapult is currently supported.
@@ -8,6 +8,7 @@
 set -e
 
 AGENT="${1:-02_dragapult}"
+POLICY="${2:-agents/${AGENT}/checkpoints/policy.npz}"
 if [ "$AGENT" != "02_dragapult" ]; then
     echo "Only 02_dragapult is supported" >&2
     exit 1
@@ -32,6 +33,13 @@ Deck.from_csv('deck/${AGENT}.csv').to_csv('submission/deck.csv')
 
 # Copy agent code
 cp -r pkm submission/
+
+# Bundle the profile's fresh export at the path used by Kaggle inference.
+if [ ! -f "$POLICY" ]; then
+    echo "Policy weights not found: $POLICY" >&2
+    exit 1
+fi
+cp "$POLICY" submission/pkm/policy.npz
 
 # Create tar.gz
 tar -czvf "$OUT" -C submission .
