@@ -15,9 +15,9 @@ Directory layout::
 
 from pathlib import Path
 
-from .spec import AgentSpec
+from .spec import AgentSpec, REPO_ROOT
 
-AGENTS_DIR = Path("agents")
+AGENTS_DIR = REPO_ROOT / "agents"
 
 
 class AgentProfile:
@@ -60,7 +60,7 @@ class AgentProfile:
 
     @property
     def checkpoint_dir(self) -> Path:
-        return self.base_dir / "checkpoints"
+        return self.checkpoint_path.parent
 
     @property
     def metrics_dir(self) -> Path:
@@ -86,7 +86,12 @@ class AgentProfile:
 
     def latest_checkpoint(self, phase: str = "ppo") -> Path | None:
         """Return the latest checkpoint for *phase* (``ppo`` or ``exit``), or None."""
-        p = self.checkpoint_dir / f"{phase}_latest.pt"
+        configured_name = self.checkpoint_path.name
+        configured_phase = configured_name.removesuffix("_latest.pt")
+        if phase == configured_phase or (phase == "ppo" and configured_phase not in {"ppo", "exit"}):
+            p = self.checkpoint_path
+        else:
+            p = self.checkpoint_dir / f"{phase}_latest.pt"
         return p if p.is_file() else None
 
     def ppo_init(self) -> str | None:
@@ -109,5 +114,5 @@ class AgentProfile:
         return sorted(
             d.name
             for d in AGENTS_DIR.iterdir()
-            if d.is_dir() and (d / "checkpoints").is_dir()
+            if d.is_dir() and (d / "profile.yaml").is_file()
         )

@@ -13,6 +13,16 @@ PROFILE_FIELDS = {"name", "deck", "policy", "trainer", "strategy", "checkpoint"}
 REQUIRED_FIELDS = PROFILE_FIELDS
 
 
+def _require_string(values: dict[str, Any], field: str, profile_name: str) -> str:
+    value = values[field]
+    if not isinstance(value, str):
+        raise ValueError(
+            f"Agent profile {profile_name!r} field {field!r} must be a string, "
+            f"got {type(value).__name__}"
+        )
+    return value
+
+
 @dataclass(frozen=True)
 class AgentSpec:
     """The immutable configuration loaded from an agent profile YAML file."""
@@ -45,35 +55,46 @@ class AgentSpec:
             raise ValueError(
                 f"Agent profile {name!r} is missing required field(s): {', '.join(missing)}"
             )
-        if values["name"] != name:
+        configured_name = _require_string(values, "name", name)
+        if configured_name != name:
             raise ValueError(
-                f"Agent profile name mismatch: requested {name!r}, configured {values['name']!r}"
+                f"Agent profile name mismatch: requested {name!r}, configured {configured_name!r}"
+            )
+        deck = _require_string(values, "deck", name)
+        policy = _require_string(values, "policy", name)
+        trainer = _require_string(values, "trainer", name)
+        checkpoint = _require_string(values, "checkpoint", name)
+        strategy = values["strategy"]
+        if strategy is not None and not isinstance(strategy, str):
+            raise ValueError(
+                f"Agent profile {name!r} field 'strategy' must be a string or null, "
+                f"got {type(strategy).__name__}"
             )
 
         return cls(
             name=name,
-            deck_path=Path(values["deck"]),
-            policy=str(values["policy"]),
-            trainer=str(values["trainer"]),
-            strategy=None if values.get("strategy") is None else str(values["strategy"]),
-            checkpoint_path=Path(values["checkpoint"]),
+            deck_path=(REPO_ROOT / deck).resolve(),
+            policy=policy,
+            trainer=trainer,
+            strategy=strategy,
+            checkpoint_path=(REPO_ROOT / checkpoint).resolve(),
         )
 
     def load_deck(self) -> list[int]:
         """Load and validate this profile's deck, returning a fresh card list."""
-        path = REPO_ROOT / self.deck_path
+        path = self.deck_path
         if not path.is_file():
             raise FileNotFoundError(f"Deck for agent profile {self.name!r} not found: {path}")
         return list(Deck.from_csv(path).card_ids)
 
     @property
     def metrics_dir(self) -> Path:
-        return Path("agents") / self.name / "metrics"
+        return (REPO_ROOT / "agents" / self.name / "metrics").resolve()
 
     @property
     def runs_dir(self) -> Path:
-        return Path("agents") / self.name / "runs"
+        return (REPO_ROOT / "agents" / self.name / "runs").resolve()
 
     @property
     def submissions_dir(self) -> Path:
-        return Path("agents") / self.name / "submissions"
+        return (REPO_ROOT / "agents" / self.name / "submissions").resolve()
