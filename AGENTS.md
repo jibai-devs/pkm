@@ -57,6 +57,8 @@ pytest tests/              # run tests
 - `docs/ideas/` — architecture ideas and future design notes
 - `pkm/mcts/` — determinization + IS-MCTS over the search API
 - `pkm/strategies/` — future strategy implementations
+- `pkm/obs.py` — pydantic models for the observation (typed contract for the TUI)
+- `pkm/tui/` — Textual human-vs-agent battle UI (`session`, `labels`, `widgets`, `app`)
 - `main.py` — battle runner entry point
 - `deck/` — deck files (CSV: one card ID per line; JSON: id/name/count)
 - `deck/00_basic.csv` — starter 60-card deck
@@ -125,6 +127,29 @@ Plotly notebook (interactive charts):
 ```bash
 jupyter notebook notebooks/training_monitor.ipynb
 ```
+
+## Human Play (TUI)
+Play against a trained agent yourself, in the terminal:
+```bash
+just play human neural             # you vs the neural agent (both 02_dragapult)
+just play human random             # you vs random
+just play neural human 01_psychic  # you as player 2
+```
+`1`-`9` toggle options, `Enter` confirms (attacks and end-turn ask twice — there is
+no undo), `q` quits. Input is inert while the agent thinks. The match writes
+`result.html` + `replay.json` like any other, so you can rewatch a hand-played game
+in the React replay viewer.
+
+Implementation: `pkm/tui/` (Textual), typed observations in `pkm/obs.py`.
+Two things that are easy to get wrong here, both verified by measurement:
+- **Human play must disarm kaggle's timeouts** (`actTimeout`/`runTimeout` = `1e9`).
+  Otherwise a *cumulative* 600s "overage clock" ticks down while you think, and the
+  first move that overdraws it gives you status `TIMEOUT` and a **loss**.
+- **Never `print()` in TUI code.** kaggle wraps each agent call in `redirect_stdout`,
+  which is active process-wide while the human agent blocks; prints vanish into its
+  buffer. Use `textual.log`.
+
+Design + rationale: `docs/superpowers/specs/2026-07-13-human-tui-battle-design.md`.
 
 ## Custom Agents
 Agents are plain functions with signature `def agent(obs: dict) -> list[int]`.

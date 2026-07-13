@@ -21,11 +21,17 @@ from kaggle_environments import make
 from pkm.agents import make_neural_agent, make_random_agent
 from pkm.agents.profile import AgentProfile
 from pkm.data import Deck
+from pkm.tui.session import HUMAN
 
 
 def make_agent_by_name(
     name: str, deck: list[int], weights: str | None
 ) -> Callable[[dict], list[int]]:
+    if name == HUMAN:
+        raise ValueError(
+            "human has no standalone agent: it needs a TUI session "
+            "(handled by play_match)"
+        )
     if name == "random":
         return make_random_agent(deck)
     if name == "neural":
@@ -34,7 +40,37 @@ def make_agent_by_name(
         from pkm.mcts.agent import make_mcts_agent
 
         return make_mcts_agent(deck, weights_path=weights)
-    raise ValueError(f"unknown agent: {name!r} (expected random|neural|mcts)")
+    raise ValueError(f"unknown agent: {name!r} (expected random|neural|mcts|human)")
+
+
+def play_human_match(
+    p0: str,
+    p1: str,
+    deck_path: str = "deck/02_dragapult.csv",
+    weights: str | None = None,
+    html_path: str | None = "result.html",
+    replay_path: str | None = "replay.json",
+) -> None:
+    """Play one match with a human at the keyboard, in a Textual TUI."""
+    from pkm.tui.app import BattleApp
+    from pkm.tui.session import ThreadedEnvSession
+
+    if p0 == HUMAN and p1 == HUMAN:
+        raise ValueError("only one human player is supported")
+
+    human_index = 0 if p0 == HUMAN else 1
+    opponent = p1 if human_index == 0 else p0
+
+    deck = Deck.from_csv(deck_path).card_ids
+    session = ThreadedEnvSession(
+        deck=deck,
+        human_index=human_index,
+        opponent=opponent,
+        weights=weights,
+        html_path=html_path,
+        replay_path=replay_path,
+    )
+    BattleApp(session).run()
 
 
 def play_match(
@@ -45,7 +81,20 @@ def play_match(
     html_path: str | None = "result.html",
     replay_path: str | None = "replay.json",
 ):
-    """Run one rendered match; returns the finished kaggle environment."""
+    """Run one rendered match; returns the finished kaggle environment.
+
+    Exception: with a human player the match runs inside the TUI, which owns the
+    environment for the lifetime of the app, and this returns None.
+    """
+    if HUMAN in (p0, p1):
+        return play_human_match(
+            p0,
+            p1,
+            deck_path=deck_path,
+            weights=weights,
+            html_path=html_path,
+            replay_path=replay_path,
+        )
     deck = Deck.from_csv(deck_path).card_ids
     agents = [
         make_agent_by_name(p0, deck, weights),
@@ -81,6 +130,8 @@ def win_rate(
     weights: str | None = None,
 ) -> float:
     """Head-to-head win rate for p0's agent type, alternating sides."""
+    if HUMAN in (p0, p1):
+        raise ValueError("human play does not support --games > 1")
     deck = Deck.from_csv(deck_path).card_ids
     score = 0.0
     for g in range(games):
@@ -105,8 +156,8 @@ app = typer.Typer(help=__doc__)
 
 @app.command()
 def main(
-    p0: str = typer.Option("neural", help="player 0 agent: random|neural|mcts"),
-    p1: str = typer.Option("random", help="player 1 agent: random|neural|mcts"),
+    p0: str = typer.Option("neural", help="player 0 agent: random|neural|mcts|human"),
+    p1: str = typer.Option("random", help="player 1 agent: random|neural|mcts|human"),
     agent: str | None = typer.Option(None, help="agent profile name (resolves deck + weights)"),
     deck: str = typer.Option("deck/02_dragapult.csv", help="path to deck CSV"),
     weights: str | None = typer.Option(None, help="path to policy .npz"),
