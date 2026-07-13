@@ -76,16 +76,42 @@ of it. New dependency: `pydantic`. `textual>=8.2.8` is already in `pyproject.tom
 ### `pkm/obs.py` — the typed contract
 
 Models: `Observation`, `Select`, `Option`, `GameState`, `Player`, `PokemonRef`,
-`CardRef`, `Log`. Enums (from `obs_data_structure/OBSERVATION_SCHEMA.md`):
-`SelectType`, `SelectContext`, `OptionType`, `AreaType`, `EnergyType`, `LogType`.
+`CardRef`, `Log`. Enums: `SelectType`, `SelectContext`, `OptionType`, `AreaType`,
+`EnergyType`, `LogType`.
 
 ```python
 class Observation(BaseModel):
-    select: Select | None
-    logs: list[Log]
-    current: GameState
+    model_config = ConfigDict(extra="allow")  # kaggle adds step, remainingOverageTime
+
+    select: Select | None = None
+    logs: list[Log] = []
+    current: GameState | None = None
     search_begin_input: str | None = None
 ```
+
+#### Enum numbering (verified against the live engine, 2026-07-13)
+
+**`SelectType` and `SelectContext` are off-by-one from the tables in
+`OBSERVATION_SCHEMA.md`.** The doc's own footnote says API mode serializes them as
+`max(0, enum - 1)`, collapsing the `None` entry — so the tables are 1-based but the
+wire format is 0-based. Confirmed by playing real games: the first prompt of every
+game is `(type=9, context=41)`, which decodes as `YesNo` + `IsFirst` ("do you go
+first?") only under 0-based numbering. Every other observed pair decodes correctly
+0-based too: `(0,0)`=Main+Main, `(1,1)`=Card+SetupActivePokemon, `(1,3)`=Card+Switch,
+`(4,30)`=Energy+DiscardEnergy, `(5,34)`=Skill+SkillOrder, `(7,37)`=Evolve+Evolve.
+
+So: `SelectType.MAIN = 0`, `CARD = 1`, … `YES_NO = 9`, `SPECIAL_CONDITION = 10`.
+(This matches `encoder.py`'s `NUM_SELECT_TYPES = 11`.)
+
+**`OptionType` and `LogType` are NOT offset** — they are exactly as the doc's tables
+say. Verified in live games: `option.type == 13` really is Attack (carries
+`attackId`), `log.type == 16` really is HpChange (carries `value` /
+`putDamageCounter`), `log.type == 23` really is Result.
+
+**Consequence: `obs_data_structure/example_obs.json` is a hand-written
+approximation and is NOT a valid test fixture** — it numbers HpChange as 17, which
+contradicts both the doc and the engine. Tests use a fixture captured from the live
+engine instead (Task 1).
 
 `Observation.model_validate(raw)` is called **once**, at the session boundary.
 Inward of that, nothing sees a dict; `option.type == OptionType.ATTACK` replaces
@@ -245,7 +271,7 @@ The UI is thin; the logic under it is pure and testable without a terminal.
 
 | Unit | Test |
 |---|---|
-| `pkm/obs.py` | Parse `obs_data_structure/example_obs.json` — it already exercises `hand: null`, `null` prize slots, `preEvolution`, tools, and every field we care about. A `model_validate` → `model_dump` round-trip proves no field is silently dropped. Plus: an unknown `OptionType` still parses. |
+| `pkm/obs.py` | Parse a fixture **captured from the live engine** (`tests/fixtures/observations.json`, generated in Task 1 by playing a scripted random game and recording every distinct select/option/log shape). Not `example_obs.json` — that file is hand-written and has the wrong LogType numbering. A `model_validate` → `model_dump` round-trip proves no field is silently dropped. Plus: an unknown `OptionType` still parses, and the extra kaggle keys (`step`, `remainingOverageTime`) don't break validation. |
 | `labels.py` | Table test: one constructed `Option` per `OptionType`, asserting the rendered string names the right card and target. Plus the unknown-type fallback. |
 | `session.py` | Tested against a **fake engine** — a scripted list of observations, no C library, no threads — covering the prompt/submit handshake and all three sentinels (`Failed`, `Quit`, `Finished`). |
 | threading | One slow integration test drives a real `human` vs `random` game through the real `ThreadedEnvSession` with a scripted "always pick option 0" auto-player. This is the only test that can catch a genuine deadlock. |
