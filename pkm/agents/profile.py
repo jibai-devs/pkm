@@ -15,71 +15,38 @@ Directory layout::
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from collections.abc import Callable
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from .spec import AgentSpec, REPO_ROOT
+from . import spec as spec_module
+from .registry import (
+    EXPERT_TRAINER,
+    TRAINERS,
+    Trainer,
+    TrainingResult,
+    register_trainer,
+    require_trainer,
+)
+from .spec import AgentSpec
 
 if TYPE_CHECKING:
     from .registry import Agent
 
-AGENTS_DIR = REPO_ROOT / "agents"
+__all__ = [
+    "AgentProfile",
+    "EXPERT_TRAINER",
+    "TRAINERS",
+    "Trainer",
+    "TrainingResult",
+    "register_trainer",
+    "require_trainer",
+]
 
 
-@dataclass(frozen=True)
-class TrainingResult:
-    """Outputs produced by a profile training facade."""
-
-    checkpoint: Path
-    metrics: Path | None = None
-    iterations: int = 0
-
-
-Trainer = Callable[..., TrainingResult]
-EXPERT_TRAINER = "expert_iteration"
-
-
-def _ppo_trainer(**kwargs: Any) -> TrainingResult:
-    from pkm.rl.train import train_profile
-
-    return train_profile(**kwargs)
-
-
-def _expert_trainer(**kwargs: Any) -> TrainingResult:
-    from pkm.rl.exit_train import train_profile
-
-    return train_profile(**kwargs)
-
-
-TRAINERS: dict[str, Trainer] = {
-    "ppo": _ppo_trainer,
-    EXPERT_TRAINER: _expert_trainer,
-}
-EXIT_TRAINER: Trainer | None = _expert_trainer
-
-
-def register_trainer(name: str, trainer: Trainer, *, replace: bool = False) -> None:
-    """Register a profile trainer by name."""
-    global EXIT_TRAINER
-    if not name:
-        raise ValueError("trainer name must not be empty")
-    if name in TRAINERS and not replace:
-        raise ValueError(f"trainer {name!r} is already registered")
-    TRAINERS[name] = trainer
-    if name == EXPERT_TRAINER:
-        EXIT_TRAINER = trainer
-
-
-def _registered_trainers() -> tuple[dict[str, Trainer], Trainer]:
-    """Load built-in trainers lazily so low-level modules stay importable."""
-    global EXIT_TRAINER
-    if EXIT_TRAINER is not None:
-        TRAINERS[EXPERT_TRAINER] = EXIT_TRAINER
-    else:
-        EXIT_TRAINER = TRAINERS[EXPERT_TRAINER]
-    return TRAINERS, EXIT_TRAINER
+def _agents_root() -> Path:
+    """Resolve the agents directory at call time so tests can relocate the root."""
+    return spec_module.REPO_ROOT / "agents"
 
 
 class AgentProfile:
@@ -118,7 +85,7 @@ class AgentProfile:
 
     @property
     def base_dir(self) -> Path:
-        return AGENTS_DIR / self.name
+        return _agents_root() / self.name
 
     @property
     def checkpoint_dir(self) -> Path:
@@ -164,40 +131,62 @@ class AgentProfile:
         (self.runs_dir / "ppo").mkdir(parents=True, exist_ok=True)
         (self.runs_dir / "exit").mkdir(parents=True, exist_ok=True)
 
+    def _own_output_dir(self, checkpoint_dir: Path | None) -> Path:
+        """Validate an output directory, refusing to write into another profile."""
+        if checkpoint_dir is None:
+            return self.checkpoint_dir
+        candidate = Path(os.path.abspath(os.path.expanduser(checkpoint_dir)))
+        agents_root = Path(os.path.abspath(_agents_root()))
+        if candidate == agents_root or agents_root in candidate.parents:
+            owner = candidate.relative_to(agents_root).parts[0]
+            if owner != self.name:
+                raise ValueError(
+                    f"checkpoint directory {candidate} belongs to agent profile "
+                    f"{owner!r}, not {self.name!r}; a profile may only write to its "
+                    "own agents/<name>/ directory"
+                )
+        return candidate
+
+    def _run_trainer(self, name: str, **call: Any) -> TrainingResult:
+        """Dispatch to a registered trainer, reporting argument mismatches clearly."""
+        trainer = require_trainer(name)
+        try:
+            return trainer(**call)
+        except TypeError as error:
+            raise TypeError(
+                f"trainer {name!r} for agent profile {self.name!r} rejected the "
+                f"supplied arguments: {error}"
+            ) from error
+
     def train(
         self,
         *,
         iterations: int = 50,
         games: int = 8,
         lr: float = 3e-4,
-        gamma: float = 0.99,
-        shaping: float = 0.2,
-        pool_size: int = 8,
-        eval_every: int = 5,
-        eval_games: int = 20,
         seed: int = 0,
         resume_path: Path | None = None,
         checkpoint_dir: Path | None = None,
         metrics_path: Path | None = None,
         log_dir: Path | None = None,
-        **kwargs: Any,
+        **hyperparams: Any,
     ) -> TrainingResult:
-        """Train this profile with its configured trainer and output paths."""
+        """Train this profile with its configured trainer and output paths.
+
+        Trainer-specific hyperparameters (PPO's ``gamma``, ``pool_size``, ...) are
+        forwarded through ``hyperparams`` so that a profile configured with a
+        non-PPO trainer is not handed PPO-only arguments.
+        """
         self.ensure_dirs()
-        trainers, _ = _registered_trainers()
-        try:
-            trainer = trainers[self.trainer]
-        except KeyError as error:
-            raise ValueError(f"unknown trainer {self.trainer!r}") from error
         resume = resume_path
         if resume is None:
             ppo_resume = self.ppo_init()
             resume = Path(ppo_resume) if ppo_resume else None
-        output_dir = checkpoint_dir or self.checkpoint_dir
-        output_checkpoint = output_dir / self.checkpoint_path.name
-        return trainer(
+        output_dir = self._own_output_dir(checkpoint_dir)
+        return self._run_trainer(
+            self.trainer,
             deck_path=self.deck_path,
-            checkpoint_path=output_checkpoint,
+            checkpoint_path=output_dir / self.checkpoint_path.name,
             checkpoint_dir=output_dir,
             metrics_dir=self.metrics_dir,
             runs_dir=self.runs_dir,
@@ -207,13 +196,8 @@ class AgentProfile:
             iterations=iterations,
             games_per_iter=games,
             lr=lr,
-            gamma=gamma,
-            shaping_coef=shaping,
-            pool_size=pool_size,
-            eval_every=eval_every,
-            eval_games=eval_games,
             seed=seed,
-            **kwargs,
+            **hyperparams,
         )
 
     def train_exit(
@@ -230,11 +214,10 @@ class AgentProfile:
         checkpoint_dir: Path | None = None,
         metrics_path: Path | None = None,
         log_dir: Path | None = None,
-        **kwargs: Any,
+        **hyperparams: Any,
     ) -> TrainingResult:
         """Train this profile with the expert-iteration trainer."""
         self.ensure_dirs()
-        _, trainer = _registered_trainers()
         if resume_path is not None:
             initialization = resume_path
         elif resume:
@@ -242,11 +225,11 @@ class AgentProfile:
             initialization = Path(exit_resume) if exit_resume else None
         else:
             initialization = self.checkpoint_path
-        output_dir = checkpoint_dir or self.checkpoint_dir
-        output_checkpoint = output_dir / self.exit_checkpoint_path.name
-        return trainer(
+        output_dir = self._own_output_dir(checkpoint_dir)
+        return self._run_trainer(
+            EXPERT_TRAINER,
             deck_path=self.deck_path,
-            checkpoint_path=output_checkpoint,
+            checkpoint_path=output_dir / self.exit_checkpoint_path.name,
             checkpoint_dir=output_dir,
             metrics_dir=self.metrics_dir,
             runs_dir=self.runs_dir,
@@ -259,7 +242,7 @@ class AgentProfile:
             n_simulations=n_simulations,
             n_determinizations=n_determinizations,
             seed=seed,
-            **kwargs,
+            **hyperparams,
         )
 
     def latest_checkpoint(self, phase: str = "ppo") -> Path | None:
@@ -287,10 +270,11 @@ class AgentProfile:
     @staticmethod
     def list_agents() -> list[str]:
         """Return sorted list of agent profile names."""
-        if not AGENTS_DIR.is_dir():
+        agents_root = _agents_root()
+        if not agents_root.is_dir():
             return []
         return sorted(
             d.name
-            for d in AGENTS_DIR.iterdir()
+            for d in agents_root.iterdir()
             if d.is_dir() and (d / "profile.yaml").is_file()
         )

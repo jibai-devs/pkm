@@ -1,4 +1,5 @@
 from .base import make_agent
+from .factory import make_profile_agent
 from .neural_agent import make_neural_agent
 from .random_agent import make_random_agent
 from .profile import AgentProfile, TRAINERS, TrainingResult, register_trainer
@@ -14,6 +15,7 @@ __all__ = [
     "STRATEGY_FACTORIES",
     "make_agent",
     "make_neural_agent",
+    "make_profile_agent",
     "make_random_agent",
     "register_trainer",
 ]

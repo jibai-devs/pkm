@@ -306,7 +306,6 @@ def train_profile(
     seed: int = 0,
     metrics_path: Path | None = None,
     log_dir: Path | None = None,
-    **kwargs: object,
 ) -> TrainingResult:
     """Profile-facing expert-iteration facade; the legacy ``train`` is unchanged."""
     effective_metrics_path = metrics_path or metrics_dir / "exit_train.csv"
@@ -323,7 +322,6 @@ def train_profile(
         metrics_path=str(effective_metrics_path),
         log_dir=str(log_dir or runs_dir / "exit"),
         seed=seed,
-        **kwargs,
     )
     return TrainingResult(
         checkpoint=checkpoint_path,

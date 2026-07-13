@@ -88,7 +88,7 @@ class AgentSpec:
                 f"got {type(strategy).__name__}"
             )
 
-        from .registry import POLICY_FACTORIES, STRATEGY_FACTORIES
+        from .registry import POLICY_FACTORIES, STRATEGY_FACTORIES, TRAINERS
 
         if policy not in POLICY_FACTORIES:
             raise ValueError(f"Agent profile {name!r} has unknown policy {policy!r}")
@@ -96,6 +96,8 @@ class AgentSpec:
             raise ValueError(
                 f"Agent profile {name!r} has unknown strategy {strategy!r}"
             )
+        if trainer not in TRAINERS:
+            raise ValueError(f"Agent profile {name!r} has unknown trainer {trainer!r}")
 
         return cls(
             name=name,

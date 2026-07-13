@@ -56,7 +56,7 @@ def train(
             games=games,
             lr=lr,
             gamma=gamma,
-            shaping=shaping,
+            shaping_coef=shaping,
             pool_size=pool_size,
             eval_every=eval_every,
             eval_games=eval_games,
@@ -149,11 +149,14 @@ def export(
     ),
     out: str | None = typer.Argument(None, help="output .npz path"),
     agent: str | None = typer.Option(None, help="agent profile name"),
+    phase: str = typer.Option(
+        "ppo", help="which profile checkpoint to export: ppo or exit"
+    ),
 ) -> None:
     """Export checkpoint to .npz for torch-free inference."""
     from pkm.rl.export import main as _export_main
 
-    _export_main(checkpoint=checkpoint, out=out, agent=agent)
+    _export_main(checkpoint=checkpoint, out=out, agent=agent, phase=phase)
 
 
 @app.command()

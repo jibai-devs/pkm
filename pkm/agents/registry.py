@@ -1,8 +1,9 @@
-"""Typed registries for profile-backed agent policies and strategies."""
+"""Typed registries for profile-backed agent policies, strategies, and trainers."""
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from pkm.mcts.agent import make_mcts_agent
 
@@ -82,3 +83,52 @@ def require_strategy(name: str) -> StrategyFactory:
         return STRATEGY_FACTORIES[name]
     except KeyError as error:
         raise ValueError(f"unknown strategy {name!r}") from error
+
+
+@dataclass(frozen=True)
+class TrainingResult:
+    """Outputs produced by a profile training facade."""
+
+    checkpoint: Path
+    metrics: Path | None = None
+    iterations: int = 0
+
+
+Trainer = Callable[..., TrainingResult]
+PPO_TRAINER = "ppo"
+EXPERT_TRAINER = "expert_iteration"
+
+
+def _ppo_trainer(**kwargs: Any) -> TrainingResult:
+    # Imported lazily: torch is not available in the Kaggle inference bundle.
+    from pkm.rl.train import train_profile
+
+    return train_profile(**kwargs)
+
+
+def _expert_trainer(**kwargs: Any) -> TrainingResult:
+    from pkm.rl.exit_train import train_profile
+
+    return train_profile(**kwargs)
+
+
+TRAINERS: dict[str, Trainer] = {
+    PPO_TRAINER: _ppo_trainer,
+    EXPERT_TRAINER: _expert_trainer,
+}
+
+
+def register_trainer(name: str, trainer: Trainer, *, replace: bool = False) -> None:
+    """Register a profile trainer by name."""
+    if not name:
+        raise ValueError("trainer name must not be empty")
+    if name in TRAINERS and not replace:
+        raise ValueError(f"trainer {name!r} is already registered")
+    TRAINERS[name] = trainer
+
+
+def require_trainer(name: str) -> Trainer:
+    try:
+        return TRAINERS[name]
+    except KeyError as error:
+        raise ValueError(f"unknown trainer {name!r}") from error

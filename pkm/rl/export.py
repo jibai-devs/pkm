@@ -39,12 +39,23 @@ def main(
     ),
     out: str | None = typer.Argument(None, help="output .npz path"),
     agent: str | None = typer.Option(None, help="agent profile name"),
+    phase: str = typer.Option(
+        "ppo", help="which profile checkpoint to export: ppo or exit"
+    ),
 ) -> None:
     from pkm.agents.profile import AgentProfile
 
     profile = AgentProfile(agent) if agent else None
-    if profile is not None:
-        checkpoint = str(profile.checkpoint_path)
+    if profile is not None and not checkpoint:
+        # An explicit checkpoint always wins; otherwise pick the requested phase.
+        if phase not in ("ppo", "exit"):
+            raise typer.BadParameter(f"unknown phase {phase!r}; expected ppo or exit")
+        selected = profile.latest_checkpoint(phase)
+        if selected is None:
+            raise typer.BadParameter(
+                f"agent {profile.name!r} has no {phase} checkpoint to export"
+            )
+        checkpoint = str(selected)
     if not checkpoint:
         raise typer.BadParameter("provide a checkpoint path or --agent")
     output = out or str(

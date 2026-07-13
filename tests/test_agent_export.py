@@ -13,7 +13,7 @@ def test_profile_export_defaults_to_owned_weights_path(tmp_path, monkeypatch):
 
     monkeypatch.setattr(export, "export_checkpoint", fake_export)
 
-    export.main(checkpoint="", out=None, agent="02_dragapult")
+    export.main(checkpoint="", out=None, agent="02_dragapult", phase="ppo")
 
     assert calls == {
         "checkpoint": str(tmp_path / "agents/02_dragapult/checkpoints/ppo_latest.pt"),
@@ -32,11 +32,51 @@ def test_profile_export_uses_configured_checkpoint_path(tmp_path, monkeypatch):
         lambda checkpoint, out: calls.update(checkpoint=checkpoint, out=out),
     )
 
-    export.main(checkpoint="", out=None, agent="02_dragapult")
+    export.main(checkpoint="", out=None, agent="02_dragapult", phase="ppo")
 
     assert calls["checkpoint"] == str(
         tmp_path / "agents/02_dragapult/checkpoints/exit_latest.pt"
     )
+
+
+def test_profile_export_honors_explicit_checkpoint(tmp_path, monkeypatch):
+    """--agent must not silently discard an explicitly supplied checkpoint."""
+    _write_profile(tmp_path)
+    monkeypatch.setattr("pkm.agents.spec.REPO_ROOT", tmp_path)
+    explicit = tmp_path / "agents/02_dragapult/checkpoints/exit_latest.pt"
+    explicit.write_bytes(b"exit-weights")
+    calls = {}
+
+    monkeypatch.setattr(
+        export,
+        "export_checkpoint",
+        lambda checkpoint, out: calls.update(checkpoint=checkpoint, out=out),
+    )
+
+    export.main(checkpoint=str(explicit), out=None, agent="02_dragapult", phase="ppo")
+
+    assert calls["checkpoint"] == str(explicit)
+    # The output still defaults to the profile's own export path.
+    assert calls["out"] == str(tmp_path / "agents/02_dragapult/checkpoints/policy.npz")
+
+
+def test_profile_export_can_select_the_exit_phase(tmp_path, monkeypatch):
+    """After expert iteration the exit checkpoint must be exportable."""
+    _write_profile(tmp_path)
+    monkeypatch.setattr("pkm.agents.spec.REPO_ROOT", tmp_path)
+    exit_checkpoint = tmp_path / "agents/02_dragapult/checkpoints/exit_latest.pt"
+    exit_checkpoint.write_bytes(b"exit-weights")
+    calls = {}
+
+    monkeypatch.setattr(
+        export,
+        "export_checkpoint",
+        lambda checkpoint, out: calls.update(checkpoint=checkpoint, out=out),
+    )
+
+    export.main(checkpoint="", out=None, agent="02_dragapult", phase="exit")
+
+    assert calls["checkpoint"] == str(exit_checkpoint)
 
 
 def test_export_keeps_explicit_output_path(tmp_path, monkeypatch):
@@ -50,7 +90,9 @@ def test_export_keeps_explicit_output_path(tmp_path, monkeypatch):
         lambda checkpoint, out: calls.update(checkpoint=checkpoint, out=out),
     )
 
-    export.main(checkpoint="checkpoint.pt", out="pkm/policy.npz", agent=None)
+    export.main(
+        checkpoint="checkpoint.pt", out="pkm/policy.npz", agent=None, phase="ppo"
+    )
 
     assert calls == {"checkpoint": "checkpoint.pt", "out": "pkm/policy.npz"}
 

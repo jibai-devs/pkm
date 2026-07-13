@@ -220,6 +220,6 @@ def test_profile_discovery_does_not_require_runtime_directories(tmp_path, monkey
     agents_dir = tmp_path / "agents"
     profile_dir = agents_dir / "profile-only"
     _write_profile(profile_dir, _valid_profile_values("profile-only"))
-    monkeypatch.setattr("pkm.agents.profile.AGENTS_DIR", agents_dir)
+    monkeypatch.setattr("pkm.agents.spec.REPO_ROOT", tmp_path)
 
     assert "profile-only" in AgentProfile.list_agents()

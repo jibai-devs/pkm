@@ -229,7 +229,6 @@ def train_profile(
     seed: int = 0,
     metrics_path: Path | None = None,
     log_dir: Path | None = None,
-    **kwargs: object,
 ) -> TrainingResult:
     """Profile-facing PPO trainer facade; the legacy ``train`` stays unchanged."""
     effective_metrics_path = metrics_path or metrics_dir / "ppo_train.csv"
@@ -249,7 +248,6 @@ def train_profile(
         log_dir=str(log_dir or runs_dir / "ppo"),
         init_checkpoint=str(resume_path) if resume_path else None,
         seed=seed,
-        **kwargs,
     )
     return TrainingResult(
         checkpoint=checkpoint_path,
@@ -287,7 +285,7 @@ def main(
             games=games,
             lr=lr,
             gamma=gamma,
-            shaping=shaping,
+            shaping_coef=shaping,
             pool_size=pool_size,
             eval_every=eval_every,
             eval_games=eval_games,
