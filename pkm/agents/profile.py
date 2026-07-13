@@ -15,6 +15,7 @@ Directory layout::
 
 from __future__ import annotations
 
+import inspect
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -131,19 +132,28 @@ class AgentProfile:
         (self.runs_dir / "ppo").mkdir(parents=True, exist_ok=True)
         (self.runs_dir / "exit").mkdir(parents=True, exist_ok=True)
 
-    def _own_output_dir(self, checkpoint_dir: Path | None) -> Path:
-        """Validate an output directory, refusing to write into another profile."""
-        if checkpoint_dir is None:
-            return self.checkpoint_dir
-        candidate = Path(os.path.abspath(os.path.expanduser(checkpoint_dir)))
-        agents_root = Path(os.path.abspath(_agents_root()))
-        if candidate == agents_root or agents_root in candidate.parents:
+    def _own_output_path(self, path: Path | None, label: str) -> Path | None:
+        """Reject an output path that resolves into a different profile.
+
+        Uses ``realpath`` rather than ``abspath``: a symlink planted inside this
+        profile's own directory must not be usable to write into another one.
+        """
+        if path is None:
+            return None
+        candidate = Path(os.path.realpath(os.path.expanduser(str(path))))
+        agents_root = Path(os.path.realpath(_agents_root()))
+        if candidate == agents_root:
+            raise ValueError(
+                f"{label} {candidate} is the agents root; a profile may only write "
+                f"to its own agents/{self.name}/ directory"
+            )
+        if agents_root in candidate.parents:
             owner = candidate.relative_to(agents_root).parts[0]
             if owner != self.name:
                 raise ValueError(
-                    f"checkpoint directory {candidate} belongs to agent profile "
-                    f"{owner!r}, not {self.name!r}; a profile may only write to its "
-                    "own agents/<name>/ directory"
+                    f"{label} {candidate} belongs to agent profile {owner!r}, not "
+                    f"{self.name!r}; a profile may only write to its own "
+                    "agents/<name>/ directory"
                 )
         return candidate
 
@@ -151,12 +161,15 @@ class AgentProfile:
         """Dispatch to a registered trainer, reporting argument mismatches clearly."""
         trainer = require_trainer(name)
         try:
-            return trainer(**call)
+            inspect.signature(trainer).bind(**call)
         except TypeError as error:
             raise TypeError(
                 f"trainer {name!r} for agent profile {self.name!r} rejected the "
                 f"supplied arguments: {error}"
             ) from error
+        # Called outside the guard above so a TypeError raised *inside* the
+        # trainer is not mislabelled as an argument mismatch.
+        return trainer(**call)
 
     def train(
         self,
@@ -182,7 +195,10 @@ class AgentProfile:
         if resume is None:
             ppo_resume = self.ppo_init()
             resume = Path(ppo_resume) if ppo_resume else None
-        output_dir = self._own_output_dir(checkpoint_dir)
+        output_dir = (
+            self._own_output_path(checkpoint_dir, "checkpoint directory")
+            or self.checkpoint_dir
+        )
         return self._run_trainer(
             self.trainer,
             deck_path=self.deck_path,
@@ -190,8 +206,8 @@ class AgentProfile:
             checkpoint_dir=output_dir,
             metrics_dir=self.metrics_dir,
             runs_dir=self.runs_dir,
-            metrics_path=metrics_path,
-            log_dir=log_dir,
+            metrics_path=self._own_output_path(metrics_path, "metrics path"),
+            log_dir=self._own_output_path(log_dir, "log directory"),
             resume_path=resume,
             iterations=iterations,
             games_per_iter=games,
@@ -225,7 +241,10 @@ class AgentProfile:
             initialization = Path(exit_resume) if exit_resume else None
         else:
             initialization = self.checkpoint_path
-        output_dir = self._own_output_dir(checkpoint_dir)
+        output_dir = (
+            self._own_output_path(checkpoint_dir, "checkpoint directory")
+            or self.checkpoint_dir
+        )
         return self._run_trainer(
             EXPERT_TRAINER,
             deck_path=self.deck_path,
@@ -233,8 +252,8 @@ class AgentProfile:
             checkpoint_dir=output_dir,
             metrics_dir=self.metrics_dir,
             runs_dir=self.runs_dir,
-            metrics_path=metrics_path,
-            log_dir=log_dir,
+            metrics_path=self._own_output_path(metrics_path, "metrics path"),
+            log_dir=self._own_output_path(log_dir, "log directory"),
             resume_path=initialization,
             iterations=iterations,
             games_per_iter=games,

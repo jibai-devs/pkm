@@ -48,6 +48,8 @@ def main(
     profile = AgentProfile(agent) if agent else None
     if profile is not None and not checkpoint:
         # An explicit checkpoint always wins; otherwise pick the requested phase.
+        if not isinstance(phase, str):  # called directly, not through typer
+            phase = "ppo"
         if phase not in ("ppo", "exit"):
             raise typer.BadParameter(f"unknown phase {phase!r}; expected ppo or exit")
         selected = profile.latest_checkpoint(phase)

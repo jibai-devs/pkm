@@ -2,8 +2,14 @@ from .base import make_agent
 from .factory import make_profile_agent
 from .neural_agent import make_neural_agent
 from .random_agent import make_random_agent
-from .profile import AgentProfile, TRAINERS, TrainingResult, register_trainer
-from .registry import POLICY_FACTORIES, STRATEGY_FACTORIES
+from .profile import AgentProfile
+from .registry import (
+    POLICY_FACTORIES,
+    STRATEGY_FACTORIES,
+    TRAINERS,
+    TrainingResult,
+    register_trainer,
+)
 from .spec import AgentSpec
 
 __all__ = [

@@ -190,7 +190,7 @@ def test_register_trainer_is_used_for_profile_training(monkeypatch, tmp_path):
 
     assert calls["deck_path"] == profile.deck_path
     assert result.checkpoint == profile.checkpoint_path
-    assert "custom" not in profile_module.TRAINERS
+    assert registry_module.TRAINERS["custom"] is custom_trainer
 
 
 def test_unknown_profile_trainer_fails_clearly(monkeypatch, tmp_path):
@@ -433,6 +433,64 @@ def test_training_rejects_another_profiles_checkpoint_dir(monkeypatch, tmp_path)
 
     with pytest.raises(ValueError, match="belongs to agent profile 'other'"):
         mine.train_exit(iterations=1, games=1, checkpoint_dir=intruding_dir)
+
+
+def test_training_rejects_another_profiles_metrics_and_logs(monkeypatch, tmp_path):
+    monkeypatch.setattr(spec_module, "REPO_ROOT", tmp_path)
+    mine = _profile_in(tmp_path, "mine")
+
+    with pytest.raises(ValueError, match="belongs to agent profile 'other'"):
+        mine.train(metrics_path=tmp_path / "agents/other/metrics/ppo_train.csv")
+
+    with pytest.raises(ValueError, match="belongs to agent profile 'other'"):
+        mine.train(log_dir=tmp_path / "agents/other/runs/ppo")
+
+    with pytest.raises(ValueError, match="belongs to agent profile 'other'"):
+        mine.train_exit(metrics_path=tmp_path / "agents/other/metrics/exit_train.csv")
+
+
+def test_training_rejects_a_symlink_escaping_into_another_profile(
+    monkeypatch, tmp_path
+):
+    """A symlink inside one's own profile must not become a write channel."""
+    monkeypatch.setattr(spec_module, "REPO_ROOT", tmp_path)
+    other_checkpoints = tmp_path / "agents/other/checkpoints"
+    other_checkpoints.mkdir(parents=True)
+    mine = _profile_in(tmp_path, "mine")
+    mine.ensure_dirs()
+
+    escape = tmp_path / "agents/mine/sneaky"
+    escape.symlink_to(other_checkpoints, target_is_directory=True)
+
+    with pytest.raises(ValueError, match="belongs to agent profile 'other'"):
+        mine.train(checkpoint_dir=escape)
+
+
+def test_training_rejects_the_agents_root_as_an_output_dir(monkeypatch, tmp_path):
+    monkeypatch.setattr(spec_module, "REPO_ROOT", tmp_path)
+    mine = _profile_in(tmp_path, "mine")
+
+    with pytest.raises(ValueError, match="is the agents root"):
+        mine.train(checkpoint_dir=tmp_path / "agents")
+
+
+def test_trainer_internal_type_error_is_not_mislabelled(monkeypatch, tmp_path):
+    """A TypeError from inside a trainer must not be reported as a bad argument."""
+    monkeypatch.setattr(spec_module, "REPO_ROOT", tmp_path)
+    mine = _profile_in(tmp_path, "mine")
+
+    def exploding_trainer(**kwargs):
+        raise TypeError("something broke deep inside the trainer")
+
+    monkeypatch.setitem(profile_module.TRAINERS, "ppo", exploding_trainer)
+
+    with pytest.raises(TypeError) as raised:
+        mine.train(iterations=1, games=1)
+
+    assert "something broke deep inside the trainer" in str(raised.value)
+    assert "rejected the supplied arguments" not in str(raised.value), (
+        "an internal TypeError was mislabelled as an argument mismatch"
+    )
 
 
 def test_expert_trainer_is_registered_through_the_trainers_table(monkeypatch):
