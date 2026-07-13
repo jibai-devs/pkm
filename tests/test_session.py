@@ -95,3 +95,18 @@ def test_full_game_against_random_through_the_real_engine():
 
     assert prompts > 5, "a real game should ask the human more than a few questions"
     assert HUMAN == "human"
+
+
+def test_win_rate_rejects_human():
+    from pkm.rl.play import win_rate
+
+    with pytest.raises(ValueError, match="human"):
+        win_rate("human", "random", games=5)
+
+
+def test_make_agent_by_name_rejects_human():
+    # human needs a session to talk to; it cannot be built as a plain agent.
+    from pkm.rl.play import make_agent_by_name
+
+    with pytest.raises(ValueError, match="human"):
+        make_agent_by_name("human", [1] * 60, None)
