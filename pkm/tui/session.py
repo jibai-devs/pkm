@@ -68,8 +68,15 @@ class _Quit:
     """Sentinel posted on the picks queue when the user quits."""
 
 
-class _Abort(Exception):
-    """Raised inside the blocked agent to unwind env.run."""
+class _Abort(BaseException):
+    """Raised inside the blocked agent to unwind env.run when the user quits.
+
+    Must subclass BaseException, not Exception: kaggle's ``Agent.act()`` wraps
+    every agent call in ``except Exception as e: action = e``, so an Exception
+    here would be swallowed, turned into the agent's "action", and the player
+    marked ERROR — env.run would then return normally and we would write
+    result.html/replay.json for a game the human abandoned.
+    """
 
 
 class GameSession(Protocol):

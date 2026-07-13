@@ -81,7 +81,11 @@ def play_match(
     html_path: str | None = "result.html",
     replay_path: str | None = "replay.json",
 ):
-    """Run one rendered match; returns the finished kaggle environment."""
+    """Run one rendered match; returns the finished kaggle environment.
+
+    Exception: with a human player the match runs inside the TUI, which owns the
+    environment for the lifetime of the app, and this returns None.
+    """
     if HUMAN in (p0, p1):
         return play_human_match(
             p0,

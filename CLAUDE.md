@@ -4,6 +4,17 @@ Full project guide (structure, RL training, decks, submission): @AGENTS.md
 
 ## Active Context
 
+- Human TUI battle shipped on `feature/human-tui-battle`: `just play human neural`.
+  Code in `pkm/tui/` (session/labels/widgets/app), typed obs in `pkm/obs.py`.
+- `select.type` / `select.context` are **0-based on the wire** (the tables in
+  `obs_data_structure/OBSERVATION_SCHEMA.md` are 1-based); `OptionType` / `LogType`
+  are NOT offset. `example_obs.json` is hand-written and wrong — use
+  `tests/fixtures/observations.json` (captured from the live engine).
+- Human play must disarm kaggle's cumulative 600s overage clock + `runTimeout`
+  (`actTimeout`/`runTimeout` = `1e9`), or the player loses on time.
+- kaggle inspects `agent.__code__.co_argcount` — a **bound method** counts `self`
+  and gets called with 2 args. Agent callables must be plain functions/lambdas.
+
 - Kaggle submission deck lookup is working-directory independent: `main.py` checks paths relative to its own location.
 - `tests/test_main.py` covers resolving bundled `deck.csv` when Kaggle runs from another directory.
 - `main(obs)` is the Kaggle callable agent; `run_local_battle()` is separate for local smoke tests.

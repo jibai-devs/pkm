@@ -47,6 +47,51 @@ def test_quit_aborts_the_blocked_agent():
         session.human_agent(RAW_MAIN)
 
 
+def test_abort_survives_kaggles_exception_handler():
+    """_Abort must not subclass Exception.
+
+    kaggle's Agent.act() does `except Exception as e: action = e`, so an
+    Exception raised by the human agent gets swallowed, becomes the agent's
+    "action", and marks the player ERROR — env.run then returns normally and we
+    would write a replay for a game the human abandoned.
+    """
+    from pkm.tui.session import _Abort
+
+    assert issubclass(_Abort, BaseException)
+    assert not issubclass(_Abort, Exception)
+
+
+@pytest.mark.slow
+def test_quit_mid_game_unwinds_the_real_env_and_writes_nothing(tmp_path):
+    """The quit path through the REAL engine, not just a direct agent call."""
+    from pkm.data import Deck
+
+    html = tmp_path / "result.html"
+    replay = tmp_path / "replay.json"
+    deck = Deck.from_csv("deck/02_dragapult.csv").card_ids
+    session = ThreadedEnvSession(
+        deck=deck,
+        human_index=0,
+        opponent="random",
+        html_path=str(html),
+        replay_path=str(replay),
+    )
+    session.start()
+
+    for _ in range(3):  # play a few turns, then walk away
+        event = session.next_event(timeout=60)
+        assert isinstance(event, Prompt)
+        session.submit([0])
+
+    session.next_event(timeout=60)
+    session.quit()
+    session._thread.join(timeout=30)
+
+    assert not session._thread.is_alive(), "quit must unwind env.run"
+    assert not html.exists(), "an abandoned game must not write a replay"
+    assert not replay.exists()
+
+
 def test_worker_failure_surfaces_as_a_failed_event():
     session = ThreadedEnvSession(deck=[1] * 60, human_index=0, opponent="random")
 
