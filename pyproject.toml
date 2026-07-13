@@ -43,3 +43,6 @@ packages = ["pkm"]
 name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 explicit = true
+
+[tool.pytest.ini_options]
+markers = ["slow: runs a full game through the real engine"]
