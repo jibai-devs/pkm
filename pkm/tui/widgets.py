@@ -106,7 +106,7 @@ class PromptPane(Static):
     def show(self, obs: Observation) -> None:
         self.obs = obs
         self.picks = []
-        self._render()
+        self._redraw()
 
     def toggle(self, index: int) -> None:
         if self.obs is None or self.obs.select is None:
@@ -119,7 +119,7 @@ class PromptPane(Static):
         elif len(picks) < self.obs.select.maxCount:
             picks.append(index)
         self.picks = picks
-        self._render()
+        self._redraw()
 
     def is_submittable(self) -> bool:
         if self.obs is None or self.obs.select is None:
@@ -137,7 +137,12 @@ class PromptPane(Static):
             return f"pick at most {select.maxCount}"
         return "Enter to confirm"
 
-    def _render(self) -> None:
+    def _redraw(self) -> None:
+        # NB: this must not be named `_render` — that shadows Widget._render(),
+        # Textual's internal hook for producing the layout Visual, and this
+        # method returns None (its job is only the self.update() side effect).
+        # Textual's layout engine then crashes trying to call .get_height() on
+        # None when it recomputes content height (e.g. on toggle/resize).
         if self.obs is None or self.obs.select is None:
             self.update("waiting for the agent…")
             return
