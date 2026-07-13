@@ -103,7 +103,9 @@ def _place(
     """A short 'where' suffix, e.g. '(bench 2)' or "(opponent's active)"."""
     if area is None:
         return ""
-    where = AREA_NAME.get(area, f"area {area}")  # AreaType is an IntEnum: int keys match
+    where = AREA_NAME.get(
+        area, f"area {area}"
+    )  # AreaType is an IntEnum: int keys match
     owner = ""
     if obs.current is not None and player_index != obs.current.yourIndex:
         owner = "opponent's "
@@ -257,7 +259,9 @@ def log_label(obs: Observation, log: Log) -> str:
     if kind is LogType.HAS_BASIC_POKEMON:
         has = (log.model_extra or {}).get("hasBasicPokemon")
         verb = "have" if who == "You" else "has"
-        return f"{who} {verb} a basic Pokémon" if has else f"{who} {verb} no basic Pokémon"
+        return (
+            f"{who} {verb} a basic Pokémon" if has else f"{who} {verb} no basic Pokémon"
+        )
     if kind in (
         LogType.POISONED,
         LogType.BURNED,

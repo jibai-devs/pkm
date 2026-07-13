@@ -55,6 +55,10 @@ class BattleApp(App[None]):
         self.session = session
         self.confirm_irreversible = confirm_irreversible
         self.result_text: str | None = None
+        # True between submitting picks and the next prompt arriving. Input is
+        # inert while it holds: a second Enter would otherwise queue picks that
+        # the *next* prompt silently consumes, without the human ever seeing it.
+        self.waiting = False
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -96,6 +100,7 @@ class BattleApp(App[None]):
             self.query_one("#prompt", PromptPane).update(self.result_text)
 
     def _show(self, obs: Observation) -> None:
+        self.waiting = False
         self.query_one("#me", BoardPanel).show(obs.me)
         self.query_one("#opponent", BoardPanel).show(obs.opponent)
         self.query_one("#hand", HandBar).show(obs.me)
@@ -128,9 +133,13 @@ class BattleApp(App[None]):
     # -- actions -----------------------------------------------------------
 
     def action_toggle(self, index: int) -> None:
+        if self.waiting:
+            return
         self.query_one("#prompt", PromptPane).toggle(index)
 
     def action_submit(self) -> None:
+        if self.waiting:
+            return
         prompt = self.query_one("#prompt", PromptPane)
         if not prompt.is_submittable():
             self.bell()
@@ -148,6 +157,7 @@ class BattleApp(App[None]):
         self._send(picks)
 
     def _send(self, picks: list[int]) -> None:
+        self.waiting = True
         self.query_one("#prompt", PromptPane).update("waiting for the agent…")
         self.session.submit(picks)
 

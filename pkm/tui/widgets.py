@@ -52,7 +52,10 @@ class BoardPanel(Static):
             lines += [_pokemon_line(p, f"BENCH {i + 1}") for i, p in enumerate(bench)]
         else:
             lines.append("BENCH  —")
-        prizes_left = sum(1 for p in player.prize if p is not None)
+        # Prize entries are always None (face-down — you don't know your own
+        # prizes either); the list shrinks as prizes are taken, so its length is
+        # the count. Same convention as encoder.prize_potential.
+        prizes_left = len(player.prize)
         lines.append(
             f"prizes {prizes_left}  deck {player.deckCount}  "
             f"hand {player.handCount}  discard {len(player.discard)}"
