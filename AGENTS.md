@@ -167,6 +167,25 @@ The `make_agent(deck, strategy_fn)` base factory in `pkm/agents/base.py` handles
 - `obs["select"] is None` → return deck (60 card IDs)
 - Otherwise return list of option indices from `obs["select"]["option"]`
 
+## Weights on Hugging Face
+Published (public): **https://huggingface.co/TomatoCream/pkm-cabt-ppo**
+
+Holds `policy.npz` (numpy export), `ppo_latest.pt` for all three agents,
+`00_basic/exit_latest.pt`, each agent's `deck.csv`, and the training metrics.
+Checkpoints are gitignored, so this is the only durable copy — re-upload after a
+training run that you want to keep:
+```bash
+hf upload TomatoCream/pkm-cabt-ppo <local_path> <path_in_repo> --repo-type model
+hf download TomatoCream/pkm-cabt-ppo policy.npz                 # fetch back
+```
+Needs a **write** token (`hf auth login`); a read token 403s on upload.
+
+The per-iteration `ppo_iter*.pt` snapshots are **not** kept — they were deleted
+locally (268 MB) and are not on HF. Only `*_latest` checkpoints survive.
+
+Note: the repo has no LICENSE, so the HF model card omits a license field —
+public but "all rights reserved" by default.
+
 ## Kaggle Submission
 - Bundle: `tar -czvf submission.tar.gz main.py deck.csv pkm/`
 - Max size: 197.7 MiB
