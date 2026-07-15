@@ -1,8 +1,13 @@
-"""Kaggle submission entry point for the 02_dragapult neural agent."""
+"""Kaggle submission entry point for the 02_dragapult agent.
+
+Kaggle only ever sees ``agent`` below: it dispatches each turn's decisions
+to one of several sub-agents internally (see
+``pkm/agents/singaporean_middleman.py``).
+"""
 
 from pathlib import Path
 
-from pkm.agents import make_neural_agent
+from pkm.agents import make_singaporean_middleman
 from pkm.data import Deck
 
 
@@ -30,4 +35,4 @@ def _resolve_deck() -> Deck:
 
 
 DECK = _resolve_deck().card_ids
-agent = make_neural_agent(DECK)
+agent = make_singaporean_middleman(DECK)
