@@ -6,7 +6,7 @@ from textual.reactive import reactive
 from textual.screen import ModalScreen
 from textual.widgets import Button, Label, RichLog, Static
 
-from pkm.obs import Observation, Player, PokemonRef
+from pkm.types.obs import Observation, Player, PokemonRef
 from pkm.tui.labels import card_name, energy_cost, option_label
 
 HP_BAR_WIDTH = 16

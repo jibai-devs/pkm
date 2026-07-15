@@ -5,7 +5,7 @@ Full project guide (structure, RL training, decks, submission): @AGENTS.md
 ## Active Context
 
 - Human TUI battle shipped on `feature/human-tui-battle`: `just play human neural`.
-  Code in `pkm/tui/` (session/labels/widgets/app), typed obs in `pkm/obs.py`.
+  Code in `pkm/tui/` (session/labels/widgets/app), typed obs in `pkm/types/obs.py`.
 - `select.type` / `select.context` are **0-based on the wire** (the tables in
   `obs_data_structure/OBSERVATION_SCHEMA.md` are 1-based); `OptionType` / `LogType`
   are NOT offset. `example_obs.json` is hand-written and wrong — use

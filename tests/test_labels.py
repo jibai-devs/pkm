@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from pkm.obs import Observation, Option
+from pkm.types.obs import Observation, Option
 from pkm.tui.labels import energy_cost, log_label, option_label
 
 FIXTURE = json.loads(
@@ -58,7 +58,7 @@ def test_unknown_option_type_falls_back_and_stays_pickable():
 
 
 def test_every_real_log_gets_a_nonempty_label():
-    from pkm.obs import Log
+    from pkm.types.obs import Log
 
     for raw in FIXTURE["logs"].values():
         assert log_label(MAIN, Log.model_validate(raw)).strip()

@@ -6,6 +6,8 @@ the bundle doesn't need torch.
 
 import numpy as np
 
+from pkm.types.obs import Observation
+
 from .encoder import EncodedDecision, encode_decision
 
 NEG_INF = -1e9
@@ -134,10 +136,12 @@ class NumpyPolicy:
 
     def select(self, obs: dict) -> list[int]:
         """Full agent decision for an observation with a select block."""
-        sel = obs["select"]
-        n = len(sel["option"])
-        if n == 1 and sel["minCount"] >= 1:
+        parsed = Observation.model_validate(obs)
+        sel = parsed.select
+        assert sel is not None
+        n = len(sel.option)
+        if n == 1 and sel.minCount >= 1:
             return [0]
-        if n == sel["minCount"] == sel["maxCount"]:
+        if n == sel.minCount == sel.maxCount:
             return list(range(n))
-        return self.act_greedy(encode_decision(obs))
+        return self.act_greedy(encode_decision(parsed))

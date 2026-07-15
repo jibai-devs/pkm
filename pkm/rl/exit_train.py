@@ -30,6 +30,7 @@ from kaggle_environments.envs.cabt.cg.game import (
 from pkm.agents.profile import AgentProfile
 from pkm.data import Deck
 from pkm.mcts.search import MCTS, _forced_picks
+from pkm.types.obs import Observation
 from pkm.rl.encoder import EncodedDecision, encode_decision
 from pkm.rl.model import OPT_ENC, PolicyValueNet
 from pkm.rl.numpy_policy import NumpyPolicy
@@ -94,7 +95,7 @@ def play_exit_game(
                 weights = [agg[a] for a in actions]
                 picks = list(rng.choices(actions, weights=weights)[0])
 
-            d = encode_decision(obs)
+            d = encode_decision(Observation.model_validate(obs))
             d.picks = list(picks)
             d.stopped = len(picks) < d.max_count
             samples[p].append(ExitSample(d, target))

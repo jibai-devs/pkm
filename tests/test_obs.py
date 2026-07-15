@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from pkm.obs import (
+from pkm.types.obs import (
     LogType,
     Observation,
     Option,

@@ -57,7 +57,7 @@ pytest tests/              # run tests
 - `docs/ideas/` — architecture ideas and future design notes
 - `pkm/mcts/` — determinization + IS-MCTS over the search API
 - `pkm/strategies/` — future strategy implementations
-- `pkm/obs.py` — pydantic models for the observation (typed contract for the TUI)
+- `pkm/types/obs.py` — pydantic models for the observation (typed contract for the TUI + RL encoder)
 - `pkm/tui/` — Textual human-vs-agent battle UI (`session`, `labels`, `widgets`, `app`)
 - `main.py` — battle runner entry point
 - `deck/` — deck files (CSV: one card ID per line; JSON: id/name/count)
@@ -140,7 +140,7 @@ no undo), `q` quits. Input is inert while the agent thinks. The match writes
 `result.html` + `replay.json` like any other, so you can rewatch a hand-played game
 in the React replay viewer.
 
-Implementation: `pkm/tui/` (Textual), typed observations in `pkm/obs.py`.
+Implementation: `pkm/tui/` (Textual), typed observations in `pkm/types/obs.py`.
 Two things that are easy to get wrong here, both verified by measurement:
 - **Human play must disarm kaggle's timeouts** (`actTimeout`/`runTimeout` = `1e9`).
   Otherwise a *cumulative* 600s "overage clock" ticks down while you think, and the

@@ -3,7 +3,7 @@ import json
 import queue
 from pathlib import Path
 
-from pkm.obs import Observation
+from pkm.types.obs import Observation
 from pkm.tui.app import BattleApp
 from pkm.tui.session import Finished, Prompt
 

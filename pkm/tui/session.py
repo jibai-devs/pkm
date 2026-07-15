@@ -29,7 +29,7 @@ import threading
 from dataclasses import dataclass
 from typing import Callable, Protocol
 
-from pkm.obs import Observation
+from pkm.types.obs import Observation
 
 HUMAN = "human"
 

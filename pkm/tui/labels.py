@@ -11,7 +11,7 @@ game soft-locks.
 """
 
 from pkm.data import get_attack_data, get_card_data
-from pkm.obs import (
+from pkm.types.obs import (
     AreaType,
     CardRef,
     EnergyType,

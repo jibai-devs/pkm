@@ -12,6 +12,7 @@ from kaggle_environments.envs.cabt.cg.game import (
 )
 
 from pkm.data import Deck
+from pkm.types.obs import Observation
 from pkm.rl.encoder import (
     MAX_HAND,
     N_BOARD_SLOTS,
@@ -35,7 +36,7 @@ def _collect_decisions(n_decisions: int = 40) -> list:
             sel = obs["select"]
             n = len(sel["option"])
             if not (n == 1 and sel["minCount"] >= 1):
-                out.append(encode_decision(obs))
+                out.append(encode_decision(Observation.model_validate(obs)))
             obs = battle_select(random.sample(range(n), sel["maxCount"]))
     finally:
         battle_finish()

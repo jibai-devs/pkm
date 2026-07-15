@@ -10,6 +10,8 @@ from kaggle_environments.envs.cabt.cg.game import (
     battle_start,
 )
 
+from pkm.types.obs import Observation
+
 from .encoder import EncodedDecision, encode_decision, prize_potential
 from .model import PolicyValueNet
 
@@ -27,15 +29,17 @@ class TorchPolicy:
         self.temperature = temperature
 
     def act(self, obs: dict, collect: bool) -> tuple[list[int], EncodedDecision | None]:
-        sel = obs["select"]
-        n = len(sel["option"])
+        parsed = Observation.model_validate(obs)
+        sel = parsed.select
+        assert sel is not None
+        n = len(sel.option)
         # forced decision: nothing to learn, don't run the network
-        if n == 1 and sel["minCount"] >= 1:
+        if n == 1 and sel.minCount >= 1:
             return [0], None
-        if n == sel["minCount"] == sel["maxCount"]:
+        if n == sel.minCount == sel.maxCount:
             return list(range(n)), None
 
-        d = encode_decision(obs)
+        d = encode_decision(parsed)
         res = self.model.act(d, greedy=self.greedy, temperature=self.temperature)
         if not collect:
             return res.picks, None
@@ -43,7 +47,7 @@ class TorchPolicy:
         d.stopped = res.stopped
         d.logprob = res.logprob
         d.value = res.value
-        d.potential = prize_potential(obs)
+        d.potential = prize_potential(parsed)
         return res.picks, d
 
 

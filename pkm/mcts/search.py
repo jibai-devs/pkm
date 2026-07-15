@@ -13,6 +13,7 @@ import random
 
 import numpy as np
 
+from pkm.types.obs import Observation
 from pkm.rl.encoder import encode_decision
 from pkm.rl.numpy_policy import NumpyPolicy
 from pkm.search import search_begin, search_end, search_step
@@ -98,7 +99,7 @@ class MCTS:
 
     def _expand(self, node: _Node) -> float:
         """Enumerate actions + priors, return the value from node.player's view."""
-        d = encode_decision(node.obs)
+        d = encode_decision(Observation.model_validate(node.obs))
         sel = node.obs["select"]
         n = len(sel["option"])
         value = self.policy.value(d)

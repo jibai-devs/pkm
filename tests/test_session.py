@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from pkm.obs import Observation
+from pkm.types.obs import Observation
 from pkm.tui.session import (
     Failed,
     Finished,

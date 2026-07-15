@@ -13,7 +13,7 @@ from textual.containers import Horizontal, Vertical
 from textual.widgets import Footer, Header
 from textual.worker import get_current_worker
 
-from pkm.obs import Observation, OptionType
+from pkm.types.obs import Observation, OptionType
 from pkm.tui.labels import log_label
 from pkm.tui.session import Event, Failed, Finished, GameSession, Prompt
 from pkm.tui.widgets import BoardPanel, ConfirmScreen, EventLog, HandBar, PromptPane
