@@ -161,11 +161,51 @@ To add your own agent:
 The `make_agent(deck, strategy_fn)` base factory in `pkm/agents/base.py` handles deck submission boilerplate — your strategy_fn only needs to handle `obs["select"] is not None`.
 
 ## cabt Engine API
-- `from kaggle_environments.envs.cabt.cg.sim import lib` → `lib.AllCard()`, `lib.AllAttack()`
-- `from kaggle_environments.envs.cabt.cg.game import battle_start, battle_select, battle_finish`
+- Import the engine through **`pkm.engine`** (the single seam), not directly from
+  `kaggle_environments.envs.cabt.cg.*`:
+  `from pkm.engine import lib, battle_start, battle_select, battle_finish`
 - Agents must be plain functions (not class instances) for kaggle-env compatibility
 - `obs["select"] is None` → return deck (60 card IDs)
 - Otherwise return list of option indices from `obs["select"]["option"]`
+
+## Vendored engine (`engine/`) + backend switch
+The C++ engine source lives in `engine/` (copied from the standalone `ptcg` repo,
+commit `0a56d34`, Competition-Use-Only license). It compiles to `engine/build/cg.so`,
+which is ABI-identical (same 13 exported symbols) to the Kaggle-bundled `libcg.so`.
+
+`pkm/engine/loader.py` picks which build backs the process, precedence:
+`PKM_ENGINE_LIB=/abs/path` > `PKM_ENGINE=vendored` > default `kaggle`. **Default must
+stay `kaggle`** — the submission sandbox has no `engine/`. The switch covers the
+direct engine paths (search, card data, RL/MCTS rollouts); `pkm/rl/play.py` and the
+TUI still run matches through `kaggle_environments.make()`, which always uses the
+bundled engine.
+
+```bash
+just engine-build         # nix devshell: cmake+ninja (libc++) -> engine/build/cg.so
+just engine-build-nix     # hermetic: nix build -> engine/result/lib/cg.so
+just engine-build-cc      # NO nix: system cmake + C++20 compiler (libstdc++)
+just engine-info          # print backend + capability report (respects PKM_ENGINE)
+just engine-parity        # assert vendored initial-obs matches the official engine
+PKM_ENGINE=vendored just test        # run the suite against the vendored engine
+```
+
+`pkm.engine` also exposes capability detection — `capabilities()`,
+`available_backends()`, `kaggle_available()`, `vendored_built()` — so code can
+adapt to which backends are present and whether a (future, patched) seeded ABI
+exists.
+
+**The engine is nondeterministic by design.** `ApiBattleStart` (`engine/src/api/Api.h`)
+seeds `std::mt19937` from `std::random_device()` with no seed injection through the
+public `BattleStart(int*)` ABI — even the official lib diverges from itself after the
+first `Select`. So full-game byte-parity is impossible; `test_engine_parity.py` only
+asserts the deterministic **initial observation** matches. Seed-exact reproducibility
+would require patching the C++ to accept an injected seed. Two gotchas that do *not*
+break rules-parity but do change draw order: `std::shuffle` is implementation-defined
+(libc++ vs libstdc++ differ), and the vendored `flake.nix` builds with libc++ while
+the official lib links libstdc++.
+
+**Full write-up (build with/without nix, backend swap, capability detection, the
+determinism issue and our compromise): `docs/ENGINE.md`.**
 
 ## Weights on Hugging Face
 Published (public): **https://huggingface.co/TomatoCream/pkm-cabt-ppo**

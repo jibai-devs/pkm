@@ -4,6 +4,12 @@ Full project guide (structure, RL training, decks, submission): @AGENTS.md
 
 ## Active Context
 
+- Vendored C++ engine in `engine/` (from `ptcg` @ `0a56d34`) builds `engine/build/cg.so`,
+  ABI-identical to Kaggle's `libcg.so`. Swap via `PKM_ENGINE=vendored` (default `kaggle`);
+  the seam is `pkm/engine/` and all engine imports go through it. `just engine-build` /
+  `just engine-parity`. Engine is **nondeterministic** (`random_device` seed, no injection),
+  so only initial-obs parity is testable. Full details in AGENTS.md → "Vendored engine".
+  Staged but uncommitted (63 tests pass on both backends).
 - Human TUI battle shipped on `feature/human-tui-battle`: `just play human neural`.
   Code in `pkm/tui/` (session/labels/widgets/app), typed obs in `pkm/types/obs.py`.
 - `select.type` / `select.context` are **0-based on the wire** (the tables in

@@ -21,7 +21,7 @@ import torch
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 
-from kaggle_environments.envs.cabt.cg.game import (
+from pkm.engine import (
     battle_finish,
     battle_select,
     battle_start,

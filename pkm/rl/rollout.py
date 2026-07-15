@@ -4,7 +4,7 @@ collects encoded decisions for both players."""
 import random
 from dataclasses import dataclass
 
-from kaggle_environments.envs.cabt.cg.game import (
+from pkm.engine import (
     battle_finish,
     battle_select,
     battle_start,

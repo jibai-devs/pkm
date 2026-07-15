@@ -41,6 +41,33 @@ cards-dump out="cards.json":
 agents:
     @ls -1 agents/ 2>/dev/null || echo "no agents/ directory"
 
+# --- engine (vendored C++ build) --------------------------------------------
+
+# compile the vendored C++ engine -> engine/build/cg.so (nix devshell, libc++)
+engine-build:
+    cd engine && nix develop -c bash -c 'cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build build'
+
+# hermetic engine build via nix -> engine/result/lib/cg.so
+engine-build-nix:
+    cd engine && nix build
+
+# compile with a system toolchain, NO nix (needs cmake + a C++20 compiler)
+engine-build-cc:
+    cmake -S engine -B engine/build -DCMAKE_BUILD_TYPE=Release
+    cmake --build engine/build
+
+# remove engine build outputs
+engine-clean:
+    rm -rf engine/build engine/result
+
+# print the selected backend + capability report (respects PKM_ENGINE)
+engine-info:
+    python -m pkm.engine
+
+# verify the vendored engine's initial observation matches the official engine
+engine-parity:
+    python -m pytest tests/test_engine_parity.py -q
+
 # --- training ---------------------------------------------------------------
 
 # Phase 1: PPO self-play (agent auto-resolves deck + dirs)

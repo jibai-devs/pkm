@@ -1,0 +1,7 @@
+CompileFlags:
+  CompilationDatabase: build/
+  Add: ["-std=c++20", "-stdlib=libc++", "-Wall", "-Wextra"]
+Diagnostics:
+  UnusedIncludes: Strict
+  ClangTidy:
+    Add: [modernize-*, performance-*, bugprone-*]

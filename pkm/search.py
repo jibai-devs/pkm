@@ -11,7 +11,7 @@ avoid dataclass conversion overhead in the MCTS hot loop.
 import ctypes
 import json
 
-from kaggle_environments.envs.cabt.cg.sim import lib
+from pkm.engine import lib
 
 lib.AgentStart.restype = ctypes.c_void_p
 
