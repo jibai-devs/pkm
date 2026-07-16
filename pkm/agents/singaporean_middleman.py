@@ -51,10 +51,16 @@ def _log_prizes(tracker: DeckTracker, log_sink: Callable[[str], None] | None) ->
 
         tlog(msg)
         return
-    # No live Textual app (bot-vs-bot / a plain script): kaggle's env.run()
-    # wraps every agent call in redirect_stdout, so a plain print() would
-    # vanish silently; write to the real stdout instead.
+    # No live Textual app (bot-vs-bot / a plain script / the real Kaggle
+    # submission). kaggle's env.run() wraps every agent call in
+    # redirect_stdout, so a plain print() alone would vanish from a live
+    # local terminal — write to the real stdout too so it's visible there.
+    # But the plain print() still matters: it's what lands in *kaggle's own*
+    # captured per-step stdout, which is what actually reflects in Kaggle's
+    # submission logs (the same mechanism that surfaces a crashing agent's
+    # traceback there). Emit both.
     print(msg, file=sys.__stdout__, flush=True)
+    print(msg, flush=True)
 
 
 def _select_agent(obs: dict, agents: dict[str, AgentFn], state: dict) -> str:

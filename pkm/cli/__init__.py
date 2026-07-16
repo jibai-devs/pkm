@@ -44,6 +44,9 @@ def train(
     log_dir: str = typer.Option("runs/ppo", help="TensorBoard log directory"),
     init: str | None = typer.Option(None, help="checkpoint to resume from"),
     seed: int = typer.Option(0, help="random seed"),
+    workers: int = typer.Option(
+        1, help="parallel worker processes for self-play rollout (1 = sequential)"
+    ),
 ) -> None:
     """Phase 1: PPO self-play training."""
     from pkm.rl.train import main as _train_main
@@ -64,6 +67,7 @@ def train(
         log_dir=log_dir,
         init=init,
         seed=seed,
+        workers=workers,
     )
 
 

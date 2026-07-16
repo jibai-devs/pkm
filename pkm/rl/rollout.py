@@ -14,6 +14,7 @@ from pkm.types.obs import Observation
 
 from .encoder import EncodedDecision, encode_decision, prize_potential
 from .model import PolicyValueNet
+from .ppo import compute_returns
 
 MAX_DECISIONS = 3000
 
@@ -99,3 +100,82 @@ def play_game(
     return GameResult(
         trajectories=trajectories, rewards=rewards, decisions=count, turns=turns
     )
+
+
+@dataclass
+class GameSpec:
+    """One game's pre-decided matchup, so rollout (sequential or parallel)
+    and aggregation always agree on who played and what to count."""
+
+    opponent_state: dict | None  # None = mirror self-play (both sides = current)
+    side: int  # which side "current" plays if opponent_state is set; -1 if mirror
+    collect: tuple[bool, bool]
+
+
+def make_game_specs(
+    games_per_iter: int, pool: list[dict], pool_prob: float, rng: random.Random
+) -> list[GameSpec]:
+    """Decide, up front, the full iteration's matchups — same logic regardless
+    of whether rollout runs sequentially or across worker processes."""
+    specs = []
+    for _ in range(games_per_iter):
+        if rng.random() < pool_prob and len(pool) > 1:
+            opponent_state = rng.choice(pool[:-1])
+            side = rng.randint(0, 1)
+            collect = (side == 0, side == 1)
+        else:
+            opponent_state = None
+            side = -1
+            collect = (True, True)
+        specs.append(GameSpec(opponent_state, side, collect))
+    return specs
+
+
+def play_one(
+    current_model: PolicyValueNet,
+    opponent_model: PolicyValueNet,
+    deck: list[int],
+    spec: GameSpec,
+) -> GameResult:
+    """Play one game per `spec`, reusing `opponent_model` as scratch space for
+    the pooled-opponent case (avoids rebuilding a fresh module every game)."""
+    if spec.opponent_state is None:
+        cur = TorchPolicy(current_model)
+        policies = (cur, cur)
+    else:
+        opponent_model.load_state_dict(spec.opponent_state)
+        opponent_model.eval()
+        opp = TorchPolicy(opponent_model)
+        cur = TorchPolicy(current_model)
+        policies = (cur, opp) if spec.side == 0 else (opp, cur)
+    return play_game(policies, (deck, deck), collect=spec.collect)
+
+
+def aggregate_result(
+    spec: GameSpec,
+    result: GameResult,
+    data: list,
+    gamma: float,
+    lam: float,
+    shaping_coef: float,
+) -> tuple[int, int, int]:
+    """Extend `data` with this game's collected trajectories and return the
+    (win, loss, draw) increment for `current` — same counting rule the
+    sequential loop always used, factored out so the parallel path matches."""
+    w = losses = d = 0
+    for p in range(2):
+        if not spec.collect[p]:
+            continue
+        compute_returns(
+            result.trajectories[p],
+            result.rewards[p],
+            gamma=gamma,
+            lam=lam,
+            shaping_coef=shaping_coef,
+        )
+        data.extend(result.trajectories[p])
+        if spec.side == -1 and p == 1:
+            continue  # count mirror games once
+        r = result.rewards[p if spec.side == -1 else spec.side]
+        w, losses, d = w + (r > 0), losses + (r < 0), d + (r == 0)
+    return w, losses, d

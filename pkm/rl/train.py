@@ -19,8 +19,15 @@ from pkm.agents.profile import AgentProfile
 from pkm.data import Deck
 
 from .model import PolicyValueNet
-from .ppo import compute_returns, ppo_update
-from .rollout import RandomPolicy, TorchPolicy, play_game
+from .ppo import ppo_update
+from .rollout import (
+    RandomPolicy,
+    TorchPolicy,
+    aggregate_result,
+    make_game_specs,
+    play_game,
+    play_one,
+)
 
 
 def evaluate_vs_random(
@@ -74,9 +81,11 @@ def train(
     log_dir: str = "runs/ppo",
     init_checkpoint: str | None = None,
     seed: int = 0,
+    workers: int = 1,
 ) -> PolicyValueNet:
     random.seed(seed)
     torch.manual_seed(seed)
+    rng = random.Random(seed)
 
     deck = Deck.from_csv(deck_path).card_ids
     model = PolicyValueNet()
@@ -101,102 +110,101 @@ def train(
     pool: list[dict] = [copy.deepcopy(model.state_dict())]
     opponent_model = PolicyValueNet()
 
-    for it in range(1, iterations + 1):
-        t0 = time.time()
-        model.eval()
-        current = TorchPolicy(model)
-        data = []
-        w = losses = d = 0
-        total_decisions = 0
+    executor = None
+    if workers > 1:
+        from .parallel_rollout import collect_parallel, make_pool
 
-        for _ in range(games_per_iter):
-            if random.random() < pool_prob and len(pool) > 1:
-                opponent_model.load_state_dict(random.choice(pool[:-1]))
-                opp = TorchPolicy(opponent_model)
-                side = random.randint(0, 1)
-                policies = (current, opp) if side == 0 else (opp, current)
-                collect = (side == 0, side == 1)
-            else:
-                side = -1  # mirror match: collect both sides
-                policies = (current, current)
-                collect = (True, True)
+        executor = make_pool(workers)
+        print(f"parallel rollout: {workers} worker processes", flush=True)
 
-            result = play_game(policies, (deck, deck), collect=collect)
-            total_decisions += result.decisions
-            for p in range(2):
-                if not collect[p]:
-                    continue
-                compute_returns(
-                    result.trajectories[p],
-                    result.rewards[p],
-                    gamma=gamma,
-                    lam=lam,
-                    shaping_coef=shaping_coef,
+    try:
+        for it in range(1, iterations + 1):
+            t0 = time.time()
+            model.eval()
+            data = []
+            w = losses = d = 0
+            total_decisions = 0
+
+            specs = make_game_specs(games_per_iter, pool, pool_prob, rng)
+            if executor is not None:
+                results = collect_parallel(
+                    executor, workers, model.state_dict(), deck, specs
                 )
-                data.extend(result.trajectories[p])
-                if side == -1 and p == 1:
-                    continue  # count mirror games once
-                r = result.rewards[p if side == -1 else side]
-                w, losses, d = w + (r > 0), losses + (r < 0), d + (r == 0)
+            else:
+                results = [
+                    play_one(model, opponent_model, deck, spec) for spec in specs
+                ]
 
-        model.train()
-        stats = ppo_update(model, optimizer, data)
-        model.eval()
+            for spec, result in zip(specs, results):
+                total_decisions += result.decisions
+                gw, gl, gd = aggregate_result(
+                    spec, result, data, gamma, lam, shaping_coef
+                )
+                w, losses, d = w + gw, losses + gl, d + gd
 
-        pool.append(copy.deepcopy(model.state_dict()))
-        if len(pool) > pool_size:
-            pool.pop(0)
+            model.train()
+            stats = ppo_update(model, optimizer, data)
+            model.eval()
 
-        dt = time.time() - t0
-        row = {
-            "iter": it,
-            "games": games_per_iter,
-            "wins": w,
-            "losses": losses,
-            "draws": d,
-            "decisions": total_decisions,
-            "samples": len(data),
-            "pi_loss": f"{stats['policy_loss']:.6f}",
-            "v_loss": f"{stats['value_loss']:.6f}",
-            "entropy": f"{stats['entropy']:.6f}",
-            "clip_frac": f"{stats['clip_frac']:.4f}",
-            "time_s": f"{dt:.2f}",
-            "eval_win_rate": "",
-            "eval_games": "",
-        }
-        print(
-            f"iter {it:3d} | games {games_per_iter} (W/L/D {w}/{losses}/{d}) "
-            f"| decisions {total_decisions} | samples {len(data)} "
-            f"| pi_loss {stats['policy_loss']:.4f} | v_loss {stats['value_loss']:.4f} "
-            f"| ent {stats['entropy']:.3f} | clip {stats['clip_frac']:.2f} | {dt:.1f}s",
-            flush=True,
-        )
+            pool.append(copy.deepcopy(model.state_dict()))
+            if len(pool) > pool_size:
+                pool.pop(0)
 
-        if it % eval_every == 0:
-            wr = evaluate_vs_random(model, deck, games=eval_games)
-            row["eval_win_rate"] = f"{wr:.4f}"
-            row["eval_games"] = eval_games
+            dt = time.time() - t0
+            row = {
+                "iter": it,
+                "games": games_per_iter,
+                "wins": w,
+                "losses": losses,
+                "draws": d,
+                "decisions": total_decisions,
+                "samples": len(data),
+                "pi_loss": f"{stats['policy_loss']:.6f}",
+                "v_loss": f"{stats['value_loss']:.6f}",
+                "entropy": f"{stats['entropy']:.6f}",
+                "clip_frac": f"{stats['clip_frac']:.4f}",
+                "time_s": f"{dt:.2f}",
+                "eval_win_rate": "",
+                "eval_games": "",
+            }
             print(
-                f"iter {it:3d} | eval vs random: {wr:.1%} ({eval_games} games)",
+                f"iter {it:3d} | games {games_per_iter} (W/L/D {w}/{losses}/{d}) "
+                f"| decisions {total_decisions} | samples {len(data)} "
+                f"| pi_loss {stats['policy_loss']:.4f} | v_loss {stats['value_loss']:.4f} "
+                f"| ent {stats['entropy']:.3f} | clip {stats['clip_frac']:.2f} | {dt:.1f}s",
                 flush=True,
             )
-            torch.save(model.state_dict(), ckpt_dir / f"ppo_iter{it:04d}.pt")
-            torch.save(model.state_dict(), ckpt_dir / "ppo_latest.pt")
 
-        csv_w.writerow(row)
-        csv_f.flush()
+            if it % eval_every == 0:
+                wr = evaluate_vs_random(model, deck, games=eval_games)
+                row["eval_win_rate"] = f"{wr:.4f}"
+                row["eval_games"] = eval_games
+                print(
+                    f"iter {it:3d} | eval vs random: {wr:.1%} ({eval_games} games)",
+                    flush=True,
+                )
+                torch.save(model.state_dict(), ckpt_dir / f"ppo_iter{it:04d}.pt")
+                torch.save(model.state_dict(), ckpt_dir / "ppo_latest.pt")
 
-        tb.add_scalar("loss/policy", stats["policy_loss"], it)
-        tb.add_scalar("loss/value", stats["value_loss"], it)
-        tb.add_scalar("policy/entropy", stats["entropy"], it)
-        tb.add_scalar("policy/clip_frac", stats["clip_frac"], it)
-        tb.add_scalar(
-            "game/win_rate", w / (w + losses + d) if (w + losses + d) else 0, it
-        )
-        tb.add_scalar("game/decisions", total_decisions, it)
-        tb.add_scalar("time/iter_s", dt, it)
-        if row["eval_win_rate"]:
-            tb.add_scalar("eval/win_rate_vs_random", float(row["eval_win_rate"]), it)
+            csv_w.writerow(row)
+            csv_f.flush()
+
+            tb.add_scalar("loss/policy", stats["policy_loss"], it)
+            tb.add_scalar("loss/value", stats["value_loss"], it)
+            tb.add_scalar("policy/entropy", stats["entropy"], it)
+            tb.add_scalar("policy/clip_frac", stats["clip_frac"], it)
+            tb.add_scalar(
+                "game/win_rate", w / (w + losses + d) if (w + losses + d) else 0, it
+            )
+            tb.add_scalar("game/decisions", total_decisions, it)
+            tb.add_scalar("time/iter_s", dt, it)
+            if row["eval_win_rate"]:
+                tb.add_scalar(
+                    "eval/win_rate_vs_random", float(row["eval_win_rate"]), it
+                )
+    finally:
+        if executor is not None:
+            executor.shutdown()
 
     torch.save(model.state_dict(), ckpt_dir / "ppo_latest.pt")
     csv_f.close()
@@ -225,6 +233,9 @@ def main(
     log_dir: str = typer.Option("runs/ppo", help="TensorBoard log directory"),
     init: str | None = typer.Option(None, help="checkpoint to resume from"),
     seed: int = typer.Option(0, help="random seed"),
+    workers: int = typer.Option(
+        1, help="parallel worker processes for self-play rollout (1 = sequential)"
+    ),
 ) -> None:
     if agent:
         profile = AgentProfile(agent)
@@ -250,6 +261,7 @@ def main(
         log_dir=log_dir,
         init_checkpoint=init,
         seed=seed,
+        workers=workers,
     )
 
 

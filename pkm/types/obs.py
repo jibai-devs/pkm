@@ -19,6 +19,7 @@ exposes a ``kind`` property that returns the enum or ``None``.
 """
 
 from enum import IntEnum
+from typing import TypeVar
 
 from pydantic import BaseModel, ConfigDict
 
@@ -165,7 +166,10 @@ class LogType(IntEnum):
     RESULT = 23
 
 
-def _as_enum[E: IntEnum](enum_cls: type[E], value: int | None) -> E | None:
+_E = TypeVar("_E", bound=IntEnum)
+
+
+def _as_enum(enum_cls: type[_E], value: int | None) -> _E | None:
     if value is None:
         return None
     try:
