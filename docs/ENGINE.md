@@ -4,8 +4,9 @@ This document covers the C++ game engine that powers every battle: where it
 comes from, how we compile our own copy, how code selects which build to run,
 what it can and cannot do, and the one hard limitation we had to accept.
 
-- **Source of truth for the swap:** `pkm/engine/` (`loader.py`, `game.py`,
-  `__main__.py`). Import the engine from `pkm.engine`, never from
+- **Source of truth for the swap:** `pkm/engine/` — `loader.py` (backend switch,
+  ctypes ABI, capabilities), `api.py` (the complete typed API), `__main__.py`
+  (capability report). Import the engine from `pkm.engine`, never from
   `kaggle_environments.envs.cabt.cg.*` directly.
 - **Vendored C++ source:** `engine/` (copied from the standalone `ptcg` repo,
   commit `0a56d34`, Competition-Use-Only license).
@@ -31,6 +32,45 @@ instrumentation, speed, and eventually a seed-injection patch (see §6).
 
 Our build exports the **exact same 13 symbols**, verified by the parity test and
 by `just engine-info` (`13/13 present`).
+
+---
+
+## 1a. The Python API (`pkm/engine/api.py`)
+
+The kaggle package only wrapped **6** of the 13 functions (`cg/sim.py` +
+`cg/game.py`); the search API and card/attack data were bound separately, and
+argtypes were configured in three different modules with `AllCard`/`AllAttack`
+bound twice. `pkm/engine/api.py` collates **all 13** into one typed module, and
+`loader._configure_argtypes` sets every ABI signature in one place. Import
+everything from `pkm.engine`:
+
+```python
+from pkm.engine import (
+    battle_start, battle_select, battle_finish, visualize_data,
+    search_begin, search_step, search_end, search_release,
+    all_cards, all_attacks, to_observation,
+)
+```
+
+### Return-type convention: dicts at the seam, pydantic inward
+
+`pkm/types/obs.py` documents the codebase's design — *"nothing inward of
+`Observation.model_validate(raw)` sees a dict."* The API follows it, because
+where each result is consumed dictates the right type:
+
+| Function group | Returns | Why |
+|---|---|---|
+| `battle_*` | raw obs `dict` | ~37 call sites read these as dicts and self-play rollouts run millions of steps; validate with `to_observation()` only at the ML boundary |
+| `search_*` | typed `SearchState` | one consumer (`pkm/mcts`); `.observation` validates **lazily and caches**, so traversal stays on `.raw_observation`/`.search_id` (cheap) and full validation is paid once per node, on encode |
+| `all_cards` / `all_attacks` | `list[dict]` | engine primitive; `pkm/data/card_data.py` builds its dataclasses on top |
+
+**Why not fully-typed returns everywhere?** Measured: full pydantic validation
+per `search_step` costs **+20 µs on a ~28 µs step (+72%)** — MCTS/expert-iteration
+would run ~1.7× slower. `SearchState`'s lazy-cached `.observation` gives the same
+typed access at **~0%** hot-path cost, matching what the code already did by hand
+(`Observation.model_validate` at `mcts/search.py`, `rollout.py`, `exit_train.py`,
+`numpy_policy.py`, `tui/session.py`). Typing the `battle_*` returns would break
+those 37 dict accesses and tax rollouts for no gain.
 
 ---
 
@@ -110,8 +150,9 @@ build.
 ### What the switch covers (and what it doesn't)
 
 `PKM_ENGINE` governs the **direct** engine paths that go through `pkm.engine`:
-card data, `pkm/search.py`, and the RL/MCTS rollouts (`rollout.py`,
-`exit_train.py`, `test_mcts.py`, `test_rl.py`). `pkm/rl/play.py` and the TUI
+card data, the search API (`pkm/engine/api.py`), and the RL/MCTS rollouts
+(`rollout.py`, `exit_train.py`, `test_mcts.py`, `test_rl.py`). `pkm/rl/play.py`
+and the TUI
 run matches through `kaggle_environments.make("cabt")`, which loads the
 **bundled** engine internally — the switch does not reach those yet. Pointing
 the `make()` harness at the vendored lib is a separate, larger change.

@@ -13,10 +13,10 @@ import random
 
 import numpy as np
 
-from pkm.types.obs import Observation
+from pkm.types.obs import SearchState
 from pkm.rl.encoder import encode_decision
 from pkm.rl.numpy_policy import NumpyPolicy
-from pkm.search import search_begin, search_end, search_step
+from pkm.engine import search_begin, search_end, search_step
 
 from .determinize import sample_determinization
 
@@ -35,6 +35,7 @@ def _forced_picks(sel: dict) -> list[int] | None:
 
 class _Node:
     __slots__ = (
+        "state",
         "search_id",
         "obs",
         "player",
@@ -47,19 +48,20 @@ class _Node:
         "expanded",
     )
 
-    def __init__(self, state: dict):
+    def __init__(self, state: SearchState):
         # skip forward through forced decisions
         for _ in range(_MAX_FORCED_SKIP):
-            obs = state["observation"]
+            obs = state.raw_observation
             if obs["current"]["result"] >= 0:
                 break
             forced = _forced_picks(obs["select"])
             if forced is None:
                 break
-            state = search_step(state["searchId"], forced)
+            state = search_step(state.search_id, forced)
 
-        self.search_id = state["searchId"]
-        self.obs = state["observation"]
+        self.state = state
+        self.search_id = state.search_id
+        self.obs = state.raw_observation  # raw dict for cheap hot-loop access
         result = self.obs["current"]["result"]
         self.player = self.obs["current"]["yourIndex"]
         self.terminal_v0: float | None = None
@@ -99,7 +101,7 @@ class MCTS:
 
     def _expand(self, node: _Node) -> float:
         """Enumerate actions + priors, return the value from node.player's view."""
-        d = encode_decision(Observation.model_validate(node.obs))
+        d = encode_decision(node.state.observation)  # lazily validated + cached
         sel = node.obs["select"]
         n = len(sel["option"])
         value = self.policy.value(d)

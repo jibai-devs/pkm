@@ -1,8 +1,7 @@
-import json
 from dataclasses import dataclass
 
-from pkm.engine import lib
-import ctypes
+from pkm.engine import all_attacks as _all_attacks
+from pkm.engine import all_cards as _all_cards
 
 
 @dataclass
@@ -46,17 +45,15 @@ def _load_card_data() -> dict[int, CardData]:
         return _CARD_DATA
 
     # Load attacks first so we can reference them
-    all_attacks = _load_attack_data()
+    attacks_by_id = _load_attack_data()
 
-    lib.AllCard.restype = ctypes.c_char_p
-    raw = lib.AllCard()
-    cards_json = json.loads(raw)
+    cards_json = _all_cards()
 
     _CARD_DATA = {}
     for c in cards_json:
         # attacks field is a list of attack IDs
         attack_ids = c.get("attacks", [])
-        attacks = [all_attacks[aid] for aid in attack_ids if aid in all_attacks]
+        attacks = [attacks_by_id[aid] for aid in attack_ids if aid in attacks_by_id]
 
         card = CardData(
             card_id=c["cardId"],
@@ -88,9 +85,7 @@ def _load_attack_data() -> dict[int, Attack]:
     if _ATTACK_DATA is not None:
         return _ATTACK_DATA
 
-    lib.AllAttack.restype = ctypes.c_char_p
-    raw = lib.AllAttack()
-    attacks_json = json.loads(raw)
+    attacks_json = _all_attacks()
 
     _ATTACK_DATA = {}
     for a in attacks_json:

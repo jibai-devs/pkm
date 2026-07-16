@@ -1,47 +1,107 @@
-"""Bindings to the cabt C library search API (SearchBegin/SearchStep/...).
+"""The complete cabt engine API — one typed module the whole project calls.
 
-Signatures mirror the official competition ``cg/api.py``: SearchBegin takes an
-agent handle from ``AgentStart()`` plus the observation's ``search_begin_input``
-ASCII blob, and returns an ApiResult JSON string. Search IDs are int64.
+This collates every engine entry point that used to be scattered across the
+kaggle package (`cg/sim.py`, `cg/game.py`) and our own modules (`pkm/search.py`,
+`pkm/data/card_data.py`). Import from :mod:`pkm.engine`, never from
+`kaggle_environments.envs.cabt.cg.*`.
 
-Everything here works on plain dicts (same shape as agent observations) to
-avoid dataclass conversion overhead in the MCTS hot loop.
+Return-type convention follows the codebase's design (documented in
+`pkm/types/obs.py`): **dicts at the engine seam, pydantic inward of the ML
+boundary.** So:
+
+- ``battle_*`` return raw observation ``dict``s — 37 call sites read them as
+  dicts and self-play rollouts must stay allocation-cheap. Call
+  :func:`to_observation` (or ``Observation.model_validate``) at the point you
+  need a typed model.
+- ``search_*`` return :class:`~pkm.types.obs.SearchState`, a typed wrapper whose
+  ``.observation`` validates lazily — the search API has a single consumer
+  (`pkm/mcts`), so it can be typed without hot-loop cost.
+- card / attack metadata come back as ``list[dict]`` (the engine primitive);
+  `pkm/data/card_data.py` builds its dataclasses on top.
 """
+
+from __future__ import annotations
 
 import ctypes
 import json
 
-from pkm.engine import lib
+from pkm.types.obs import Observation, SearchState
 
-lib.AgentStart.restype = ctypes.c_void_p
+from .loader import Battle, StartData, lib
 
-lib.SearchBegin.restype = ctypes.c_char_p
-lib.SearchBegin.argtypes = [
-    ctypes.c_void_p,  # agent_ptr
-    ctypes.c_char_p,  # search_begin_input
-    ctypes.c_int,  # len(search_begin_input)
-    ctypes.POINTER(ctypes.c_int),  # your_deck
-    ctypes.POINTER(ctypes.c_int),  # your_prize
-    ctypes.POINTER(ctypes.c_int),  # opponent_deck
-    ctypes.POINTER(ctypes.c_int),  # opponent_prize
-    ctypes.POINTER(ctypes.c_int),  # opponent_hand
-    ctypes.POINTER(ctypes.c_int),  # opponent_active
-    ctypes.c_int,  # manual_coin
-]
 
-lib.SearchStep.restype = ctypes.c_char_p
-lib.SearchStep.argtypes = [
-    ctypes.c_void_p,
-    ctypes.c_int64,
-    ctypes.POINTER(ctypes.c_int),
-    ctypes.c_int,
-]
+def to_observation(obs: dict) -> Observation:
+    """Validate a raw observation dict into a typed :class:`Observation`.
 
-lib.SearchEnd.argtypes = [ctypes.c_void_p]
-lib.SearchRelease.argtypes = [ctypes.c_void_p, ctypes.c_int64]
+    The one canonical crossing of the "dict -> pydantic" boundary.
+    """
+    return Observation.model_validate(obs)
 
-lib.AllCard.restype = ctypes.c_char_p
-lib.AllAttack.restype = ctypes.c_char_p
+
+# --- battle ------------------------------------------------------------------
+
+
+def _get_battle_data() -> dict:
+    sd = lib.GetBattleData(Battle.battle_ptr)
+    Battle.obs = json.loads(sd.json.decode())
+    Battle.obs["search_begin_input"] = ctypes.string_at(sd.data, sd.count).decode(
+        "ascii"
+    )
+    return Battle.obs
+
+
+def battle_start(deck0: list[int], deck1: list[int]) -> tuple[dict | None, StartData]:
+    """Start a battle from two 60-card decks. Returns (first obs, start data)."""
+    if len(deck0) != 60 or len(deck1) != 60:
+        raise ValueError("The deck must contain 60 cards.")
+    cards = deck0 + deck1
+    arg = (ctypes.c_int * len(cards))(*cards)
+    start_data = lib.BattleStart(arg)
+    Battle.battle_ptr = start_data.battlePtr
+    if Battle.battle_ptr is None or Battle.battle_ptr == 0:
+        return (None, start_data)
+    return (_get_battle_data(), start_data)
+
+
+def battle_select(select_list: list[int]) -> dict:
+    """Apply option indices and return the next observation."""
+    if not isinstance(select_list, list) or not all(
+        isinstance(i, int) for i in select_list
+    ):
+        raise ValueError("select_list is not list[int]")
+    arg = (ctypes.c_int * len(select_list))(*select_list)
+    err = lib.Select(Battle.battle_ptr, arg, len(select_list))
+    if err != 0:
+        if err == 30:
+            raise ValueError("battle_ptr broken.")
+        raise IndexError()
+    return _get_battle_data()
+
+
+def battle_finish() -> None:
+    """End the battle and free its memory."""
+    lib.BattleFinish(Battle.battle_ptr)
+
+
+def visualize_data() -> str:
+    """Return the visualizer data blob for the current battle."""
+    return lib.VisualizeData(Battle.battle_ptr).decode()
+
+
+# --- card / attack metadata --------------------------------------------------
+
+
+def all_cards() -> list[dict]:
+    """All card metadata from the engine (raw)."""
+    return json.loads(lib.AllCard())
+
+
+def all_attacks() -> list[dict]:
+    """All attack metadata from the engine (raw)."""
+    return json.loads(lib.AllAttack())
+
+
+# --- search (forward simulation) ---------------------------------------------
 
 _agent_ptr: int | None = None
 
@@ -51,16 +111,6 @@ def _get_agent_ptr() -> int:
     if _agent_ptr is None:
         _agent_ptr = lib.AgentStart()
     return _agent_ptr
-
-
-def all_card_data() -> list[dict]:
-    """Get all card metadata from the cabt engine."""
-    return json.loads(lib.AllCard())
-
-
-def all_attack() -> list[dict]:
-    """Get all attack metadata from the cabt engine."""
-    return json.loads(lib.AllAttack())
 
 
 _SEARCH_BEGIN_ERRORS = {
@@ -89,7 +139,7 @@ def search_begin(
     opponent_hand: list[int],
     opponent_active: list[int],
     manual_coin: bool = False,
-) -> dict:
+) -> SearchState:
     """Start a forward-simulation search from a real agent observation.
 
     Args:
@@ -106,7 +156,7 @@ def search_begin(
         manual_coin: If True, coin results become selectable options.
 
     Returns:
-        SearchState dict: {"observation": {...}, "searchId": int}
+        A :class:`SearchState` wrapping ``{"observation": ..., "searchId": ...}``.
     """
     sbi = observation.get("search_begin_input")
     if sbi is None:
@@ -156,15 +206,11 @@ def search_begin(
                 result["error"], f"SearchBegin error {result['error']}"
             )
         )
-    return result["state"]
+    return SearchState(result["state"])
 
 
-def search_step(search_id: int, select: list[int]) -> dict:
-    """Advance the search by applying option indices at the given node.
-
-    Returns:
-        SearchState dict: {"observation": {...}, "searchId": int}
-    """
+def search_step(search_id: int, select: list[int]) -> SearchState:
+    """Advance the search by applying option indices at the given node."""
     raw = lib.SearchStep(
         _get_agent_ptr(),
         search_id,
@@ -178,7 +224,7 @@ def search_step(search_id: int, select: list[int]) -> dict:
                 result["error"], f"SearchStep error {result['error']}"
             )
         )
-    return result["state"]
+    return SearchState(result["state"])
 
 
 def search_end() -> None:

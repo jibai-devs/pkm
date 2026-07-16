@@ -122,44 +122,79 @@ def resolve_lib_path() -> tuple[str, Path]:
     )
 
 
+def _configure_argtypes(handle: ctypes.CDLL) -> None:
+    """Set restype/argtypes for all 13 exported functions on ``handle``.
+
+    Single source of truth for the ABI signatures — previously these were
+    scattered across sim.py (battle), pkm/search.py (search) and card_data.py
+    (AllCard/AllAttack). Idempotent, so it is safe to run on the already-
+    configured kaggle handle.
+    """
+    handle.BattleStart.restype = StartData
+    handle.BattleStart.argtypes = [ctypes.POINTER(ctypes.c_int)]
+    handle.BattleFinish.argtypes = [ctypes.c_void_p]
+    handle.GetBattleData.restype = SerialData
+    handle.GetBattleData.argtypes = [ctypes.c_void_p]
+    handle.Select.restype = ctypes.c_int
+    handle.Select.argtypes = [
+        ctypes.c_void_p,
+        ctypes.POINTER(ctypes.c_int),
+        ctypes.c_int,
+    ]
+    handle.VisualizeData.restype = ctypes.c_char_p
+    handle.VisualizeData.argtypes = [ctypes.c_void_p]
+
+    handle.AgentStart.restype = ctypes.c_void_p
+    handle.SearchBegin.restype = ctypes.c_char_p
+    handle.SearchBegin.argtypes = [
+        ctypes.c_void_p,  # agent_ptr
+        ctypes.c_char_p,  # search_begin_input
+        ctypes.c_int,  # len(search_begin_input)
+        ctypes.POINTER(ctypes.c_int),  # your_deck
+        ctypes.POINTER(ctypes.c_int),  # your_prize
+        ctypes.POINTER(ctypes.c_int),  # opponent_deck
+        ctypes.POINTER(ctypes.c_int),  # opponent_prize
+        ctypes.POINTER(ctypes.c_int),  # opponent_hand
+        ctypes.POINTER(ctypes.c_int),  # opponent_active
+        ctypes.c_int,  # manual_coin
+    ]
+    handle.SearchStep.restype = ctypes.c_char_p
+    handle.SearchStep.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_int64,
+        ctypes.POINTER(ctypes.c_int),
+        ctypes.c_int,
+    ]
+    handle.SearchEnd.argtypes = [ctypes.c_void_p]
+    handle.SearchRelease.argtypes = [ctypes.c_void_p, ctypes.c_int64]
+    handle.AllCard.restype = ctypes.c_char_p
+    handle.AllAttack.restype = ctypes.c_char_p
+
+
 def _load() -> ctypes.CDLL:
     backend, path = resolve_lib_path()
 
     if backend == "kaggle":
-        # Importing the upstream module already dlopen'd libcg.so, called
-        # GameInitialize(), and set the base argtypes. dlopen caches by path, so
-        # re-loading returns the same handle — calling GameInitialize() again
-        # double-inits the engine's global state and aborts. Reuse it as-is.
+        # Importing the upstream module already dlopen'd libcg.so and called
+        # GameInitialize(). dlopen caches by path, so re-loading returns the same
+        # handle — calling GameInitialize() again double-inits the engine's
+        # global state and aborts. Reuse the handle; only (re)set argtypes.
         from kaggle_environments.envs.cabt.cg import sim
 
-        return sim.lib
+        handle = sim.lib
+    else:
+        if not path.exists():
+            hint = (
+                " — build it with `just engine-build`" if backend == "vendored" else ""
+            )
+            raise FileNotFoundError(
+                f"engine backend '{backend}' library not found: {path}{hint}"
+            )
+        handle = ctypes.cdll.LoadLibrary(str(path))
+        handle.GameInitialize()
 
-    if not path.exists():
-        hint = " — build it with `just engine-build`" if backend == "vendored" else ""
-        raise FileNotFoundError(
-            f"engine backend '{backend}' library not found: {path}{hint}"
-        )
-
-    lib = ctypes.cdll.LoadLibrary(str(path))
-    lib.GameInitialize()
-
-    lib.BattleStart.restype = StartData
-    lib.BattleStart.argtypes = [ctypes.POINTER(ctypes.c_int)]
-
-    lib.BattleFinish.argtypes = [ctypes.c_void_p]
-
-    lib.GetBattleData.restype = SerialData
-    lib.GetBattleData.argtypes = [ctypes.c_void_p]
-
-    lib.Select.restype = ctypes.c_int
-    lib.Select.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_int), ctypes.c_int]
-
-    lib.VisualizeData.restype = ctypes.c_char_p
-    lib.VisualizeData.argtypes = [ctypes.c_void_p]
-
-    # AllCard / AllAttack / AgentStart / Search* argtypes are configured by the
-    # consumers (pkm/search.py, pkm/data/card_data.py) on this same handle.
-    return lib
+    _configure_argtypes(handle)
+    return handle
 
 
 ENGINE_BACKEND, ENGINE_LIB_PATH = resolve_lib_path()

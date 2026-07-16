@@ -51,7 +51,7 @@ pytest tests/              # run tests
 - `pkm/agents/base.py` — `make_agent(deck, strategy_fn)` factory
 - `pkm/agents/random_agent.py` — random legal move agent
 - `pkm/agents/neural_agent.py` — greedy trained-policy agent (numpy inference, no torch)
-- `pkm/search.py` — correct bindings to the engine's SearchBegin/SearchStep API
+- `pkm/engine/` — the single engine seam: `loader.py` (backend switch, ctypes ABI, capabilities), `api.py` (all 13 typed engine functions incl. SearchBegin/SearchStep)
 - `pkm/rl/` — encoders, pointer-style policy/value net, PPO self-play, expert iteration
 - `pkm/cli_deck.py` — deck management CLI (list, show, convert)
 - `docs/ideas/` — architecture ideas and future design notes
@@ -86,7 +86,7 @@ python -m pkm.rl.export checkpoints/ppo_latest.pt pkm/policy.npz  # export for t
 python -m pkm.rl.play --p0 mcts --p1 neural             # replay -> result.html + replay.json
 ```
 - Checkpoints land in `checkpoints/`; `pkm/policy.npz` is bundled in the submission (no torch needed at inference).
-- `pkm/search.py` signatures were recovered from the official competition `cg/api.py` (SearchBegin needs `lib.AgentStart()` handle + the observation's `search_begin_input`, returns ApiResult JSON; search ids are int64).
+- `pkm/engine/api.py` search signatures were recovered from the official competition `cg/api.py` (SearchBegin needs `lib.AgentStart()` handle + the observation's `search_begin_input`, returns ApiResult JSON; search ids are int64).
 
 ## Replay Viewer
 ```bash
@@ -162,8 +162,17 @@ The `make_agent(deck, strategy_fn)` base factory in `pkm/agents/base.py` handles
 
 ## cabt Engine API
 - Import the engine through **`pkm.engine`** (the single seam), not directly from
-  `kaggle_environments.envs.cabt.cg.*`:
-  `from pkm.engine import lib, battle_start, battle_select, battle_finish`
+  `kaggle_environments.envs.cabt.cg.*`. `pkm/engine/api.py` collates **all 13**
+  engine functions (kaggle's package only wrapped 6): `battle_start/select/finish`,
+  `visualize_data`, `search_begin/step/end/release`, `all_cards/all_attacks`, plus
+  `to_observation`. All argtypes live in one place (`loader._configure_argtypes`).
+  `from pkm.engine import battle_start, battle_select, search_step, all_cards`
+- **Return-type convention** (matches `pkm/types/obs.py`'s "dict at the seam,
+  pydantic inward" design): `battle_*` return raw obs **dicts** (37 call sites read
+  them as dicts; rollouts stay cheap — validate with `to_observation()` at the ML
+  boundary). `search_*` return a typed **`SearchState`** whose `.observation`
+  validates lazily + caches (one consumer, `pkm/mcts`, so typed with no hot-loop
+  cost). card/attack data come back as `list[dict]`.
 - Agents must be plain functions (not class instances) for kaggle-env compatibility
 - `obs["select"] is None` → return deck (60 card IDs)
 - Otherwise return list of option indices from `obs["select"]["option"]`

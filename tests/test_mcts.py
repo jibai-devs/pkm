@@ -15,7 +15,7 @@ from pkm.mcts.determinize import infer_opponent_decklist, sample_determinization
 from pkm.mcts.search import MCTS, _forced_picks
 from pkm.rl.model import PolicyValueNet
 from pkm.rl.numpy_policy import NumpyPolicy
-from pkm.search import search_begin, search_end, search_step
+from pkm.engine import search_begin, search_end, search_step
 
 
 def _mid_game_obs(steps: int = 25):
@@ -45,10 +45,10 @@ def test_determinization_counts():
         assert all(cid > 0 for cid in det["your_prize"])
         # the determinization must be accepted by the engine
         root = search_begin(obs, **det)
-        assert root["searchId"] >= 0
-        sel = root["observation"]["select"]
-        nxt = search_step(root["searchId"], list(range(sel["minCount"])) or [0])
-        assert nxt["observation"]["current"] is not None
+        assert root.search_id >= 0
+        sel = root.raw_observation["select"]
+        nxt = search_step(root.search_id, list(range(sel["minCount"])) or [0])
+        assert nxt.raw_observation["current"] is not None
         search_end()
     finally:
         battle_finish()

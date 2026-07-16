@@ -298,3 +298,34 @@ class Observation(_Model):
     @property
     def opponent(self) -> Player:
         return self.current.players[1 - self.current.yourIndex]
+
+
+class SearchState:
+    """Typed view over one search result (``{"observation": ..., "searchId": ...}``).
+
+    Tree traversal touches ``search_id`` and the raw dict (``raw_observation``)
+    only — near-zero cost. ``observation`` validates to a full :class:`Observation`
+    lazily and caches, so the expensive parse is paid once per node, on encode,
+    exactly matching the codebase's "dict at the seam, pydantic at the ML
+    boundary" design.
+    """
+
+    __slots__ = ("_raw", "_obs")
+
+    def __init__(self, raw: dict):
+        self._raw = raw
+        self._obs: Observation | None = None
+
+    @property
+    def search_id(self) -> int:
+        return self._raw["searchId"]
+
+    @property
+    def raw_observation(self) -> dict:
+        return self._raw["observation"]
+
+    @property
+    def observation(self) -> Observation:
+        if self._obs is None:
+            self._obs = Observation.model_validate(self._raw["observation"])
+        return self._obs
