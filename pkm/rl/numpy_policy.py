@@ -95,6 +95,22 @@ class NumpyPolicy:
         y = _relu(_linear(w["value_fc1.weight"], w["value_fc1.bias"], h))
         return float(np.tanh(_linear(w["value_fc2.weight"], w["value_fc2.bias"], y))[0])
 
+    def archetype_logits(self, d: EncodedDecision) -> np.ndarray:
+        """Mirrors PolicyValueNet.archetype_logits. Only needed for
+        inference (Task 8 §8.2 rule 1: re-injection is detached, so the
+        numpy mirror never needs gradient here, only a forward pass)."""
+        w = self.w
+        h = self._encode_state(d)
+        y = _relu(_linear(w["archetype_fc1.weight"], w["archetype_fc1.bias"], h))
+        return _linear(w["archetype_fc2.weight"], w["archetype_fc2.bias"], y)
+
+    def archetype_belief(self, d: EncodedDecision) -> np.ndarray:
+        """Mirrors PolicyValueNet.archetype_belief (softmax of the logits)."""
+        logits = self.archetype_logits(d)
+        logits = logits - logits.max()
+        p = np.exp(logits)
+        return p / p.sum()
+
     def priors(self, d: EncodedDecision) -> np.ndarray:
         """First-pick probabilities over the option list (no STOP)."""
         h = self._encode_state(d)

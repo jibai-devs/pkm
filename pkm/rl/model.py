@@ -38,6 +38,7 @@ from .encoder import (
     STATE_FEATS,
     EncodedDecision,
 )
+from .features import ARCHETYPE_OUT
 from pkm.types.obs import N_POKEMON_SLOTS
 
 EMB_CARD = 32
@@ -66,6 +67,7 @@ class ActResult:
     stopped: bool
     logprob: float
     value: float
+    belief: np.ndarray  # (ARCHETYPE_OUT,) detached opponent-archetype belief
 
 
 class PolicyValueNet(nn.Module):
@@ -88,6 +90,10 @@ class PolicyValueNet(nn.Module):
         # --- value head: V(s) predictor from h -> scalar in [-1, +1] ---
         self.value_fc1 = nn.Linear(HIDDEN, 64)
         self.value_fc2 = nn.Linear(64, 1)
+
+        # --- auxiliary head: opponent-archetype belief (Task 8) ---
+        self.archetype_fc1 = nn.Linear(HIDDEN, 64)
+        self.archetype_fc2 = nn.Linear(64, ARCHETYPE_OUT)
 
     # --- building blocks ---
 
@@ -181,6 +187,27 @@ class PolicyValueNet(nn.Module):
         """
         return torch.tanh(self.value_fc2(F.relu(self.value_fc1(h)))).squeeze(-1)
 
+    def archetype_logits(self, h: torch.Tensor) -> torch.Tensor:
+        """Auxiliary head (Task 8): opponent-archetype classification
+        logits, width ARCHETYPE_OUT (tracked archetypes + "Other").
+
+        Trained only against its own cross-entropy loss (pkm/rl/ppo.py) --
+        must never receive gradient from the policy/value loss (plan.md
+        §8.2 rule 1). This method returns raw logits for that training use;
+        callers wanting the belief for GLOBAL-feature re-injection must use
+        archetype_belief() instead, which enforces detachment.
+        """
+        return self.archetype_fc2(F.relu(self.archetype_fc1(h)))
+
+    @torch.no_grad()
+    def archetype_belief(self, h: torch.Tensor) -> torch.Tensor:
+        """Detached softmax belief for GLOBAL-feature re-injection. The
+        @torch.no_grad() here (not a bare .detach()) is deliberate: it
+        prevents an autograd graph from ever being built for this call, so
+        there is no live tensor for a caller to accidentally backprop
+        through."""
+        return F.softmax(self.archetype_logits(h), dim=-1)
+
     # --- acting (single decision, no grad) ---
 
     @torch.no_grad()
@@ -194,6 +221,7 @@ class PolicyValueNet(nn.Module):
         deck_counts = torch.from_numpy(d.deck_card_counts).unsqueeze(0)
         h = self.encode_state(board, hand, feats, deck_ids, deck_counts)
         v = float(self.value(h)[0])
+        belief = self.archetype_belief(h)[0].numpy()
 
         n = len(d.opt_type)
         opts = self.encode_options(
@@ -228,9 +256,48 @@ class PolicyValueNet(nn.Module):
             picked_sum = picked_sum + opts[0, idx]
             available[0, idx] = False
 
-        return ActResult(picks=picks, stopped=stopped, logprob=logprob, value=v)
+        return ActResult(
+            picks=picks, stopped=stopped, logprob=logprob, value=v, belief=belief
+        )
 
     # --- training (batched re-evaluation) ---
+
+    @staticmethod
+    def _batch_state_tensors(
+        decisions: list[EncodedDecision],
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """(board, hand, feats, deck_ids, deck_counts) padded batch tensors,
+        shared by evaluate() and evaluate_archetype()."""
+        board = torch.from_numpy(np.stack([d.board_cards for d in decisions]))
+        hand = torch.from_numpy(np.stack([d.hand_cards for d in decisions]))
+        feats = torch.from_numpy(np.stack([d.state_feats for d in decisions]))
+
+        b = len(decisions)
+        k_deck_max = max((len(d.deck_card_ids) for d in decisions), default=0)
+        deck_ids = np.zeros((b, k_deck_max), dtype=np.int64)
+        deck_counts = np.zeros((b, k_deck_max), dtype=np.float32)
+        for i, d in enumerate(decisions):
+            k = len(d.deck_card_ids)
+            deck_ids[i, :k] = d.deck_card_ids
+            deck_counts[i, :k] = d.deck_card_counts
+
+        return (
+            board,
+            hand,
+            feats,
+            torch.from_numpy(deck_ids),
+            torch.from_numpy(deck_counts),
+        )
+
+    def evaluate_archetype(self, decisions: list[EncodedDecision]) -> torch.Tensor:
+        """Batched archetype-head logits for a set of decisions (Task 8 aux
+        loss, pkm/rl/ppo.py). Kept separate from evaluate() so the
+        policy/value path is untouched by this -- callers combining this
+        with pi_loss/v_loss.backward() are responsible for weighting it,
+        never letting it dominate."""
+        board, hand, feats, deck_ids, deck_counts = self._batch_state_tensors(decisions)
+        h = self.encode_state(board, hand, feats, deck_ids, deck_counts)
+        return self.archetype_logits(h)
 
     def evaluate(
         self, decisions: list[EncodedDecision]
@@ -246,9 +313,7 @@ class PolicyValueNet(nn.Module):
         seq_lens = [len(d.picks) + (1 if d.stopped else 0) for d in decisions]
         k_max = max(max(seq_lens), 1)
 
-        board = torch.from_numpy(np.stack([d.board_cards for d in decisions]))
-        hand = torch.from_numpy(np.stack([d.hand_cards for d in decisions]))
-        feats = torch.from_numpy(np.stack([d.state_feats for d in decisions]))
+        board, hand, feats, deck_ids, deck_counts = self._batch_state_tensors(decisions)
 
         def pad_ids(key: str) -> torch.Tensor:
             out = np.zeros((b, n_max), dtype=np.int64)
@@ -264,21 +329,7 @@ class PolicyValueNet(nn.Module):
             opt_feats[i, :n] = d.opt_feats
             valid[i, :n] = True
 
-        k_deck_max = max((len(d.deck_card_ids) for d in decisions), default=0)
-        deck_ids = np.zeros((b, k_deck_max), dtype=np.int64)
-        deck_counts = np.zeros((b, k_deck_max), dtype=np.float32)
-        for i, d in enumerate(decisions):
-            k = len(d.deck_card_ids)
-            deck_ids[i, :k] = d.deck_card_ids
-            deck_counts[i, :k] = d.deck_card_counts
-
-        h = self.encode_state(
-            board,
-            hand,
-            feats,
-            torch.from_numpy(deck_ids),
-            torch.from_numpy(deck_counts),
-        )
+        h = self.encode_state(board, hand, feats, deck_ids, deck_counts)
         values = self.value(h)
         opts = self.encode_options(
             pad_ids("opt_type"),

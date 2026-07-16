@@ -227,6 +227,38 @@ def _select_counts(obs: Observation, ctx: GameContext | None) -> np.ndarray:
     )
 
 
+# --- opponent-archetype belief (Task 8) ---------------------------------
+#
+# Tracked archetype classes, chosen deliberately now per plan.md §8.2 rule 4
+# -- growing this list is a checkpoint-breaking change (the head's output
+# width re-joins state_feats), so it's not meant to be painlessly resizable
+# later. One reserved "Other" slot (index len(ARCHETYPE_CLASSES)) absorbs
+# any future deck not in this list, without a width change for that case.
+ARCHETYPE_CLASSES = ["00_basic", "01_psychic", "02_dragapult"]
+ARCHETYPE_OUT = len(ARCHETYPE_CLASSES) + 1  # +1 for "Other"
+
+
+def archetype_index(deck_name_or_path: str) -> int:
+    """Map a deck name/path to its archetype class index, or the reserved
+    "Other" index (len(ARCHETYPE_CLASSES)) if unrecognized."""
+    stem = Path(deck_name_or_path).stem
+    try:
+        return ARCHETYPE_CLASSES.index(stem)
+    except ValueError:
+        return len(ARCHETYPE_CLASSES)
+
+
+def _opponent_archetype_belief(obs: Observation, ctx: GameContext | None) -> np.ndarray:
+    """Detached softmax belief carried on ctx, updated by the caller after
+    each real decision (see pkm/rl/rollout.py:TorchPolicy.act) from the
+    trunk's own archetype head -- one decision stale, never recomputed
+    inside this pure function. Zero (uninformative) before the first
+    update, or when ctx is None (e.g. MCTS's simulated tree)."""
+    if ctx is not None and ctx.archetype_belief is not None:
+        return np.asarray(ctx.archetype_belief, dtype=np.float32)
+    return np.zeros(ARCHETYPE_OUT, dtype=np.float32)
+
+
 GLOBAL_FEATURES: list[FeatureSpec] = [
     FeatureSpec("status_conditions", 10, Scope.GLOBAL, _status_conditions, True),
     FeatureSpec("zone_counts", 8, Scope.GLOBAL, _zone_counts, True),
@@ -239,6 +271,14 @@ GLOBAL_FEATURES: list[FeatureSpec] = [
         "select_type_onehot", NUM_SELECT_TYPES, Scope.GLOBAL, _select_type_onehot, True
     ),
     FeatureSpec("select_counts", 4, Scope.GLOBAL, _select_counts, True),
+    # Task 8: learned belief, not a deterministic fact -- see docstring.
+    FeatureSpec(
+        "opponent_archetype_belief",
+        ARCHETYPE_OUT,
+        Scope.GLOBAL,
+        _opponent_archetype_belief,
+        False,
+    ),
 ]
 
 

@@ -201,3 +201,8 @@ def test_numpy_torch_parity_on_random_decisions():
         n_priors = np_pol.priors(d)
         assert t_priors.shape == n_priors.shape
         assert np.abs(t_priors - n_priors).max() < 1e-4
+
+        t_belief = model.act(d, greedy=True).belief
+        n_belief = np_pol.archetype_belief(d)
+        assert t_belief.shape == n_belief.shape
+        assert np.abs(t_belief - n_belief).max() < 1e-4

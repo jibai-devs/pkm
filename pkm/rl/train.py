@@ -17,7 +17,7 @@ import torch
 from pkm.agents.profile import AgentProfile
 from pkm.data import Deck
 
-from .features import write_stamp_sidecar
+from .features import archetype_index, write_stamp_sidecar
 from .model import PolicyValueNet
 from .ppo import compute_returns, ppo_update
 from .rollout import RandomPolicy, TorchPolicy, play_game
@@ -52,6 +52,7 @@ CSV_FIELDS = [
     "v_loss",
     "entropy",
     "clip_frac",
+    "archetype_loss",
     "time_s",
     "eval_win_rate",
     "eval_games",
@@ -82,6 +83,12 @@ def train(
     torch.manual_seed(seed)
 
     deck = Deck.from_csv(deck_path).card_ids
+    # Task 8: self-play here always mirrors deck_path against itself (no
+    # multi-deck opponent pool yet -- AGENTS.md "What's Next" #5), so the
+    # opponent's archetype label is constant for the whole run. The aux
+    # loss is real machinery, but degenerately single-class until that
+    # roadmap item lands.
+    archetype_label = archetype_index(deck_path)
     model = PolicyValueNet()
     if init_checkpoint:
         model.load_state_dict(
@@ -161,6 +168,9 @@ def train(
                 r = result.rewards[p if side == -1 else side]
                 w, losses, d = w + (r > 0), losses + (r < 0), d + (r == 0)
 
+        for dec in data:
+            dec.true_archetype = archetype_label
+
         model.train()
         stats = ppo_update(model, optimizer, data)
         model.eval()
@@ -182,6 +192,7 @@ def train(
             "v_loss": f"{stats['value_loss']:.6f}",
             "entropy": f"{stats['entropy']:.6f}",
             "clip_frac": f"{stats['clip_frac']:.4f}",
+            "archetype_loss": f"{stats['archetype_loss']:.6f}",
             "time_s": f"{dt:.2f}",
             "eval_win_rate": "",
             "eval_games": "",
@@ -211,6 +222,7 @@ def train(
 
         log.scalar("loss/policy", stats["policy_loss"], it)
         log.scalar("loss/value", stats["value_loss"], it)
+        log.scalar("loss/archetype", stats["archetype_loss"], it)
         log.scalar("policy/entropy", stats["entropy"], it)
         log.scalar("policy/clip_frac", stats["clip_frac"], it)
         log.scalar(

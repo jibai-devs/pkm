@@ -85,6 +85,10 @@ class EncodedDecision:
     potential: float = 0.0
     advantage: float = 0.0
     ret: float = 0.0
+    # Task 8: ground-truth opponent-archetype label for the auxiliary head's
+    # own cross-entropy loss; -1 = unknown/unset (e.g. self-play against a
+    # single fixed deck never stamps this -- see pkm/rl/train.py).
+    true_archetype: int = -1
 
 
 def encode_state(

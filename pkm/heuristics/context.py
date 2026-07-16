@@ -10,6 +10,8 @@ unrelated game.
 
 from dataclasses import dataclass
 
+import numpy as np
+
 from pkm.heuristics.deck_tracker import DeckTracker
 
 
@@ -18,3 +20,8 @@ class GameContext:
     my_deck: list[int]
     tracker: DeckTracker
     opp_decklist: list[int] | None = None
+    # Task 8: opponent-archetype belief, updated by the acting policy after
+    # each real decision (pkm/rl/rollout.py:TorchPolicy.act) from the
+    # trunk's own archetype head. None until the first update -- read as
+    # zero/uninformative by pkm/rl/features.py's GLOBAL feature until then.
+    archetype_belief: np.ndarray | None = None

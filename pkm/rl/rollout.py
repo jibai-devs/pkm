@@ -43,6 +43,12 @@ class TorchPolicy:
 
         d = encode_decision(parsed, ctx)
         res = self.model.act(d, greedy=self.greedy, temperature=self.temperature)
+        if ctx is not None:
+            # Task 8: carry the belief forward for the *next* decision's
+            # GLOBAL feature read (see pkm/rl/features.py) -- one decision
+            # stale by construction, never recomputed inside a pure
+            # feature function.
+            ctx.archetype_belief = res.belief
         if not collect:
             return res.picks, None
         d.picks = res.picks
