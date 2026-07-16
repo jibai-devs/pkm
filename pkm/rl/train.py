@@ -13,7 +13,6 @@ import time
 from pathlib import Path
 
 import torch
-from torch.utils.tensorboard import SummaryWriter
 
 from pkm.agents.profile import AgentProfile
 from pkm.data import Deck
@@ -21,6 +20,7 @@ from pkm.data import Deck
 from .model import PolicyValueNet
 from .ppo import compute_returns, ppo_update
 from .rollout import RandomPolicy, TorchPolicy, play_game
+from .logging import MetricLog
 
 
 def evaluate_vs_random(
@@ -74,6 +74,8 @@ def train(
     log_dir: str = "runs/ppo",
     init_checkpoint: str | None = None,
     seed: int = 0,
+    wandb_project: str | None = None,
+    wandb_run_name: str | None = None,
 ) -> PolicyValueNet:
     random.seed(seed)
     torch.manual_seed(seed)
@@ -95,7 +97,26 @@ def train(
     csv_w = csv.DictWriter(csv_f, fieldnames=CSV_FIELDS)
     csv_w.writeheader()
 
-    tb = SummaryWriter(log_dir)
+    log = MetricLog()
+    log.add_tensorboard(log_dir)
+    if wandb_project:
+        log.add_wandb(
+            project=wandb_project,
+            run_name=wandb_run_name,
+            log_dir=log_dir,
+            config={
+                "algo": "ppo",
+                "lr": lr,
+                "gamma": gamma,
+                "lam": lam,
+                "shaping_coef": shaping_coef,
+                "pool_size": pool_size,
+                "pool_prob": pool_prob,
+                "games_per_iter": games_per_iter,
+                "seed": seed,
+                "deck": deck_path,
+            },
+        )
 
     # opponent pool of past parameters (state_dicts on CPU)
     pool: list[dict] = [copy.deepcopy(model.state_dict())]
@@ -186,21 +207,21 @@ def train(
         csv_w.writerow(row)
         csv_f.flush()
 
-        tb.add_scalar("loss/policy", stats["policy_loss"], it)
-        tb.add_scalar("loss/value", stats["value_loss"], it)
-        tb.add_scalar("policy/entropy", stats["entropy"], it)
-        tb.add_scalar("policy/clip_frac", stats["clip_frac"], it)
-        tb.add_scalar(
+        log.scalar("loss/policy", stats["policy_loss"], it)
+        log.scalar("loss/value", stats["value_loss"], it)
+        log.scalar("policy/entropy", stats["entropy"], it)
+        log.scalar("policy/clip_frac", stats["clip_frac"], it)
+        log.scalar(
             "game/win_rate", w / (w + losses + d) if (w + losses + d) else 0, it
         )
-        tb.add_scalar("game/decisions", total_decisions, it)
-        tb.add_scalar("time/iter_s", dt, it)
+        log.scalar("game/decisions", total_decisions, it)
+        log.scalar("time/iter_s", dt, it)
         if row["eval_win_rate"]:
-            tb.add_scalar("eval/win_rate_vs_random", float(row["eval_win_rate"]), it)
+            log.scalar("eval/win_rate_vs_random", float(row["eval_win_rate"]), it)
 
     torch.save(model.state_dict(), ckpt_dir / "ppo_latest.pt")
     csv_f.close()
-    tb.close()
+    log.close()
     print(f"metrics saved to {metrics_file}", flush=True)
     return model
 
@@ -225,6 +246,8 @@ def main(
     log_dir: str = typer.Option("runs/ppo", help="TensorBoard log directory"),
     init: str | None = typer.Option(None, help="checkpoint to resume from"),
     seed: int = typer.Option(0, help="random seed"),
+    wandb_project: str | None = typer.Option(None, help="wandb project name (enables wandb logging)"),
+    wandb_run_name: str | None = typer.Option(None, help="wandb run name"),
 ) -> None:
     if agent:
         profile = AgentProfile(agent)
@@ -250,6 +273,8 @@ def main(
         log_dir=log_dir,
         init_checkpoint=init,
         seed=seed,
+        wandb_project=wandb_project,
+        wandb_run_name=wandb_run_name,
     )
 
 

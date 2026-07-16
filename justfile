@@ -88,6 +88,26 @@ exit-resume agent="02_dragapult" iterations="20" games="8" sims="32" dets="2":
     pkm exit-train --agent {{agent}} --iterations {{iterations}} --games {{games}} \
         --sims {{sims}} --dets {{dets}}
 
+# --- wandb + hyperparameter sweeps -------------------------------------------
+
+# PPO training with wandb logging
+train-wandb agent="02_dragapult" project="pkm-ppo" iterations="200" games="16":
+    pkm train --agent {{agent}} --iterations {{iterations}} --games {{games}} \
+        --eval-every 10 --wandb-project {{project}} --wandb-run-name "{{agent}}-ppo"
+
+# expert iteration with wandb logging
+exit-wandb agent="02_dragapult" project="pkm-exit" iterations="20" games="8":
+    pkm exit-train --agent {{agent}} --iterations {{iterations}} --games {{games}} \
+        --wandb-project {{project}} --wandb-run-name "{{agent}}-exit"
+
+# Optuna hyperparameter sweep for PPO
+sweep agent="02_dragapult" trials="50" iterations="20" games="8":
+    pkm sweep --agent {{agent}} --trials {{trials}} --iterations {{iterations}} --games {{games}}
+
+# Optuna hyperparameter sweep for expert iteration
+sweep-exit agent="02_dragapult" trials="30" iterations="10" games="4":
+    pkm sweep exit --agent {{agent}} --trials {{trials}} --iterations {{iterations}} --games {{games}}
+
 # --- weights / evaluation / replays -----------------------------------------
 
 # export a checkpoint to .npz for torch-free inference (default: agent's best)

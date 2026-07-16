@@ -27,6 +27,7 @@ Full project guide (structure, RL training, decks, submission): @AGENTS.md
 - RL techniques & improvement ideas: `docs/ideas/rl-improvements.md` (experience replay, offline RL, replay log utilization, interactive training, priority-ranked improvement list).
 - Decision & training pipeline reference: `docs/ideas/training-and-decision-pipeline.md` (full decision flow, GAE delta, PPO gradient, modularity analysis).
 - Optimizer reference: `docs/ideas/optimizers.md` (SGD, Adagrad, Adam, AdamW explained; why Adam for RL).
+- Visualization & HPO tools: `docs/ideas/visualization-and-hpo.md` (TensorBoard, wandb, Optuna, Netron, plotly).
 - Agent architecture idea: `docs/ideas/general-agent-architecture.md`.
 - Implementation plan: `docs/superpowers/plans/2026-07-12-general-agent-architecture.md`.
 - Implementation is in worktree `/home/df/.config/superpowers/worktrees/pkm_new/general-agent-architecture` on branch `feature/general-agent-architecture`.

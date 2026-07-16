@@ -19,7 +19,6 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn.functional as F
-from torch.utils.tensorboard import SummaryWriter
 
 from pkm.engine import (
     battle_finish,
@@ -35,6 +34,7 @@ from pkm.rl.encoder import EncodedDecision, encode_decision
 from pkm.rl.model import OPT_ENC, PolicyValueNet
 from pkm.rl.numpy_policy import NumpyPolicy
 from pkm.rl.rollout import MAX_DECISIONS
+from pkm.rl.logging import MetricLog
 
 
 class ExitSample:
@@ -204,6 +204,8 @@ def train(
     metrics_path: str = "metrics/exit_train.csv",
     log_dir: str = "runs/exit",
     seed: int = 0,
+    wandb_project: str | None = None,
+    wandb_run_name: str | None = None,
 ) -> PolicyValueNet:
     random.seed(seed)
     torch.manual_seed(seed)
@@ -227,7 +229,24 @@ def train(
     csv_w = csv.DictWriter(csv_f, fieldnames=EXIT_CSV_FIELDS)
     csv_w.writeheader()
 
-    tb = SummaryWriter(log_dir)
+    log = MetricLog()
+    log.add_tensorboard(log_dir)
+    if wandb_project:
+        log.add_wandb(
+            project=wandb_project,
+            run_name=wandb_run_name,
+            log_dir=log_dir,
+            config={
+                "algo": "expert_iteration",
+                "lr": lr,
+                "n_simulations": n_simulations,
+                "n_determinizations": n_determinizations,
+                "games_per_iter": games_per_iter,
+                "seed": seed,
+                "deck": deck_path,
+                "init_checkpoint": init_checkpoint,
+            },
+        )
 
     for it in range(1, iterations + 1):
         t0 = time.time()
@@ -268,10 +287,10 @@ def train(
             }
         )
         csv_f.flush()
-        tb.add_scalar("loss/policy", stats["policy_loss"], it)
-        tb.add_scalar("loss/value", stats["value_loss"], it)
-        tb.add_scalar("game/p0_win_rate", w / (w + losses) if (w + losses) else 0, it)
-        tb.add_scalar("time/iter_s", dt, it)
+        log.scalar("loss/policy", stats["policy_loss"], it)
+        log.scalar("loss/value", stats["value_loss"], it)
+        log.scalar("game/p0_win_rate", w / (w + losses) if (w + losses) else 0, it)
+        log.scalar("time/iter_s", dt, it)
         print(
             f"exit iter {it} | games {games_per_iter} (p0 W/L {w}/{losses}) "
             f"| samples {len(data)} | pi_loss {stats['policy_loss']:.4f} "
@@ -281,7 +300,7 @@ def train(
         torch.save(model.state_dict(), ckpt_dir / "exit_latest.pt")
 
     csv_f.close()
-    tb.close()
+    log.close()
     print(f"metrics saved to {metrics_file}", flush=True)
     return model
 
@@ -303,6 +322,8 @@ def main(
     metrics: str = typer.Option("metrics/exit_train.csv", help="metrics CSV path"),
     log_dir: str = typer.Option("runs/exit", help="TensorBoard log directory"),
     seed: int = typer.Option(0, help="random seed"),
+    wandb_project: str | None = typer.Option(None, help="wandb project name (enables wandb logging)"),
+    wandb_run_name: str | None = typer.Option(None, help="wandb run name"),
 ) -> None:
     if agent:
         profile = AgentProfile(agent)
@@ -325,6 +346,8 @@ def main(
         metrics_path=metrics,
         log_dir=log_dir,
         seed=seed,
+        wandb_project=wandb_project,
+        wandb_run_name=wandb_run_name,
     )
 
 

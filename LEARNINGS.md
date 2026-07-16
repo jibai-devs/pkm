@@ -108,3 +108,11 @@
 - AdamW (decoupled weight decay) is a free upgrade: torch.optim.AdamW(..., weight_decay=0.01)
 - Adagrad good for sparse features (embeddings) but LR dies over time
 - SGD+momentum better final convergence but needs LR schedule, slower per update
+
+### Visualization & HPO
+- TensorBoard always on (runs/ dir). wandb optional via --wandb-project flag.
+- MetricLog (pkm/rl/logging.py) is a pluggable fan-out logger: add backends (TensorBoard, wandb, CSV, custom) and all receive scalars.
+- Backend protocol: scalar(tag, value, step) + close(). Any class with these methods works.
+- Optuna integrated via pkm sweep / pkm sweep exit. Searches lr, gamma, lam, shaping_coef, pool_size/pool_prob (PPO) or lr, n_simulations, n_determinizations (ExIt).
+- Optuna storage (sqlite:///sweep.db) enables resuming interrupted sweeps.
+- Netron for architecture visualization, torchviz for gradient flow graphs.
