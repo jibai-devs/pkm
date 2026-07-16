@@ -36,21 +36,21 @@ class Norm:
     Change these if the game's bounds evolve (e.g. larger bench, higher HP).
     """
 
-    max_hp: float = 300.0
-    max_energies: float = 5.0
-    max_hand_count: float = 20.0
-    max_deck_count: float = 60.0
-    max_prize_count: float = 6.0
-    max_discard_count: float = 60.0
-    max_bench_count: float = 8.0
-    max_turn: float = 30.0
-    max_actions_per_turn: float = 20.0
-    max_pick_count: float = 5.0
-    max_energy_cost: float = 5.0
-    max_damage_counters: float = 10.0
-    max_damage: float = 300.0
-    max_option_number: float = 20.0
-    max_option_count: float = 5.0
+    max_hp: float = 380.0  # max in card DB; engine/src/card/CardImpl.h grep
+    max_energies: float = 5.0  # practical max; no C++ cap
+    max_hand_count: float = 20.0  # practical max; no C++ cap
+    max_deck_count: float = 60.0  # engine/src/core/Core.h:12 DECK_SIZE=60
+    max_prize_count: float = 6.0  # engine/src/core/Core.h:15 PRIZE_SIZE=6
+    max_discard_count: float = 60.0  # bounded by DECK_SIZE
+    max_bench_count: float = 8.0  # engine/src/core/Core.h:14 BENCH_SIZE_MAX=8
+    max_turn: float = 30.0  # practical max; engine/src/game/GameProc.h:809 hard cap=10000
+    max_actions_per_turn: float = 20.0  # practical max; engine/src/game/GameProc.h:805 hard cap=10000
+    max_pick_count: float = 5.0  # practical max; no C++ cap
+    max_energy_cost: float = 5.0  # practical max; no C++ cap
+    max_damage_counters: float = 10.0  # practical max; bounded by max_hp
+    max_damage: float = 350.0  # max in card DB; engine/src/card/CardImpl.h grep
+    max_option_number: float = 20.0  # practical max; no C++ cap
+    max_option_count: float = 5.0  # practical max; no C++ cap
 
 
 NORM = Norm()

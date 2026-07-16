@@ -23,6 +23,8 @@ from enum import IntEnum
 from pydantic import BaseModel, ConfigDict
 
 
+# C++ source: engine/src/core/ApiTypes.h — enum class SelectType : unsigned char
+# Wire values are max(0, enum - 1), so None is collapsed and Main=0.
 class SelectType(IntEnum):
     MAIN = 0
     CARD = 1
@@ -37,6 +39,8 @@ class SelectType(IntEnum):
     SPECIAL_CONDITION = 10
 
 
+# C++ source: engine/src/core/ApiTypes.h — enum class SelectContext : unsigned char
+# Wire values are max(0, enum - 1), so None is collapsed and Main=0.
 class SelectContext(IntEnum):
     MAIN = 0
     SETUP_ACTIVE_POKEMON = 1
@@ -89,6 +93,8 @@ class SelectContext(IntEnum):
     RECOVER_SPECIAL_CONDITION = 48
 
 
+# C++ source: engine/src/core/ApiTypes.h — enum class SelectOptionType : unsigned char
+# Not offset on wire.
 class OptionType(IntEnum):
     NUMBER = 0
     YES = 1
@@ -109,6 +115,8 @@ class OptionType(IntEnum):
     SPECIAL_CONDITION = 16
 
 
+# C++ source: engine/src/core/CardTypes.h — enum class AreaType : unsigned char
+# Full enum; values beyond LOOKING are internal to the engine and rarely appear in API JSON.
 class AreaType(IntEnum):
     ALL = 0
     DECK = 1
@@ -121,9 +129,24 @@ class AreaType(IntEnum):
     ENERGY = 8
     TOOL = 9
     PRE_EVOLUTION = 10
+    PLAYER = 11
     LOOKING = 12
+    PLAYING = 13
+    DECK_BOTTOM = 14
+    ME = 15
+    EFFECTED = 16
+    EFFECTED_PRE_TARGET = 17
+    SELECTED_LIST = 18
+    TRIGGER_SUBJECT = 19
+    TRIGGER_OBJECT = 20
+    ATTACH = 21
+    TURN_PLAY = 22
+    ATTACK_PRE_MY_TURN = 23
+    TEMPORARY = 24
 
 
+# C++ source: engine/src/core/EnergyTypes.h — enum class EnergyType : unsigned short
+# These are EnergyTypeIndex values (sequential 0-11), not bitmask values.
 class EnergyType(IntEnum):
     COLORLESS = 0
     GRASS = 1
@@ -139,6 +162,8 @@ class EnergyType(IntEnum):
     PSYCHIC_DARKNESS = 11
 
 
+# C++ source: engine/src/core/ApiTypes.h — enum class LogType : unsigned char
+# Not offset on wire.
 class LogType(IntEnum):
     SHUFFLE = 0
     HAS_BASIC_POKEMON = 1
