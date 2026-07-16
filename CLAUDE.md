@@ -9,7 +9,7 @@ Full project guide (structure, RL training, decks, submission): @AGENTS.md
   the seam is `pkm/engine/` and all engine imports go through it. `just engine-build` /
   `just engine-parity`. Engine is **nondeterministic** (`random_device` seed, no injection),
   so only initial-obs parity is testable. Full details in AGENTS.md → "Vendored engine".
-  Staged but uncommitted (63 tests pass on both backends).
+  Typed API consolidated in `pkm/engine/api.py` (commit `5390696`); 63 tests pass on both backends.
 - Human TUI battle shipped on `feature/human-tui-battle`: `just play human neural`.
   Code in `pkm/tui/` (session/labels/widgets/app), typed obs in `pkm/types/obs.py`.
 - `select.type` / `select.context` are **0-based on the wire** (the tables in
@@ -30,6 +30,47 @@ Full project guide (structure, RL training, decks, submission): @AGENTS.md
 - Completed there: profile-owned decks/config/checkpoints and policy factory/profile play integration. Latest commit: `c68a4b8`.
 - Latest worktree verification: 67 tests passed; final Task 2 review must be rerun after the latest packaging fix.
 - Next: implement `AgentProfile.train()`, `train_exit()`, and `build_submit()` with per-profile weights before multi-agent play/opponent-pool work.
+
+## Engine functions: kaggle lib vs vendored (IMPORTANT)
+
+**Every one of the 13 C functions ships in Kaggle's `libcg.so` binary.** Nothing in
+our API is "missing" from Kaggle — the search API and card data are real exported
+symbols in the shipped lib. What differs is that Kaggle's *Python package* only
+**wraps 6 of them** (`cg/sim.py` + `cg/game.py`); the other 7 are unwrapped C
+symbols we bind ourselves in `pkm/engine/api.py` (recovered from the official
+competition `cg/api.py`).
+
+| Function | In Kaggle `libcg.so` (C symbol) | Wrapped by Kaggle Python | Bound in our `api.py` |
+|---|:--:|:--:|:--:|
+| `GameInitialize` | ✅ | ✅ | ✅ |
+| `BattleStart` | ✅ | ✅ | ✅ |
+| `BattleFinish` | ✅ | ✅ | ✅ |
+| `GetBattleData` | ✅ | ✅ | ✅ |
+| `Select` | ✅ | ✅ | ✅ |
+| `VisualizeData` | ✅ | ✅ | ✅ |
+| `AgentStart` | ✅ | ❌ | ✅ |
+| `SearchBegin` | ✅ | ❌ | ✅ |
+| `SearchStep` | ✅ | ❌ | ✅ |
+| `SearchEnd` | ✅ | ❌ | ✅ |
+| `SearchRelease` | ✅ | ❌ | ✅ |
+| `AllCard` | ✅ | ❌ | ✅ |
+| `AllAttack` | ✅ | ❌ | ✅ |
+
+**Consequences for how we use each backend:**
+
+- **Deployment (Kaggle submission) → always the Kaggle C lib.** The default backend
+  is `kaggle` and the submission sandbox has **no** `engine/`. Because the search
+  symbols (`AgentStart`, `SearchBegin/Step/End/Release`) live in Kaggle's own
+  `libcg.so`, **MCTS works at deployment by calling Kaggle's C implementation** —
+  we just bind those symbols via ctypes. We do **not** ship or need our vendored
+  build to run MCTS in the sandbox.
+- **Local training → optionally the vendored build.** `PKM_ENGINE=vendored` uses our
+  own `engine/build/cg.so`, purely a local convenience (rebuild / instrument / speed).
+  It is **never** part of a submission. Default must stay `kaggle`.
+- Net: the vendored `cg.so` is a *local-training-only* artifact; the search API for
+  MCTS rides on Kaggle's C implementation everywhere it matters.
+
+See `docs/ENGINE.md` and `README.md` for build/compile instructions.
 
 ## Replay viewer
 

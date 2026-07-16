@@ -112,11 +112,70 @@ pkm/
 ├── mcts/             # IS-MCTS with determinization
 ├── agents/           # agent factories + profiles
 ├── data/             # deck/card data loading
+├── engine/           # the ONE engine seam (loader + typed api)
+│   ├── loader.py     # backend switch, ctypes ABI, capabilities
+│   └── api.py        # all 13 engine functions (typed)
 └── policy.npz        # exported weights (bundled in submission)
+engine/               # vendored C++ engine source (builds cg.so) — see below
 deck/                 # deck files (CSV/JSON)
 main.py               # Kaggle entry point
 submit.sh             # builds submission.tar.gz
 ```
+
+## Engine (cabt)
+
+Every battle runs on the **cabt C engine** — a shared library (`libcg.so`) exposing
+a 13-function C ABI. There are two builds of it, and you choose which one backs the
+process. **You never have to compile anything to train or submit** — the default
+uses the engine Kaggle already ships.
+
+### The two backends
+
+| | Kaggle build (default) | Vendored build (`PKM_ENGINE=vendored`) |
+|---|---|---|
+| Where it comes from | bundled in the `kaggle_environments` pip package | compiled from C++ source in `engine/` |
+| Use it for | **everything by default**, and **all deployment/submission** | **local training only** (rebuild / instrument / speed) |
+| Need to compile? | **No** | Yes (or `just engine-build`) |
+
+Import the engine only through `pkm.engine` (never `kaggle_environments...cg.*`).
+The backend is chosen at load time, precedence: `PKM_ENGINE_LIB=/abs/path` >
+`PKM_ENGINE=vendored` > default `kaggle`. Inspect the active backend:
+
+```bash
+just engine-info                    # what's loaded + 13/13 ABI symbols present
+PKM_ENGINE=vendored just engine-info
+```
+
+### What Kaggle actually gives you
+
+**All 13 engine functions ship in Kaggle's own `libcg.so`** — including the search
+API (`SearchBegin/Step/End/Release`) that MCTS needs. Kaggle's *Python* wrapper only
+covers 6 of them (battle + visualize); we bind the other 7 ourselves in
+`pkm/engine/api.py`. The practical upshot:
+
+- **MCTS works at deployment on Kaggle's C engine** — we call their search symbols
+  directly via ctypes. No vendored build is shipped or needed in the submission
+  sandbox (which has no `engine/`).
+- The vendored `cg.so` is a **local-training convenience only**.
+
+(Full table of which functions Kaggle wraps vs. which we bind: `CLAUDE.md` →
+"Engine functions". Determinism/parity details: `docs/ENGINE.md`.)
+
+### Compiling the vendored engine (only if you want it)
+
+```bash
+just engine-build        # with nix: cmake+ninja in engine/'s flake devshell (libc++)
+just engine-build-nix    # with nix, fully hermetic: nix build
+just engine-build-cc     # WITHOUT nix: any system cmake + a C++20 compiler (libstdc++)
+just engine-clean        # remove build outputs
+just engine-parity       # assert the vendored initial-obs matches Kaggle's engine
+```
+
+`engine-build-cc` needs only `cmake` and a C++20 compiler (`g++`/`clang++`) — no
+Nix. The single translation unit is memory-heavy; add `-j1` if the compile is
+OOM-killed. Output lands at `engine/build/cg.so` (gitignored), which
+`PKM_ENGINE=vendored` picks up automatically. **If you don't want to compile, do
+nothing — the Kaggle build is the default.**
 
 ## Kaggle Submission
 
