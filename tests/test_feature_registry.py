@@ -2,9 +2,7 @@ import json
 from pathlib import Path
 
 import numpy as np
-import pytest
 
-from pkm.rl.encoder import encode_decision
 from pkm.rl.features import (
     GLOBAL_FEATURES,
     OPT_FEATS,
@@ -26,7 +24,6 @@ from pkm.types.obs import N_POKEMON_SLOTS, Observation
 FIXTURE = json.loads(
     (Path(__file__).parent / "fixtures" / "observations.json").read_text()
 )
-GOLDEN_PATH = Path(__file__).parent / "fixtures" / "encoder_golden.npz"
 
 
 def test_state_feats_equals_registered_widths():
@@ -117,31 +114,3 @@ def test_feature_spec_is_a_plain_dataclass():
 
 def _dummy_observation() -> Observation:
     return Observation.model_validate(FIXTURE["observations"]["9:43"])
-
-
-@pytest.mark.parametrize("key", sorted(FIXTURE["observations"]))
-def test_encoder_output_matches_pre_refactor_golden(key):
-    """Task 4 is behavior-preserving: the registry-driven encoder must
-    reproduce bit-identical output to the hand-appended-list encoder it
-    replaced. `encoder_golden.npz` was captured from that encoder (commit
-    e2d8357, before this refactor) over every fixture observation."""
-    golden = np.load(GOLDEN_PATH)
-    obs = Observation.model_validate(FIXTURE["observations"][key])
-    d = encode_decision(obs)
-
-    fields = {
-        "board_cards": d.board_cards,
-        "hand_cards": d.hand_cards,
-        "state_feats": d.state_feats,
-        "opt_type": d.opt_type,
-        "opt_card": d.opt_card,
-        "opt_card2": d.opt_card2,
-        "opt_attack": d.opt_attack,
-        "opt_feats": d.opt_feats,
-        "min_count": np.array([d.min_count]),
-        "max_count": np.array([d.max_count]),
-    }
-    for name, arr in fields.items():
-        g = golden[f"{key}__{name}"]
-        assert arr.shape == g.shape, f"{name}: shape {arr.shape} != golden {g.shape}"
-        assert np.array_equal(arr, g), f"{name}: values differ from golden"

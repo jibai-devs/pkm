@@ -23,12 +23,16 @@ import numpy as np
 
 from pkm.data import get_attack_data
 from pkm.heuristics.context import GameContext
+from pkm.rl.deterministic_features import (
+    lethal_this_turn,
+    retreat_viable,
+    type_effectiveness,
+)
 from pkm.types.obs import (
-    MAX_BENCH,
     N_POKEMON_SLOTS,
     NUM_SELECT_TYPES,
     Observation,
-    PokemonRef,
+    board_pokemon,
 )
 
 # OptionType values (see docs / official api.py). Also used by encoder.py's
@@ -105,26 +109,6 @@ class Norm:
 
 
 NORM = Norm()
-
-
-def board_pokemon(obs: Observation) -> list[PokemonRef | None]:
-    """Flat list of the N_POKEMON_SLOTS board slots: me (active + bench),
-    then opponent (active + bench), padded with None. Shared by the
-    per-slot feature specs below and by encoder.py's board_cards array, so
-    the slot ordering lives in exactly one place."""
-    state = obs.current
-    assert state is not None
-    you = state.yourIndex
-    me = state.players[you]
-    opp = state.players[1 - you]
-
-    pokes: list[PokemonRef | None] = []
-    for player in (me, opp):
-        p_list: list[PokemonRef | None] = [player.active_pokemon]
-        p_list += list(player.bench)[:MAX_BENCH]
-        p_list += [None] * (1 + MAX_BENCH - len(p_list))
-        pokes.extend(p_list)
-    return pokes
 
 
 def _me_opp(obs: Observation):
@@ -298,6 +282,8 @@ PER_SLOT_FEATURES: list[FeatureSpec] = [
     FeatureSpec(
         "slot_appeared_this_turn", 1, Scope.PER_SLOT, _slot_appeared_this_turn, True
     ),
+    # Tier 1 (plan.md §4): bench retreat affordability.
+    FeatureSpec("retreat_viable", 1, Scope.PER_SLOT, retreat_viable, True),
 ]
 
 
@@ -366,6 +352,9 @@ PER_OPTION_FEATURES: list[FeatureSpec] = [
     FeatureSpec("attack_damage", 1, Scope.PER_OPTION, _attack_damage, True),
     FeatureSpec("attack_cost", 1, Scope.PER_OPTION, _attack_cost, True),
     FeatureSpec("option_is_mine", 1, Scope.PER_OPTION, _option_is_mine, True),
+    # Tier 1 (plan.md §4): attack-option heuristics.
+    FeatureSpec("lethal_this_turn", 1, Scope.PER_OPTION, lethal_this_turn, True),
+    FeatureSpec("type_effectiveness", 1, Scope.PER_OPTION, type_effectiveness, True),
 ]
 
 

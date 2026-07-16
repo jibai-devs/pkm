@@ -352,6 +352,27 @@ class Observation(_Model):
         return self.current.players[1 - self.current.yourIndex]
 
 
+def board_pokemon(obs: Observation) -> list["PokemonRef | None"]:
+    """Flat list of the N_POKEMON_SLOTS board slots: me (active + bench),
+    then opponent (active + bench), padded with None. Shared vocabulary for
+    anything that needs to walk the board in the same slot order as
+    board_cards (pkm/rl/encoder.py) and the PER_SLOT feature registry
+    (pkm/rl/features.py)."""
+    state = obs.current
+    assert state is not None
+    you = state.yourIndex
+    me = state.players[you]
+    opp = state.players[1 - you]
+
+    pokes: list[PokemonRef | None] = []
+    for player in (me, opp):
+        p_list: list[PokemonRef | None] = [player.active_pokemon]
+        p_list += list(player.bench)[:MAX_BENCH]
+        p_list += [None] * (1 + MAX_BENCH - len(p_list))
+        pokes.extend(p_list)
+    return pokes
+
+
 class SearchState:
     """Typed view over one search result (``{"observation": ..., "searchId": ...}``).
 
