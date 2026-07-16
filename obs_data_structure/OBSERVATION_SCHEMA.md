@@ -2,7 +2,7 @@
 
 This document describes the complete JSON data structure returned by `GetBattleData()` and passed to Python via ctypes as the `obs` dict.
 
-> **Source files:** `ToJson.h`, `ApiJson.h`, `ApiType.h`, `Types.h`
+> **Source files:** `ToJson.h`, `ApiJson.h`, `ApiTypes.h`, `CardTypes.h`, `EnergyTypes.h`
 
 ---
 
@@ -238,6 +238,17 @@ Array of game events. Each log entry has a `type` field and type-specific data.
 
 ### LogType Enum
 
+> **C++ source:** `engine/src/core/ApiTypes.h` — `enum class LogType : unsigned char`
+
+```cpp
+enum class LogType : unsigned char {
+  Shuffle, HasBasicPokemon, TurnStart, TurnEnd, Draw, DrawReverse,
+  MoveCard, MoveCardReverse, Switch, Change, Play, Attach, Evolve,
+  Devolve, MoveAttached, Attack, HpChange, Poisoned, Burned, Asleep,
+  Paralyzed, Confused, Coin, Result,
+};
+```
+
 | Value | Name              | Fields                                                                                          | Description                                                                                                                    |
 |-------|-------------------|-------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
 | 0     | `Shuffle`         | `playerIndex`                                                                                   | Deck was shuffled.                                                                                                             |
@@ -266,6 +277,17 @@ Array of game events. Each log entry has a `type` field and type-specific data.
 | 23    | `Result`          | `result`, `reason`                                                                              | Game ended. `result`: 0/1=winner player index, 2=draw. `reason`: cause code.                                                   |
 
 ### AreaType Values (used in `fromArea`/`toArea`)
+
+> **C++ source:** `engine/src/core/CardTypes.h` — `enum class AreaType : unsigned char`
+
+```cpp
+enum class AreaType : unsigned char {
+  All, Deck, Hand, Trash, Active, Bench, Prize, Stadium,
+  Energy, Tool, PreEvolution, Player, Looking, Playing, DeckBottom,
+  Me, Effected, EffectedPreTarget, SelectedList, TriggerSubject,
+  TriggerObject, Attach, TurnPlay, AttackPreMyTurn, Temporary,
+};
+```
 
 | Value | Name         | Description                       |
 |-------|--------------|-----------------------------------|
@@ -299,6 +321,15 @@ It contains a base64-encoded binary serialization of the complete game state, us
 
 ### SelectType
 
+> **C++ source:** `engine/src/core/ApiTypes.h` — `enum class SelectType : unsigned char`
+
+```cpp
+enum class SelectType : unsigned char {
+  None, Main, Card, AttachedCard, CardOrAttachedCard,
+  Energy, Skill, Attack, Evolve, Count, YesNo, SpecialCondition,
+};
+```
+
 | Value | Name               | Description                                                         |
 |-------|--------------------|---------------------------------------------------------------------|
 | 0     | None               | (subtracted — never appears in API JSON)                            |
@@ -317,6 +348,23 @@ It contains a base64-encoded binary serialization of the complete game state, us
 > **Note:** In API mode, `type` is serialized as `max(0, enum_value - 1)`, so the `None` entry is collapsed and values start at 0 for `Main`.
 
 ### SelectContext
+
+> **C++ source:** `engine/src/core/ApiTypes.h` — `enum class SelectContext : unsigned char`
+
+```cpp
+enum class SelectContext : unsigned char {
+  None, Main, SetupActivePokemon, SetupBenchPokemon, Switch, ToActive,
+  ToBench, ToField, ToHand, Discard, ToDeck, ToDeckBottom, ToPrize,
+  NotMove, DamageCounter, DamageCounterAny, Damage, RemoveDamageCounter,
+  Heal, EvolvesFrom, EvolvesTo, Devolve, AttachFrom, AttachTo, DetachFrom,
+  Look, EffectTarget, DiscardEnergyCard, DiscardToolCard, SwitchEnergyCard,
+  DiscardCardOrAttachedCard, DiscardEnergy, ToHandEnergy, ToDeckEnergy,
+  SwitchEnergy, SkillOrder, Attack, DisableAttack, Evolve, DrawCount,
+  DamageCounterCount, RemoveDamageCounterCount, IsFirst, Mulligan, Activate,
+  FirstEffect, MoreDevolve, CoinHead, AffectSpecialCondition,
+  RecoverSpecialCondition,
+};
+```
 
 | Value | Name                      | Description                           |
 |-------|---------------------------|---------------------------------------|
@@ -373,6 +421,18 @@ It contains a base64-encoded binary serialization of the complete game state, us
 
 ### EnergyType
 
+> **C++ source:** `engine/src/core/EnergyTypes.h` — `enum class EnergyType : unsigned short` (bitmask flags)
+
+```cpp
+enum class EnergyType : unsigned short {
+  Colorless = 0,       Grass = 1 << 0,   Fire = 1 << 1,
+  Water = 1 << 2,      Lightning = 1 << 3, Psychic = 1 << 4,
+  Fighting = 1 << 5,   Darkness = 1 << 6, Metal = 1 << 7,
+  Dragon = 1 << 8,     All = (1 << 9) - 1,
+};
+// Also: Psychic | Darkness = 80 (index 11)
+```
+
 | Index | Name             | Bitmask |
 |-------|------------------|---------|
 | 0     | Colorless        | 0       |
@@ -390,6 +450,14 @@ It contains a base64-encoded binary serialization of the complete game state, us
 
 ### CardType (used in AllCard)
 
+> **C++ source:** `engine/src/core/CardTypes.h` — `enum class CardType : unsigned char`
+
+```cpp
+enum class CardType : unsigned char {
+  Pokemon, Item, Tool, Supporter, Stadium, BasicEnergy, SpecialEnergy,
+};
+```
+
 | Value | Name                |
 |-------|---------------------|
 | 0     | Pokemon             |
@@ -402,6 +470,14 @@ It contains a base64-encoded binary serialization of the complete game state, us
 
 ### PokemonType (used in AllCard)
 
+> **C++ source:** `engine/src/core/CardTypes.h` — `enum class PokemonType : unsigned char`
+
+```cpp
+enum class PokemonType : unsigned char {
+  NotPokemon, Normal, PokemonItem, Ex, MegaEx,
+};
+```
+
 | Value | Name                       |
 |-------|----------------------------|
 | 0     | NotPokemon                 |
@@ -411,6 +487,14 @@ It contains a base64-encoded binary serialization of the complete game state, us
 | 4     | MegaEx (Mega Evolution ex) |
 
 ### EvolutionType (used in AllCard)
+
+> **C++ source:** `engine/src/core/CardTypes.h` — `enum class EvolutionType : unsigned char`
+
+```cpp
+enum class EvolutionType : unsigned char {
+  NoEvolutionType, Basic, Stage1, Stage2,
+};
+```
 
 | Value | Name                            |
 |-------|---------------------------------|
@@ -507,6 +591,16 @@ Returned by `ApiAllAttack()`.
 
 ## SelectOptionType Enum Reference
 
+> **C++ source:** `engine/src/core/ApiTypes.h` — `enum class SelectOptionType : unsigned char`
+
+```cpp
+enum class SelectOptionType : unsigned char {
+  Number, Yes, No, Card, ToolCard, EnergyCard, Energy,
+  Play, Attach, Evolve, Ability, Discard, Retreat, Attack,
+  End, Skill, SpecialCondition,
+};
+```
+
 | Value | Name             |
 |-------|------------------|
 | 0     | Number           |
@@ -531,6 +625,14 @@ Returned by `ApiAllAttack()`.
 
 ## SpecialConditionType
 
+> **C++ source:** `engine/src/core/CardTypes.h` — `enum class SelectSpecialConditionType : unsigned char`
+
+```cpp
+enum class SelectSpecialConditionType : unsigned char {
+  Poison, Burn, Sleep, Paralyze, Confuse,
+};
+```
+
 | Value | Name     |
 |-------|----------|
 | 0     | Poison   |
@@ -538,6 +640,25 @@ Returned by `ApiAllAttack()`.
 | 2     | Sleep    |
 | 3     | Paralyze |
 | 4     | Confuse  |
+
+---
+
+## BadStatusType
+
+> **C++ source:** `engine/src/core/CardTypes.h` — `enum class BadStatusType : unsigned char`
+
+```cpp
+enum class BadStatusType : unsigned char {
+  None, Asleep, Paralyzed, Confused,
+};
+```
+
+| Value | Name      | Description         |
+|-------|-----------|---------------------|
+| 0     | None      | No bad status       |
+| 1     | Asleep    | Sleep (ねむり)       |
+| 2     | Paralyzed | Paralysis (マヒ)    |
+| 3     | Confused  | Confusion (こんらん) |
 
 ---
 
