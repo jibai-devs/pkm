@@ -12,7 +12,7 @@ from pkm.engine import (
 
 from pkm.data import Deck
 from pkm.mcts.determinize import infer_opponent_decklist, sample_determinization
-from pkm.mcts.search import MCTS, _forced_picks
+from pkm.mcts.search import MCTS, forced_picks
 from pkm.rl.model import PolicyValueNet
 from pkm.rl.numpy_policy import NumpyPolicy
 from pkm.engine import search_begin, search_end, search_step
@@ -75,7 +75,7 @@ def test_mcts_choose_legal():
         searched = 0
         while searched < 3 and obs["current"]["result"] < 0:
             sel = obs["select"]
-            forced = _forced_picks(sel)
+            forced = forced_picks(sel)
             if forced is not None:
                 obs = battle_select(forced)
                 continue

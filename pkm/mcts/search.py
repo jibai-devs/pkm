@@ -13,7 +13,7 @@ import random
 
 import numpy as np
 
-from pkm.types.obs import SearchState
+from pkm.types.obs import SearchState, forced_picks
 from pkm.rl.encoder import encode_decision
 from pkm.rl.numpy_policy import NumpyPolicy
 from pkm.engine import search_begin, search_end, search_step
@@ -21,16 +21,6 @@ from pkm.engine import search_begin, search_end, search_step
 from .determinize import sample_determinization
 
 _MAX_FORCED_SKIP = 100
-
-
-def _forced_picks(sel: dict) -> list[int] | None:
-    """Return the forced selection if the decision offers no real choice."""
-    n = len(sel["option"])
-    if n == 1 and sel["minCount"] >= 1:
-        return [0]
-    if n == sel["minCount"] == sel["maxCount"]:
-        return list(range(n))
-    return None
 
 
 class _Node:
@@ -54,7 +44,7 @@ class _Node:
             obs = state.raw_observation
             if obs["current"]["result"] >= 0:
                 break
-            forced = _forced_picks(obs["select"])
+            forced = forced_picks(obs["select"])
             if forced is None:
                 break
             state = search_step(state.search_id, forced)

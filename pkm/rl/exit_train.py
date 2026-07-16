@@ -28,7 +28,7 @@ from pkm.engine import (
 
 from pkm.agents.profile import AgentProfile
 from pkm.data import Deck
-from pkm.mcts.search import MCTS, _forced_picks
+from pkm.mcts.search import MCTS, forced_picks
 from pkm.types.obs import Observation
 from pkm.rl.encoder import EncodedDecision, encode_decision
 from pkm.rl.model import OPT_ENC, PolicyValueNet
@@ -78,7 +78,7 @@ def play_exit_game(
     try:
         while obs["current"]["result"] < 0 and count < MAX_DECISIONS:
             p = obs["current"]["yourIndex"]
-            forced = _forced_picks(obs["select"])
+            forced = forced_picks(obs["select"])
             if forced is not None:
                 obs = battle_select(forced)
                 count += 1

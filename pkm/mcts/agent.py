@@ -7,7 +7,7 @@ from pkm.agents.neural_agent import _find_weights
 from pkm.rl.numpy_policy import NumpyPolicy
 
 from .determinize import infer_opponent_decklist
-from .search import MCTS, _forced_picks
+from .search import MCTS, forced_picks
 
 
 def make_mcts_agent(
@@ -36,7 +36,7 @@ def make_mcts_agent(
     def agent(obs: dict) -> list[int]:
         if obs["select"] is None:
             return deck
-        forced = _forced_picks(obs["select"])
+        forced = forced_picks(obs["select"])
         if forced is not None:
             return forced
         opp = opp_decklist if opp_decklist is not None else infer_opponent_decklist(obs)

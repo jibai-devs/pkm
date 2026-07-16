@@ -32,12 +32,10 @@ class TorchPolicy:
         parsed = Observation.model_validate(obs)
         sel = parsed.select
         assert sel is not None
-        n = len(sel.option)
         # forced decision: nothing to learn, don't run the network
-        if n == 1 and sel.minCount >= 1:
-            return [0], None
-        if n == sel.minCount == sel.maxCount:
-            return list(range(n)), None
+        forced = sel.forced_picks()
+        if forced is not None:
+            return forced, None
 
         d = encode_decision(parsed)
         res = self.model.act(d, greedy=self.greedy, temperature=self.temperature)

@@ -236,6 +236,31 @@ class Select(_Model):
     def context_kind(self) -> SelectContext | None:
         return _as_enum(SelectContext, self.context)
 
+    def forced_picks(self) -> list[int] | None:
+        """Return forced selection indices if this decision offers no real choice."""
+        n = len(self.option)
+        if n == 1 and self.minCount >= 1:
+            return [0]
+        if n == self.minCount == self.maxCount:
+            return list(range(n))
+        return None
+
+
+def forced_picks(sel: dict) -> list[int] | None:
+    """Return forced selection indices if the decision offers no real choice.
+
+    Works on a raw select dict so callers don't need to parse the full
+    observation to pydantic.  Same logic regardless of whether ``sel`` is
+    a dict or a :class:`Select` instance (both expose ``option``,
+    ``minCount``, ``maxCount``).
+    """
+    n = len(sel["option"])
+    if n == 1 and sel["minCount"] >= 1:
+        return [0]
+    if n == sel["minCount"] == sel["maxCount"]:
+        return list(range(n))
+    return None
+
 
 class Player(_Model):
     active: list[PokemonRef | None] = []

@@ -139,9 +139,7 @@ class NumpyPolicy:
         parsed = Observation.model_validate(obs)
         sel = parsed.select
         assert sel is not None
-        n = len(sel.option)
-        if n == 1 and sel.minCount >= 1:
-            return [0]
-        if n == sel.minCount == sel.maxCount:
-            return list(range(n))
+        forced = sel.forced_picks()
+        if forced is not None:
+            return forced
         return self.act_greedy(encode_decision(parsed))
