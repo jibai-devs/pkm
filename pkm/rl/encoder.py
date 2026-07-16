@@ -35,6 +35,7 @@ from pkm.rl.features import (
     assemble_per_option,
     assemble_per_slot,
     board_pokemon,
+    deck_ledger,
 )
 from pkm.types.obs import (
     MAX_HAND,
@@ -66,6 +67,8 @@ class EncodedDecision:
     board_cards: np.ndarray  # (N_BOARD_SLOTS,) int64
     hand_cards: np.ndarray  # (MAX_HAND,) int64
     state_feats: np.ndarray  # (STATE_FEATS,) float32
+    deck_card_ids: np.ndarray  # (K,) int64 -- unique still-unseen card ids
+    deck_card_counts: np.ndarray  # (K,) float32 -- their unseen counts
     opt_type: np.ndarray  # (N,) int64
     opt_card: np.ndarray  # (N,) int64
     opt_card2: np.ndarray  # (N,) int64
@@ -88,8 +91,9 @@ def encode_state(
     obs: Observation,
     ctx: GameContext | None = None,
     config: FeatureConfig | None = None,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Encode observation into (board_cards, hand_cards, state_feats)."""
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Encode observation into (board_cards, hand_cards, state_feats,
+    deck_card_ids, deck_card_counts)."""
     state = obs.current
     assert state is not None and obs.select is not None
     me = state.players[state.yourIndex]
@@ -111,7 +115,10 @@ def encode_state(
         ]
     )
     assert feats.shape[0] == STATE_FEATS, feats.shape
-    return board, hand, feats
+
+    deck_card_ids, deck_card_counts = deck_ledger(ctx)
+
+    return board, hand, feats, deck_card_ids, deck_card_counts
 
 
 def _card_id_at(
@@ -247,7 +254,7 @@ def encode_decision(
     config: FeatureConfig | None = None,
 ) -> EncodedDecision:
     """Encode a full decision point (state + options)."""
-    board, hand, feats = encode_state(obs, ctx, config)
+    board, hand, feats, deck_ids, deck_counts = encode_state(obs, ctx, config)
     opts = encode_options(obs, ctx, config)
     sel = obs.select
     assert sel is not None
@@ -255,6 +262,8 @@ def encode_decision(
         board_cards=board,
         hand_cards=hand,
         state_feats=feats,
+        deck_card_ids=deck_ids,
+        deck_card_counts=deck_counts,
         min_count=sel.minCount,
         max_count=sel.maxCount,
         **opts,

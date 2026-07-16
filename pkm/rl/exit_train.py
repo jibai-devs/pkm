@@ -110,7 +110,7 @@ def play_exit_game(
                 weights = [agg[a] for a in actions]
                 picks = list(rng.choices(actions, weights=weights)[0])
 
-            d = encode_decision(Observation.model_validate(obs))
+            d = encode_decision(Observation.model_validate(obs), contexts[p])
             d.picks = list(picks)
             d.stopped = len(picks) < d.max_count
             samples[p].append(ExitSample(d, target))
@@ -133,7 +133,9 @@ def _first_step_logprobs(model: PolicyValueNet, d: EncodedDecision) -> torch.Ten
     board = torch.from_numpy(d.board_cards).unsqueeze(0)
     hand = torch.from_numpy(d.hand_cards).unsqueeze(0)
     feats = torch.from_numpy(d.state_feats).unsqueeze(0)
-    h = model.encode_state(board, hand, feats)
+    deck_ids = torch.from_numpy(d.deck_card_ids).unsqueeze(0)
+    deck_counts = torch.from_numpy(d.deck_card_counts).unsqueeze(0)
+    h = model.encode_state(board, hand, feats, deck_ids, deck_counts)
     opts = model.encode_options(
         torch.from_numpy(d.opt_type).unsqueeze(0),
         torch.from_numpy(d.opt_card).unsqueeze(0),

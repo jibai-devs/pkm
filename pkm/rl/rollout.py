@@ -30,7 +30,9 @@ class TorchPolicy:
         self.greedy = greedy
         self.temperature = temperature
 
-    def act(self, obs: dict, collect: bool) -> tuple[list[int], EncodedDecision | None]:
+    def act(
+        self, obs: dict, collect: bool, ctx: GameContext | None = None
+    ) -> tuple[list[int], EncodedDecision | None]:
         parsed = Observation.model_validate(obs)
         sel = parsed.select
         assert sel is not None
@@ -39,7 +41,7 @@ class TorchPolicy:
         if forced is not None:
             return forced, None
 
-        d = encode_decision(parsed)
+        d = encode_decision(parsed, ctx)
         res = self.model.act(d, greedy=self.greedy, temperature=self.temperature)
         if not collect:
             return res.picks, None
@@ -52,7 +54,9 @@ class TorchPolicy:
 
 
 class RandomPolicy:
-    def act(self, obs: dict, collect: bool) -> tuple[list[int], None]:
+    def act(
+        self, obs: dict, collect: bool, ctx: GameContext | None = None
+    ) -> tuple[list[int], None]:
         sel = obs["select"]
         return random.sample(range(len(sel["option"])), sel["maxCount"]), None
 
@@ -91,7 +95,7 @@ def play_game(
             tracker.observe(obs)
             if tracker.is_search_reveal(obs):
                 tracker.record_search_reveal(obs)
-            picks, record = policies[p].act(obs, collect=collect[p])
+            picks, record = policies[p].act(obs, collect=collect[p], ctx=contexts[p])
             if record is not None:
                 trajectories[p].append(record)
             obs = battle_select(picks)

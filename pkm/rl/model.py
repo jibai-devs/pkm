@@ -31,7 +31,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .encoder import (
-    N_BOARD_SLOTS,
     NUM_ATTACKS,
     NUM_CARDS,
     NUM_OPT_TYPES,
@@ -39,6 +38,7 @@ from .encoder import (
     STATE_FEATS,
     EncodedDecision,
 )
+from pkm.types.obs import N_POKEMON_SLOTS
 
 EMB_CARD = 32
 EMB_ATTACK = 16
@@ -46,7 +46,14 @@ EMB_OPT_TYPE = 8
 OPT_ENC = 64
 HIDDEN = 128
 
-STATE_IN = N_BOARD_SLOTS * EMB_CARD + EMB_CARD + STATE_FEATS
+N_MY_SLOTS = (
+    N_POKEMON_SLOTS // 2
+)  # my active + bench; opponent's side is the other half
+
+# Board split into my/opp pooled vectors + stadium, one EMB_CARD-wide block
+# each, plus the pooled hand and the pooled deck-ledger (Task 7) -- five
+# EMB_CARD-wide blocks total, independent of N_BOARD_SLOTS/bench size.
+STATE_IN = 5 * EMB_CARD + STATE_FEATS
 OPT_IN = 2 * EMB_CARD + EMB_ATTACK + EMB_OPT_TYPE + OPT_FEATS
 SCORE_IN = HIDDEN + 2 * OPT_ENC
 
@@ -84,18 +91,43 @@ class PolicyValueNet(nn.Module):
 
     # --- building blocks ---
 
+    def _pool_cards(self, ids: torch.Tensor) -> torch.Tensor:
+        """Mean-pool a (B, K) card-id array over its non-empty (id > 0)
+        entries -> (B, EMB_CARD). Used for hand and, since Task 7, each
+        side of the board separately (my slots / opponent's slots)."""
+        e = self.card_emb(ids)
+        mask = (ids > 0).float().unsqueeze(-1)
+        return (e * mask).sum(1) / mask.sum(1).clamp(min=1.0)
+
+    def _pool_deck(self, ids: torch.Tensor, counts: torch.Tensor) -> torch.Tensor:
+        """Task 7 deck ledger: h_memory = sum_c unseen_count[c] * card_emb[c].
+        (B, K) ids + (B, K) counts -> (B, EMB_CARD). Unlike _pool_cards this
+        is a weighted sum, not a mean -- total magnitude legitimately grows
+        with how much of the deck is still unseen."""
+        e = self.card_emb(ids)
+        return (e * counts.unsqueeze(-1)).sum(1)
+
     def encode_state(
         self,
         board_cards: torch.Tensor,
         hand_cards: torch.Tensor,
         state_feats: torch.Tensor,
+        deck_card_ids: torch.Tensor,
+        deck_card_counts: torch.Tensor,
     ) -> torch.Tensor:
-        """(B, N_BOARD_SLOTS), (B, MAX_HAND), (B, STATE_FEATS) -> (B, HIDDEN)."""
-        board = self.card_emb(board_cards).flatten(1)
-        hand_e = self.card_emb(hand_cards)  # (B, MAX_HAND, E)
-        hand_mask = (hand_cards > 0).float().unsqueeze(-1)
-        hand = (hand_e * hand_mask).sum(1) / hand_mask.sum(1).clamp(min=1.0)
-        x = torch.cat([board, hand, state_feats], dim=1)
+        """(B, N_BOARD_SLOTS) board, (B, MAX_HAND) hand, (B, STATE_FEATS)
+        feats, (B, K) deck ledger ids + counts -> (B, HIDDEN).
+
+        Board is split into my slots / opponent's slots / stadium and each
+        pooled separately (Task 7), instead of one flat positional
+        concatenation across all N_BOARD_SLOTS.
+        """
+        my_board = self._pool_cards(board_cards[:, :N_MY_SLOTS])
+        opp_board = self._pool_cards(board_cards[:, N_MY_SLOTS : 2 * N_MY_SLOTS])
+        stadium = self.card_emb(board_cards[:, -1])
+        hand = self._pool_cards(hand_cards)
+        deck = self._pool_deck(deck_card_ids, deck_card_counts)
+        x = torch.cat([my_board, opp_board, stadium, hand, deck, state_feats], dim=1)
         return F.relu(self.state_fc2(F.relu(self.state_fc1(x))))
 
     def encode_options(
@@ -158,7 +190,9 @@ class PolicyValueNet(nn.Module):
         board = torch.from_numpy(d.board_cards).unsqueeze(0)
         hand = torch.from_numpy(d.hand_cards).unsqueeze(0)
         feats = torch.from_numpy(d.state_feats).unsqueeze(0)
-        h = self.encode_state(board, hand, feats)
+        deck_ids = torch.from_numpy(d.deck_card_ids).unsqueeze(0)
+        deck_counts = torch.from_numpy(d.deck_card_counts).unsqueeze(0)
+        h = self.encode_state(board, hand, feats, deck_ids, deck_counts)
         v = float(self.value(h)[0])
 
         n = len(d.opt_type)
@@ -230,7 +264,21 @@ class PolicyValueNet(nn.Module):
             opt_feats[i, :n] = d.opt_feats
             valid[i, :n] = True
 
-        h = self.encode_state(board, hand, feats)
+        k_deck_max = max((len(d.deck_card_ids) for d in decisions), default=0)
+        deck_ids = np.zeros((b, k_deck_max), dtype=np.int64)
+        deck_counts = np.zeros((b, k_deck_max), dtype=np.float32)
+        for i, d in enumerate(decisions):
+            k = len(d.deck_card_ids)
+            deck_ids[i, :k] = d.deck_card_ids
+            deck_counts[i, :k] = d.deck_card_counts
+
+        h = self.encode_state(
+            board,
+            hand,
+            feats,
+            torch.from_numpy(deck_ids),
+            torch.from_numpy(deck_counts),
+        )
         values = self.value(h)
         opts = self.encode_options(
             pad_ids("opt_type"),

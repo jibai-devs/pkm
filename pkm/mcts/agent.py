@@ -52,6 +52,6 @@ def make_mcts_agent(
             return picks
         except Exception:
             # search must never crash the match; fall back to the raw policy
-            return policy.select(obs)
+            return policy.select(obs, ctx)
 
     return agent

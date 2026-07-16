@@ -139,10 +139,13 @@ def _random_decision(rng: np.random.Generator, n_options: int) -> EncodedDecisio
     opt_feats = rng.standard_normal((n_options, OPT_FEATS)).astype(np.float32)
     max_count = int(rng.integers(1, n_options + 1))
     min_count = int(rng.integers(0, max_count + 1))
+    k_deck = int(rng.integers(0, 10))
     return EncodedDecision(
         board_cards=rng.integers(0, NUM_CARDS, size=N_BOARD_SLOTS).astype(np.int64),
         hand_cards=rng.integers(0, NUM_CARDS, size=MAX_HAND).astype(np.int64),
         state_feats=rng.standard_normal(STATE_FEATS).astype(np.float32),
+        deck_card_ids=rng.integers(1, NUM_CARDS, size=k_deck).astype(np.int64),
+        deck_card_counts=rng.integers(1, 5, size=k_deck).astype(np.float32),
         opt_type=opt_type.astype(np.int64),
         opt_card=opt_card.astype(np.int64),
         opt_card2=opt_card2.astype(np.int64),
@@ -159,7 +162,9 @@ def _torch_priors(model: PolicyValueNet, d: EncodedDecision) -> np.ndarray:
         board = torch.from_numpy(d.board_cards).unsqueeze(0)
         hand = torch.from_numpy(d.hand_cards).unsqueeze(0)
         feats = torch.from_numpy(d.state_feats).unsqueeze(0)
-        h = model.encode_state(board, hand, feats)
+        deck_ids = torch.from_numpy(d.deck_card_ids).unsqueeze(0)
+        deck_counts = torch.from_numpy(d.deck_card_counts).unsqueeze(0)
+        h = model.encode_state(board, hand, feats, deck_ids, deck_counts)
         opts = model.encode_options(
             torch.from_numpy(d.opt_type).unsqueeze(0),
             torch.from_numpy(d.opt_card).unsqueeze(0),

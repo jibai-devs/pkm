@@ -51,6 +51,6 @@ def make_neural_agent(
         if policy is None:
             sel = obs["select"]
             return random.sample(range(len(sel["option"])), sel["maxCount"])
-        return policy.select(obs)
+        return policy.select(obs, ctx)
 
     return agent

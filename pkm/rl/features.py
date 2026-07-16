@@ -14,6 +14,7 @@ are `deterministic=False`.
 """
 
 import json
+from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -23,6 +24,7 @@ import numpy as np
 
 from pkm.data import get_attack_data
 from pkm.heuristics.context import GameContext
+from pkm.heuristics.deck_tracker import CardLocation
 from pkm.rl.deterministic_features import (
     lethal_this_turn,
     retreat_viable,
@@ -362,6 +364,30 @@ STATE_FEATS = N_POKEMON_SLOTS * sum(s.width for s in PER_SLOT_FEATURES) + sum(
     s.width for s in GLOBAL_FEATURES
 )
 OPT_FEATS = sum(s.width for s in PER_OPTION_FEATURES)
+
+
+# --- deck ledger (Task 7) ----------------------------------------------------
+#
+# Not a FeatureSpec: this isn't a float feature slice, it's a raw
+# (card_id, count) list the model pools through its own card_emb table
+# (h_memory = sum_c unseen_count[c] * card_emb[c]), the same pattern as
+# board_cards/hand_cards. Deliberately supersedes plan.md §5's flat 60-wide
+# slot-indexed vector -- see pkm/rl/model.py for the pooling.
+
+
+def deck_ledger(ctx: GameContext | None) -> tuple[np.ndarray, np.ndarray]:
+    """Unique still-unseen card ids in my own deck and their counts, from
+    ctx.tracker.by_location(CardLocation.DECK). Pure function of ctx alone
+    (no obs dependency) -- empty arrays if ctx is None (e.g. MCTS's
+    simulated tree, which must never touch a real per-game tracker)."""
+    if ctx is None:
+        return np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float32)
+    tally = Counter(c.card_id for c in ctx.tracker.by_location(CardLocation.DECK))
+    if not tally:
+        return np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float32)
+    ids = np.array(list(tally.keys()), dtype=np.int64)
+    counts = np.array(list(tally.values()), dtype=np.float32)
+    return ids, counts
 
 
 # --- assembly ----------------------------------------------------------------
