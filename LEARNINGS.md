@@ -30,3 +30,49 @@
 - Checkpoints are `torch.save(model.state_dict(), path)` — state dicts only
 - Metrics use `csv.DictWriter` with `writeheader()` + per-row `writerow()` + `flush()`
 - Justfile is the primary task runner
+
+## RL Training Insights (2026-07-16)
+
+### Reward signal
+- Reward is sparse binary: +1 (win), -1 (loss), 0 (draw). No intermediate rewards.
+- Credit assignment via GAE + potential-based shaping on prize differential (`shaping_coef=0.2`).
+- Early game moves get weak signal (value head prediction only); late game moves get strong signal.
+- Shaping is mathematically optimal-policy-preserving (potential-based theorem).
+
+### PPO vs Expert Iteration
+- PPO (Phase 1): network picks moves directly, 3 epochs of mini-batch SGD (256) per rollout, data discarded after. Opponent pool (size 8) prevents cycling.
+- Expert Iteration (Phase 2, `exit_train.py`): MCTS picks moves (32 sims, 2 determinizations), network trained toward MCTS visit distributions + game outcomes.
+- PPO's mini-batch loop IS a form of replay (reuse rollout for K epochs), but buffer is tiny and short-lived.
+
+### MCTS (search.py)
+- Does NOT try every action. Fixed budget of simulations guided by network priors.
+- PUCT selection balances exploitation (q) and exploration (prior-based bonus).
+- Handles imperfect information via determinization: sample hidden info, search in each sample, aggregate visit counts.
+- `sample_determinization` in `determinize.py` creates plausible world states from deck knowledge.
+
+### Experience replay
+- Full replay buffer is hard to add to PPO (stale logprobs break importance ratio).
+- Works well with expert iteration (MCTS targets are supervision, no importance ratio needed).
+- Prioritized Experience Replay (PER) weights by TD-error for better sample efficiency.
+
+### Offline RL from replay logs
+- Replay logs have full obs + legal options + game history, but NOT old logprobs.
+- Can reconstruct actions from `logs` array in the observation.
+- Behavior cloning (supervised `(obs, action)` pairs) is simplest warm-start.
+- CQL/IQL handle mixed-quality data from multiple agents without needing logprobs.
+- Best approach: parse replays -> supervised pretrain -> fine-tune with self-play.
+
+### Interactive (human-in-the-loop) training
+- Conceptually sound but impractical: slow data rate, skill ceiling, inconsistency.
+- Better to parse existing replay logs than train live.
+- Useful for: reward shaping hints, curriculum design, debugging.
+
+### Key improvements to try (priority order)
+1. Parse replays -> supervised pretrain (warm start)
+2. More games per iteration (8 -> 32)
+3. Exit_train on replay data (MCTS re-evaluates, targets stay fresh)
+4. Bigger network + attention over board
+5. Experience replay buffer for exit_train
+6. Offline RL (CQL/IQL) pretrain
+7. MCTS at inference time
+8. Distributed self-play
