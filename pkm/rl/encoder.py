@@ -10,12 +10,18 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from pkm.data import get_attack_data
-from pkm.data.card_data import get_card_by_id
-from pkm.types.obs import GameState, Observation, PokemonRef, Select
+from pkm.data.card_data import CardData, get_card_by_id
+from pkm.types.obs import GameState, Observation, Option, PokemonRef, Select
 
 # CardType values (see obs_data_structure/OBSERVATION_SCHEMA.md)
 CARD_TYPE_BASIC_ENERGY = 5
 CARD_TYPE_SPECIAL_ENERGY = 6
+
+BUDEW_CARD_ID = 235
+DREEPY_CARD_ID = 119
+DRAKLOAK_CARD_ID = 120
+DRAGAPULT_EX_CARD_ID = 121
+DREEPY_LINE_CARD_IDS = {DREEPY_CARD_ID, DRAKLOAK_CARD_ID, DRAGAPULT_EX_CARD_ID}
 
 # Vocabulary sizes (id 0 = pad/unknown; real ids start at 1)
 NUM_CARDS = 1268
@@ -85,6 +91,10 @@ class EncodedDecision:
     # filled by return computation
     potential: float = 0.0
     energy_penalty: float = 0.0
+    budew_bonus: float = 0.0
+    wrong_type_energy_penalty: float = 0.0
+    dragapult_attack_bonus: float = 0.0
+    dreepy_spread_penalty: float = 0.0
     advantage: float = 0.0
     ret: float = 0.0
 
@@ -412,5 +422,131 @@ def energy_overattach_penalty(obs: Observation, picks: list[int]) -> float:
             CARD_TYPE_BASIC_ENERGY,
             CARD_TYPE_SPECIAL_ENERGY,
         ):
+            return -1.0
+    return 0.0
+
+
+def budew_first_turn_attack_bonus(obs: Observation, picks: list[int]) -> float:
+    """+1.0 if, going second, on your own first turn (the engine's turn
+    counter is shared across both players, so that's turn 2, not turn 1),
+    you attack with Budew as your active Pokemon. Budew's attack costs no
+    energy, so this is purely a "did you take the free early disruption"
+    check — no energy-sufficiency gating needed, unlike the penalty above.
+    0.0 otherwise.
+    """
+    state = obs.current
+    sel = obs.select
+    if state is None or sel is None:
+        return 0.0
+    went_second = state.firstPlayer >= 0 and state.firstPlayer != state.yourIndex
+    if not went_second or state.turn != 2:
+        return 0.0
+    active = state.players[state.yourIndex].active_pokemon
+    if active is None or active.id != BUDEW_CARD_ID:
+        return 0.0
+    attacked = any(
+        sel.option[i].type == OPT_ATTACK for i in picks if 0 <= i < len(sel.option)
+    )
+    return 1.0 if attacked else 0.0
+
+
+def _resolve_energy_attach(
+    obs: Observation, opt: Option
+) -> tuple[PokemonRef, CardData] | None:
+    """If `opt` attaches an energy card to an in-play Pokemon, returns
+    (target, card); otherwise None. Shared by the two checks below that both
+    need to know "which Pokemon is this energy landing on, and which card."
+    """
+    if opt.type != OPT_ATTACH:
+        return None
+    state = obs.current
+    sel = obs.select
+    if state is None or sel is None:
+        return None
+    you = state.yourIndex
+    target = _pokemon_at(state, you, opt.inPlayArea, opt.inPlayIndex)
+    if target is None:
+        return None
+    card_id = _card_id_at(state, sel, you, opt.area, opt.index)
+    card = get_card_by_id(card_id) if card_id else None
+    if card is None or card.card_type not in (
+        CARD_TYPE_BASIC_ENERGY,
+        CARD_TYPE_SPECIAL_ENERGY,
+    ):
+        return None
+    return target, card
+
+
+def wrong_type_energy_penalty(obs: Observation, picks: list[int]) -> float:
+    """-1.0 if `picks` attach energy to a Dreepy/Drakloak/Dragapult ex that
+    will end up with exactly 2 energy after this attach, both the same
+    type. Phantom Dive costs one Fire + one Psychic — a same-type pair at
+    2 energy can never pay for it, so it's the wrong energy to attach here.
+    """
+    sel = obs.select
+    if sel is None:
+        return 0.0
+    for i in picks:
+        if i < 0 or i >= len(sel.option):
+            continue
+        resolved = _resolve_energy_attach(obs, sel.option[i])
+        if resolved is None:
+            continue
+        target, card = resolved
+        if target.id not in DREEPY_LINE_CARD_IDS or len(target.energies) != 1:
+            continue  # only the 1 -> 2 transition matters
+        if card.energy_type == target.energies[0]:
+            return -1.0
+    return 0.0
+
+
+def dragapult_ex_attack_bonus(obs: Observation, picks: list[int]) -> float:
+    """+1.0 if `picks` attack while Dragapult ex is the active Pokemon —
+    encourages actually pulling the trigger once it's set up, rather than
+    passively holding back."""
+    sel = obs.select
+    state = obs.current
+    if sel is None or state is None:
+        return 0.0
+    active = state.players[state.yourIndex].active_pokemon
+    if active is None or active.id != DRAGAPULT_EX_CARD_ID:
+        return 0.0
+    attacked = any(
+        sel.option[i].type == OPT_ATTACK for i in picks if 0 <= i < len(sel.option)
+    )
+    return 1.0 if attacked else 0.0
+
+
+def dreepy_energy_spread_penalty(obs: Observation, picks: list[int]) -> float:
+    """-1.0 if `picks` attach energy to a Dreepy that already has some,
+    while another Dreepy on the board has none — spreading the one
+    attachment-per-turn across more Dreepy lines beats stacking one, since
+    it's better to end up with two 1-energy Dreepy than one with 2 energy
+    and another sitting empty.
+    """
+    sel = obs.select
+    state = obs.current
+    if sel is None or state is None:
+        return 0.0
+    you = state.yourIndex
+    me = state.players[you]
+    for i in picks:
+        if i < 0 or i >= len(sel.option):
+            continue
+        resolved = _resolve_energy_attach(obs, sel.option[i])
+        if resolved is None:
+            continue
+        target, _card = resolved
+        if target.id != DREEPY_CARD_ID or not target.energies:
+            continue
+        board = [me.active_pokemon, *me.bench]
+        has_empty_sibling = any(
+            p is not None
+            and p.id == DREEPY_CARD_ID
+            and p.serial != target.serial
+            and not p.energies
+            for p in board
+        )
+        if has_empty_sibling:
             return -1.0
     return 0.0

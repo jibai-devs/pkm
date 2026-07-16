@@ -41,6 +41,25 @@ def train(
         help="penalty for attaching energy to the active Pokemon when it "
         "can already use every attack and retreat (0 = off)",
     ),
+    budew_bonus: float = typer.Option(
+        0.0,
+        help="bonus for attacking with Budew on your own first turn when "
+        "going second (0 = off)",
+    ),
+    wrong_type_penalty: float = typer.Option(
+        0.0,
+        help="penalty for attaching energy to a Dreepy/Drakloak/Dragapult ex "
+        "that leaves it with 2 same-type energy (Phantom Dive needs Fire+"
+        "Psychic) (0 = off)",
+    ),
+    dragapult_bonus: float = typer.Option(
+        0.0, help="bonus for attacking with Dragapult ex as active (0 = off)"
+    ),
+    dreepy_spread: float = typer.Option(
+        0.0,
+        help="penalty for stacking energy on a Dreepy that already has some "
+        "while another Dreepy on board has none (0 = off)",
+    ),
     pool_size: int = typer.Option(8, help="opponent checkpoint pool size"),
     eval_every: int = typer.Option(5, help="evaluate every N iterations"),
     eval_games: int = typer.Option(20, help="games for evaluation"),
@@ -65,6 +84,10 @@ def train(
         gamma=gamma,
         shaping=shaping,
         energy_penalty=energy_penalty,
+        budew_bonus=budew_bonus,
+        wrong_type_penalty=wrong_type_penalty,
+        dragapult_bonus=dragapult_bonus,
+        dreepy_spread=dreepy_spread,
         pool_size=pool_size,
         eval_every=eval_every,
         eval_games=eval_games,

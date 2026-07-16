@@ -31,12 +31,7 @@ def _card_name(card_id: int) -> str:
     return card.name if card else f"Card#{card_id}"
 
 
-def _log_prizes(tracker: DeckTracker, log_sink: Callable[[str], None] | None) -> None:
-    if tracker.prizes_known:
-        names = sorted(_card_name(cid) for cid in tracker.known_prizes())
-        msg = f"prizes: {names}"
-    else:
-        msg = "prizes unknown"
+def _log(msg: str, log_sink: Callable[[str], None] | None) -> None:
     if log_sink is not None:
         # Caller (e.g. the TUI session) owns display; hand it the message
         # instead of guessing where console output would actually be seen.
@@ -61,6 +56,26 @@ def _log_prizes(tracker: DeckTracker, log_sink: Callable[[str], None] | None) ->
     # traceback there). Emit both.
     print(msg, file=sys.__stdout__, flush=True)
     print(msg, flush=True)
+
+
+def _log_prizes(tracker: DeckTracker, log_sink: Callable[[str], None] | None) -> None:
+    if tracker.prizes_known:
+        names = sorted(_card_name(cid) for cid in tracker.known_prizes())
+        msg = f"prizes: {names}"
+    else:
+        msg = "prizes unknown"
+    _log(msg, log_sink)
+
+
+def _went_first_or_second(obs: dict) -> str:
+    state = obs["current"]
+    you = state["yourIndex"]
+    first_player = state.get("firstPlayer", -1)
+    if first_player == you:
+        return "first"
+    if first_player == 1 - you:
+        return "second"
+    return "unknown"  # not yet resolved (shouldn't happen once a real decision exists)
 
 
 def _select_agent(obs: dict, agents: dict[str, AgentFn], state: dict) -> str:
@@ -93,6 +108,7 @@ def make_singaporean_middleman(
         "turn": None,
         "active": next(iter(registry)),
         "tracker": DeckTracker(deck),
+        "announced_side": False,
     }
 
     def agent(obs: dict) -> list[int]:
@@ -106,7 +122,18 @@ def make_singaporean_middleman(
             tracker.record_search_reveal(obs)
 
         if obs["select"] is None:
+            state["announced_side"] = False  # new game starting
             return deck
+
+        if not state["announced_side"]:
+            # firstPlayer reads -1 ("unresolved") on the very first decision
+            # of the game — that decision (SelectContext.IS_FIRST) is what
+            # *determines* it, so it can't be reported yet. Keep checking
+            # each subsequent decision until it's actually resolved.
+            side = _went_first_or_second(obs)
+            if side != "unknown":
+                state["announced_side"] = True
+                _log(f"went {side}", log_sink)
 
         _log_prizes(tracker, log_sink)
 

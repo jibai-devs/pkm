@@ -14,9 +14,13 @@ from pkm.types.obs import Observation
 
 from .encoder import (
     EncodedDecision,
+    budew_first_turn_attack_bonus,
+    dragapult_ex_attack_bonus,
+    dreepy_energy_spread_penalty,
     encode_decision,
     energy_overattach_penalty,
     prize_potential,
+    wrong_type_energy_penalty,
 )
 from .model import PolicyValueNet
 from .ppo import compute_returns
@@ -55,6 +59,10 @@ class TorchPolicy:
         d.value = res.value
         d.potential = prize_potential(parsed)
         d.energy_penalty = energy_overattach_penalty(parsed, res.picks)
+        d.budew_bonus = budew_first_turn_attack_bonus(parsed, res.picks)
+        d.wrong_type_energy_penalty = wrong_type_energy_penalty(parsed, res.picks)
+        d.dragapult_attack_bonus = dragapult_ex_attack_bonus(parsed, res.picks)
+        d.dreepy_spread_penalty = dreepy_energy_spread_penalty(parsed, res.picks)
         return res.picks, d
 
 
@@ -165,6 +173,10 @@ def aggregate_result(
     lam: float,
     shaping_coef: float,
     energy_penalty_coef: float = 0.0,
+    budew_bonus_coef: float = 0.0,
+    wrong_type_penalty_coef: float = 0.0,
+    dragapult_bonus_coef: float = 0.0,
+    dreepy_spread_coef: float = 0.0,
 ) -> tuple[int, int, int]:
     """Extend `data` with this game's collected trajectories and return the
     (win, loss, draw) increment for `current` — same counting rule the
@@ -180,6 +192,10 @@ def aggregate_result(
             lam=lam,
             shaping_coef=shaping_coef,
             energy_penalty_coef=energy_penalty_coef,
+            budew_bonus_coef=budew_bonus_coef,
+            wrong_type_penalty_coef=wrong_type_penalty_coef,
+            dragapult_bonus_coef=dragapult_bonus_coef,
+            dreepy_spread_coef=dreepy_spread_coef,
         )
         data.extend(result.trajectories[p])
         if spec.side == -1 and p == 1:
