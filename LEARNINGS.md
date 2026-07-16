@@ -50,6 +50,13 @@
 - Handles imperfect information via determinization: sample hidden info, search in each sample, aggregate visit counts.
 - `sample_determinization` in `determinize.py` creates plausible world states from deck knowledge.
 
+### Network architecture (model.py)
+- Uses V(s) (state value), NOT Q(s,a) (action-value). One scalar output per state.
+- Policy head: scores each option against state embedding h via 2-layer MLP, softmax over (options + STOP).
+- Value head: V(s) = tanh(MLP(h)), predicts expected final outcome from state alone, not conditioned on action.
+- V(s) used as baseline in PPO (advantage = actual - predicted) and leaf eval in MCTS.
+- Why not Q(s,a): variable-length action spaces make Q expensive; V + policy scoring is the AlphaZero approach.
+
 ### Experience replay
 - Full replay buffer is hard to add to PPO (stale logprobs break importance ratio).
 - Works well with expert iteration (MCTS targets are supervision, no importance ratio needed).

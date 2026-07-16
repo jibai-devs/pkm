@@ -48,6 +48,57 @@ guided by the network:
 4. **Backup** — propagate the value back up the path.
 5. **Aggregate** — sum visit counts across determinizations, pick most-visited.
 
+### Network architecture: V(s) not Q(s, a)
+
+The network (`pkm/rl/model.py`) has two heads:
+
+- **Policy head** (lines 116-135): scores each legal option against the state
+  embedding `h` via a 2-layer MLP, producing logits over (options + STOP).
+  The agent samples or argmaxes from the softmax. Multi-pick decisions are
+  sequential: pick one, mask it, re-score, repeat.
+
+- **Value head** (lines 137-146): V(s) predictor. Two linear layers on `h`,
+  tanh squashed to [-1, +1]. Predicts the expected final outcome (win=+1,
+  loss=-1) from the current state, **regardless of action taken**.
+
+This is a **state value function V(s)**, not an action-value function Q(s, a).
+
+| | V(s) — what we have | Q(s, a) — alternative |
+|---|---|---|
+| Predicts | Value of the state | Value of taking action a in state s |
+| Output | One number per state | One number per (state, action) pair |
+| Used for | Leaf evaluation in MCTS, advantage baseline in PPO | Could replace PUCT scoring, enable offline RL |
+| Cost | One forward pass per state | One per (state, action) pair — much more expensive |
+
+**Why V(s) and not Q(s, a)?** With variable-length action spaces, Q would
+require scoring every option per state anyway — essentially duplicating the
+policy head's work. V + separate policy scoring is the AlphaZero approach: the
+policy head says "which action," the value head says "how good is this state."
+They share the state encoder (`h`) so computation is reused.
+
+**How V(s) is used in PPO** (`pkm/rl/ppo.py:47-51`):
+
+```python
+delta = rewards[t] + gamma * next_value - trajectory[t].value
+gae = delta + gamma * lam * gae
+trajectory[t].advantage = gae
+```
+
+The value prediction is subtracted as a baseline: "how much better was the
+actual outcome than I expected?" This reduces variance in the policy gradient
+without changing its expected direction.
+
+**How V(s) is used in MCTS** (`pkm/mcts/search.py:162-163`):
+
+```python
+v = self.policy.value(d)        # leaf evaluation
+v0 = v if node.player == 0 else -v  # flip for opponent perspective
+```
+
+The value head evaluates leaf nodes when simulation reaches an unexpanded node:
+"if we stop searching here, how good is this position?" This replaces the
+random rollouts used in classic MCTS.
+
 ---
 
 ## Experience Replay

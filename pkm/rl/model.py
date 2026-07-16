@@ -1,5 +1,18 @@
 """Pointer-style policy/value network.
 
+Architecture overview:
+    - **State encoder**: board card embeddings + hand bag-of-embeddings +
+      scalar features -> 128-dim hidden vector `h`.
+    - **Policy head** (lines 104-123): scores each legal option against `h`
+      via a 2-layer MLP, producing logits over (options + STOP). The agent
+      samples (or argmaxes) from the softmax of these logits. Multi-pick
+      decisions are sequential: pick one, mask it, re-score, repeat.
+    - **Value head** (lines 125-126): V(s) predictor. Two linear layers on
+      `h`, tanh squashed to [-1, +1]. Predicts the expected final outcome
+      (win=+1, loss=-1) from the current state, regardless of action taken.
+      Used as a baseline in PPO (advantage = actual - predicted) and as
+      leaf evaluation in MCTS.
+
 The state is embedded into a vector ``h``; each option is embedded into a
 vector ``o_i`` and scored against ``h`` (plus a summary of already-picked
 options), giving a softmax over the variable-length legal option list.
@@ -56,11 +69,16 @@ class PolicyValueNet(nn.Module):
         self.opt_type_emb = nn.Embedding(NUM_OPT_TYPES, EMB_OPT_TYPE)
         self.stop_vec = nn.Parameter(torch.zeros(OPT_ENC))
 
+        # --- state encoder: board + hand + features -> 128-dim h ---
         self.state_fc1 = nn.Linear(STATE_IN, 512)
         self.state_fc2 = nn.Linear(512, HIDDEN)
+
+        # --- policy head: scores each option against h ---
         self.opt_fc = nn.Linear(OPT_IN, OPT_ENC)
         self.score_fc1 = nn.Linear(SCORE_IN, 64)
         self.score_fc2 = nn.Linear(64, 1)
+
+        # --- value head: V(s) predictor from h -> scalar in [-1, +1] ---
         self.value_fc1 = nn.Linear(HIDDEN, 64)
         self.value_fc2 = nn.Linear(64, 1)
 
@@ -108,7 +126,7 @@ class PolicyValueNet(nn.Module):
         picked_sum: torch.Tensor,
         mask: torch.Tensor,
     ) -> torch.Tensor:
-        """Score options (+ STOP as the last column).
+        """Policy head: score options (+ STOP as the last column).
 
         h: (B, HIDDEN); opts: (B, N, OPT_ENC); picked_sum: (B, OPT_ENC);
         mask: (B, N+1) bool, True = selectable. Returns (B, N+1) logits.
@@ -123,6 +141,12 @@ class PolicyValueNet(nn.Module):
         return logits.masked_fill(~mask, NEG_INF)
 
     def value(self, h: torch.Tensor) -> torch.Tensor:
+        """Value head: V(s) — expected final outcome from this state.
+
+        Returns tanh-squashed scalar in [-1, +1]. Used as baseline in PPO
+        (advantage = actual_return - V(s)) and as leaf eval in MCTS.
+        Predicts from the state alone, not conditioned on any action.
+        """
         return torch.tanh(self.value_fc2(F.relu(self.value_fc1(h)))).squeeze(-1)
 
     # --- acting (single decision, no grad) ---
