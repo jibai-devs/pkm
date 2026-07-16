@@ -249,6 +249,8 @@ enum class LogType : unsigned char {
 };
 ```
 
+> Values are implicit (auto-incremented from 0).
+
 | Value | Name              | Fields                                                                                          | Description                                                                                                                    |
 |-------|-------------------|-------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
 | 0     | `Shuffle`         | `playerIndex`                                                                                   | Deck was shuffled.                                                                                                             |
@@ -288,6 +290,8 @@ enum class AreaType : unsigned char {
   TriggerObject, Attach, TurnPlay, AttackPreMyTurn, Temporary,
 };
 ```
+
+> Values are implicit (auto-incremented from 0).
 
 | Value | Name         | Description                       |
 |-------|--------------|-----------------------------------|
@@ -330,6 +334,8 @@ enum class SelectType : unsigned char {
 };
 ```
 
+> Values are implicit (auto-incremented from 0). C++ enum members without explicit assignments get sequential integers starting at 0.
+
 | Value | Name               | Description                                                         |
 |-------|--------------------|---------------------------------------------------------------------|
 | 0     | None               | (subtracted — never appears in API JSON)                            |
@@ -365,6 +371,8 @@ enum class SelectContext : unsigned char {
   RecoverSpecialCondition,
 };
 ```
+
+> Values are implicit (auto-incremented from 0).
 
 | Value | Name                      | Description                           |
 |-------|---------------------------|---------------------------------------|
@@ -458,6 +466,8 @@ enum class CardType : unsigned char {
 };
 ```
 
+> Values are implicit (auto-incremented from 0).
+
 | Value | Name                |
 |-------|---------------------|
 | 0     | Pokemon             |
@@ -478,6 +488,8 @@ enum class PokemonType : unsigned char {
 };
 ```
 
+> Values are implicit (auto-incremented from 0).
+
 | Value | Name                       |
 |-------|----------------------------|
 | 0     | NotPokemon                 |
@@ -495,6 +507,8 @@ enum class EvolutionType : unsigned char {
   NoEvolutionType, Basic, Stage1, Stage2,
 };
 ```
+
+> Values are implicit (auto-incremented from 0).
 
 | Value | Name                            |
 |-------|---------------------------------|
@@ -601,6 +615,8 @@ enum class SelectOptionType : unsigned char {
 };
 ```
 
+> Values are implicit (auto-incremented from 0).
+
 | Value | Name             |
 |-------|------------------|
 | 0     | Number           |
@@ -633,6 +649,8 @@ enum class SelectSpecialConditionType : unsigned char {
 };
 ```
 
+> Values are implicit (auto-incremented from 0).
+
 | Value | Name     |
 |-------|----------|
 | 0     | Poison   |
@@ -652,6 +670,8 @@ enum class BadStatusType : unsigned char {
   None, Asleep, Paralyzed, Confused,
 };
 ```
+
+> Values are implicit (auto-incremented from 0).
 
 | Value | Name      | Description         |
 |-------|-----------|---------------------|
