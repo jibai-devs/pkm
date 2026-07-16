@@ -61,7 +61,15 @@ class Failed:
     error: BaseException
 
 
-Event = Prompt | Finished | Failed
+@dataclass(frozen=True)
+class AgentNote:
+    """A note from the opponent agent (e.g. singaporean_middleman's deduced
+    prize list) meant for the human's on-screen log, not the terminal."""
+
+    message: str
+
+
+Event = Prompt | Finished | Failed | AgentNote
 
 
 class _Quit:
@@ -126,6 +134,11 @@ class ThreadedEnvSession:
             raise _Abort
         return picks
 
+    def _note(self, message: str) -> None:
+        """Called by the opponent agent (worker thread); queue.Queue is
+        thread-safe, so this is safe to call from there directly."""
+        self._events.put(AgentNote(message))
+
     # -- GameSession -------------------------------------------------------
 
     def start(self) -> None:
@@ -156,7 +169,16 @@ class ThreadedEnvSession:
 
         from pkm.rl.play import make_agent_by_name
 
-        opponent_agent = make_agent_by_name(self.opponent, self.deck, self.weights)
+        if self.opponent == "singaporean_middleman":
+            # Give it a sink so its prize log lands in our own EventLog
+            # instead of the terminal (which Textual owns during play).
+            from pkm.agents import make_singaporean_middleman
+
+            opponent_agent = make_singaporean_middleman(
+                self.deck, self.weights, log_sink=self._note
+            )
+        else:
+            opponent_agent = make_agent_by_name(self.opponent, self.deck, self.weights)
         agents: list[Callable[[dict], list[int]]] = [None, None]  # type: ignore[list-item]
         # kaggle's Agent.act() inspects agent.__code__.co_argcount to decide how
         # many positional args to pass. A bound method's co_argcount includes the

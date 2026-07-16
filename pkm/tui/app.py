@@ -15,7 +15,7 @@ from textual.worker import get_current_worker
 
 from pkm.types.obs import Observation, OptionType
 from pkm.tui.labels import log_label
-from pkm.tui.session import Event, Failed, Finished, GameSession, Prompt
+from pkm.tui.session import AgentNote, Event, Failed, Finished, GameSession, Prompt
 from pkm.tui.widgets import BoardPanel, ConfirmScreen, EventLog, HandBar, PromptPane
 
 # How often the pump wakes up to check whether the app is shutting down.
@@ -98,6 +98,8 @@ class BattleApp(App[None]):
             log.error(f"session failed: {event.error}")
             self.result_text = f"Error: {event.error}"
             self.query_one("#prompt", PromptPane).update(self.result_text)
+        elif isinstance(event, AgentNote):
+            self.query_one("#events", EventLog).add(f"[opponent] {event.message}")
 
     def _show(self, obs: Observation) -> None:
         self.waiting = False
