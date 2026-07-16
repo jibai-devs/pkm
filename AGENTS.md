@@ -55,6 +55,7 @@ pytest tests/              # run tests
 - `pkm/rl/` — encoders, pointer-style policy/value net, PPO self-play, expert iteration
 - `pkm/cli_deck.py` — deck management CLI (list, show, convert)
 - `docs/ideas/` — architecture ideas and future design notes
+  - `docs/ideas/agent-composition-and-refactor.md` — code map (net/policy/value/MCTS/training), composition modes (pipeline vs injection vs delegation), and the ranked refactor plan
 - `pkm/mcts/` — determinization + IS-MCTS over the search API
 - `pkm/strategies/` — future strategy implementations
 - `pkm/types/obs.py` — pydantic models for the observation (typed contract for the TUI + RL encoder)
