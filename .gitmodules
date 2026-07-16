@@ -1,0 +1,3 @@
+[submodule "pkm_data"]
+	path = pkm_data
+	url = git@hf.co:datasets/jibai-devs/pkm_data
