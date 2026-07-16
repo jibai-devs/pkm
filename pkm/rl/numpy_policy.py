@@ -9,8 +9,10 @@ import numpy as np
 from pkm.types.obs import Observation
 
 from .encoder import EncodedDecision, encode_decision
+from .features import check_stamp_json
 
 NEG_INF = -1e9
+_STAMP_KEY = "__feature_stamp__"
 
 
 def _relu(x: np.ndarray) -> np.ndarray:
@@ -28,7 +30,9 @@ class NumpyPolicy:
     @classmethod
     def load(cls, path: str) -> "NumpyPolicy":
         with np.load(path) as z:
-            return cls({k: z[k] for k in z.files})
+            if _STAMP_KEY in z.files:
+                check_stamp_json(str(z[_STAMP_KEY]))
+            return cls({k: z[k] for k in z.files if k != _STAMP_KEY})
 
     def _encode_state(self, d: EncodedDecision) -> np.ndarray:
         w = self.w

@@ -33,6 +33,7 @@ from pkm.heuristics.deck_tracker import DeckTracker
 from pkm.mcts.search import MCTS, forced_picks
 from pkm.types.obs import Observation
 from pkm.rl.encoder import EncodedDecision, encode_decision
+from pkm.rl.features import write_stamp_sidecar
 from pkm.rl.model import OPT_ENC, PolicyValueNet
 from pkm.rl.numpy_policy import NumpyPolicy
 from pkm.rl.rollout import MAX_DECISIONS
@@ -312,6 +313,7 @@ def train(
             flush=True,
         )
         torch.save(model.state_dict(), ckpt_dir / "exit_latest.pt")
+        write_stamp_sidecar(ckpt_dir / "exit_latest.pt")
 
     csv_f.close()
     log.close()

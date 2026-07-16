@@ -13,9 +13,11 @@ per-game memory, Task 6+) or a learned belief (the archetype head, Task 8)
 are `deterministic=False`.
 """
 
+import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum, auto
+from pathlib import Path
 
 import numpy as np
 
@@ -425,7 +427,7 @@ def assemble_per_option(
     return np.concatenate(cols, axis=1)
 
 
-# --- checkpoint-compatibility stamp (persistence lands in Task 5) -----------
+# --- checkpoint-compatibility stamp -----------------------------------------
 
 
 class FeatureStampMismatch(RuntimeError):
@@ -452,3 +454,37 @@ def check_stamp(expected: tuple[tuple[str, str, int], ...]) -> None:
             f"different registered-feature list.\nexpected: {expected}\n"
             f"current:  {current}"
         )
+
+
+def stamp_json() -> str:
+    """The current registry's stamp, JSON-encoded for embedding in an .npz
+    array or a sidecar file next to a .pt checkpoint."""
+    return json.dumps(feature_stamp())
+
+
+def check_stamp_json(raw: str) -> None:
+    expected = tuple(tuple(x) for x in json.loads(raw))
+    check_stamp(expected)
+
+
+def stamp_sidecar_path(checkpoint_path: str | Path) -> Path:
+    """Sidecar path for a .pt checkpoint's feature stamp, e.g.
+    ppo_latest.pt -> ppo_latest.pt.stamp.json."""
+    return Path(str(checkpoint_path) + ".stamp.json")
+
+
+def write_stamp_sidecar(checkpoint_path: str | Path) -> None:
+    """Write the current registry's stamp alongside a saved .pt checkpoint.
+    Call this right after torch.save()-ing a checkpoint meant to be reloaded
+    later (e.g. via AgentProfile.latest_checkpoint)."""
+    stamp_sidecar_path(checkpoint_path).write_text(stamp_json())
+
+
+def check_stamp_sidecar(checkpoint_path: str | Path) -> None:
+    """Raise if a stamp sidecar exists and doesn't match the current
+    registry. A missing sidecar means the checkpoint predates stamping --
+    can't verify it, so don't hard-fail on legacy checkpoints."""
+    p = stamp_sidecar_path(checkpoint_path)
+    if not p.is_file():
+        return
+    check_stamp_json(p.read_text())

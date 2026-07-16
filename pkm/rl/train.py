@@ -17,6 +17,7 @@ import torch
 from pkm.agents.profile import AgentProfile
 from pkm.data import Deck
 
+from .features import write_stamp_sidecar
 from .model import PolicyValueNet
 from .ppo import compute_returns, ppo_update
 from .rollout import RandomPolicy, TorchPolicy, play_game
@@ -203,6 +204,7 @@ def train(
             )
             torch.save(model.state_dict(), ckpt_dir / f"ppo_iter{it:04d}.pt")
             torch.save(model.state_dict(), ckpt_dir / "ppo_latest.pt")
+            write_stamp_sidecar(ckpt_dir / "ppo_latest.pt")
 
         csv_w.writerow(row)
         csv_f.flush()
@@ -220,6 +222,7 @@ def train(
             log.scalar("eval/win_rate_vs_random", float(row["eval_win_rate"]), it)
 
     torch.save(model.state_dict(), ckpt_dir / "ppo_latest.pt")
+    write_stamp_sidecar(ckpt_dir / "ppo_latest.pt")
     csv_f.close()
     log.close()
     print(f"metrics saved to {metrics_file}", flush=True)
