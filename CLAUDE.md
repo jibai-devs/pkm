@@ -25,6 +25,7 @@ Full project guide (structure, RL training, decks, submission): @AGENTS.md
 - `tests/test_main.py` covers resolving bundled `deck.csv` when Kaggle runs from another directory.
 - `main(obs)` is the Kaggle callable agent; `run_local_battle()` is separate for local smoke tests.
 - RL techniques & improvement ideas: `docs/ideas/rl-improvements.md` (experience replay, offline RL, replay log utilization, interactive training, priority-ranked improvement list).
+- Decision & training pipeline reference: `docs/ideas/training-and-decision-pipeline.md` (full decision flow, GAE delta, PPO gradient, modularity analysis).
 - Agent architecture idea: `docs/ideas/general-agent-architecture.md`.
 - Implementation plan: `docs/superpowers/plans/2026-07-12-general-agent-architecture.md`.
 - Implementation is in worktree `/home/df/.config/superpowers/worktrees/pkm_new/general-agent-architecture` on branch `feature/general-agent-architecture`.

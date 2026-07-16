@@ -83,3 +83,21 @@
 6. Offline RL (CQL/IQL) pretrain
 7. MCTS at inference time
 8. Distributed self-play
+
+### Training flow (PPO)
+- Delta (TD error) = r_t + gamma * V(s_{t+1}) - V(s_t). Measures "was outcome better or worse than predicted?"
+- GAE accumulates delta backward with decay: gae_t = delta_t + gamma * lambda * gae_{t+1}
+- Advantage = GAE (positive → reinforce action, negative → discourage)
+- Return target = gae + V(s) (what value head should have predicted)
+- Policy loss: clipped surrogate (ratio * advantage, clamped to prevent large updates)
+- Value loss: MSE(predicted value, return target)
+- Entropy bonus: keeps exploration alive, prevents policy collapse
+- All three losses share gradients through the state encoder (card_emb, state_fc1/2)
+
+### Modularity / swappability
+- Encoder ↔ Model: tightly coupled (numpy array shapes must match embedding dims)
+- Model ↔ PPO: cleanly coupled via model.evaluate() → (logprobs, entropies, values)
+- PPO ↔ EncodedDecision: moderately coupled (reads .value, .potential, writes .advantage, .ret)
+- Easiest to swap: value head (subclass), reward shaping (change prize_potential), PPO algo (new update fn)
+- Hardest to swap: option encoding format (changes both encoder and model input layer)
+- Key refactoring: extract encode_state/encode_options from model into standalone, define ModelProtocol, make trainer accept model factory + update fn
