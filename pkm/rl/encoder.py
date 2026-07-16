@@ -19,8 +19,10 @@ from pkm.types.obs import (
     NUM_CARDS,
     NUM_OPT_TYPES,
     NUM_SELECT_TYPES,
+    AreaType,
     GameState,
     Observation,
+    OptionType,
     PokemonRef,
     Select,
 )
@@ -58,35 +60,6 @@ SLOT_FEATS = 5
 GLOBAL_FEATS = 45
 STATE_FEATS = N_POKEMON_SLOTS * SLOT_FEATS + GLOBAL_FEATS
 OPT_FEATS = 5
-
-# AreaType values (see docs / official api.py)
-AREA_DECK = 1
-AREA_HAND = 2
-AREA_DISCARD = 3
-AREA_ACTIVE = 4
-AREA_BENCH = 5
-AREA_PRIZE = 6
-AREA_STADIUM = 7
-AREA_LOOKING = 12
-
-# OptionType values
-OPT_NUMBER = 0
-OPT_YES = 1
-OPT_NO = 2
-OPT_CARD = 3
-OPT_TOOL_CARD = 4
-OPT_ENERGY_CARD = 5
-OPT_ENERGY = 6
-OPT_PLAY = 7
-OPT_ATTACH = 8
-OPT_EVOLVE = 9
-OPT_ABILITY = 10
-OPT_DISCARD = 11
-OPT_RETREAT = 12
-OPT_ATTACK = 13
-OPT_END = 14
-OPT_SKILL = 15
-OPT_SPECIAL_CONDITION = 16
 
 
 @dataclass
@@ -220,21 +193,21 @@ def _card_id_at(
         return 0
     players = state.players
     try:
-        if area == AREA_DECK:
+        if area == AreaType.DECK:
             c = (select.deck or [])[index]
-        elif area == AREA_HAND:
+        elif area == AreaType.HAND:
             c = (players[player_index].hand or [])[index]
-        elif area == AREA_DISCARD:
+        elif area == AreaType.TRASH:
             c = players[player_index].discard[index]
-        elif area == AREA_ACTIVE:
+        elif area == AreaType.ACTIVE:
             c = players[player_index].active[index]
-        elif area == AREA_BENCH:
+        elif area == AreaType.BENCH:
             c = players[player_index].bench[index]
-        elif area == AREA_PRIZE:
+        elif area == AreaType.PRIZE:
             c = players[player_index].prize[index]
-        elif area == AREA_STADIUM:
+        elif area == AreaType.STADIUM:
             c = state.stadium[index]
-        elif area == AREA_LOOKING:
+        elif area == AreaType.LOOKING:
             c = (state.looking or [])[index]
         else:
             return 0
@@ -249,9 +222,9 @@ def _pokemon_at(
     if index is None:
         return None
     try:
-        if area == AREA_ACTIVE:
+        if area == AreaType.ACTIVE:
             return state.players[player_index].active[index]
-        if area == AREA_BENCH:
+        if area == AreaType.BENCH:
             return state.players[player_index].bench[index]
     except (TypeError, IndexError, AttributeError):
         pass
@@ -288,9 +261,9 @@ def encode_options(obs: Observation) -> dict[str, np.ndarray]:
         damage = 0.0
         cost = 0.0
 
-        if t == OPT_CARD:
+        if t == OptionType.CARD:
             card_id = _card_id_at(state, select, pi, area, index)
-        elif t == OPT_TOOL_CARD:
+        elif t == OptionType.TOOL_CARD:
             p = _pokemon_at(state, pi, area, index)
             if p:
                 card2_id = p.id
@@ -298,7 +271,7 @@ def encode_options(obs: Observation) -> dict[str, np.ndarray]:
                 ti = o.toolIndex
                 if ti is not None and ti < len(tools):
                     card_id = tools[ti].id
-        elif t in (OPT_ENERGY_CARD, OPT_ENERGY):
+        elif t in (OptionType.ENERGY_CARD, OptionType.ENERGY):
             p = _pokemon_at(state, pi, area, index)
             if p:
                 card2_id = p.id
@@ -306,16 +279,16 @@ def encode_options(obs: Observation) -> dict[str, np.ndarray]:
                 ei = o.energyIndex
                 if ei is not None and ei < len(ecards):
                     card_id = ecards[ei].id
-        elif t == OPT_PLAY:
-            card_id = _card_id_at(state, select, you, AREA_HAND, index)
-        elif t in (OPT_ATTACH, OPT_EVOLVE):
+        elif t == OptionType.PLAY:
+            card_id = _card_id_at(state, select, you, AreaType.HAND, index)
+        elif t in (OptionType.ATTACH, OptionType.EVOLVE):
             card_id = _card_id_at(state, select, you, area, index)
             p = _pokemon_at(state, you, o.inPlayArea, o.inPlayIndex)
             if p:
                 card2_id = p.id
-        elif t in (OPT_ABILITY, OPT_DISCARD):
+        elif t in (OptionType.ABILITY, OptionType.DISCARD):
             card_id = _card_id_at(state, select, pi, area, index)
-        elif t == OPT_ATTACK:
+        elif t == OptionType.ATTACK:
             attack_id = o.attackId or 0
             active = state.players[you].active_pokemon
             if active:
@@ -324,7 +297,7 @@ def encode_options(obs: Observation) -> dict[str, np.ndarray]:
             if atk:
                 damage = atk.damage / NORM.max_damage
                 cost = len(atk.energies) / NORM.max_energies
-        elif t == OPT_SKILL:
+        elif t == OptionType.SKILL:
             card_id = o.cardId or 0
 
         opt_card[i] = card_id if 0 <= card_id < NUM_CARDS else 0

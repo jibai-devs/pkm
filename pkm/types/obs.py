@@ -121,6 +121,7 @@ class AreaType(IntEnum):
     ENERGY = 8
     TOOL = 9
     PRE_EVOLUTION = 10
+    LOOKING = 12
 
 
 class EnergyType(IntEnum):
