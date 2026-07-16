@@ -28,6 +28,8 @@ from pkm.engine import (
 
 from pkm.agents.profile import AgentProfile
 from pkm.data import Deck
+from pkm.heuristics.context import GameContext
+from pkm.heuristics.deck_tracker import DeckTracker
 from pkm.mcts.search import MCTS, forced_picks
 from pkm.types.obs import Observation
 from pkm.rl.encoder import EncodedDecision, encode_decision
@@ -73,11 +75,23 @@ def play_exit_game(
     if obs is None:
         raise RuntimeError(f"battle_start failed: errorPlayer={start.errorPlayer}")
 
+    # One GameContext per player, each owning its own DeckTracker over its
+    # own deck -- never reused across games (see pkm/heuristics/context.py).
+    contexts = (
+        GameContext(list(decks[0]), DeckTracker(decks[0])),
+        GameContext(list(decks[1]), DeckTracker(decks[1])),
+    )
+
     samples: tuple[list[ExitSample], list[ExitSample]] = ([], [])
     count = 0
     try:
         while obs["current"]["result"] < 0 and count < MAX_DECISIONS:
             p = obs["current"]["yourIndex"]
+            tracker = contexts[p].tracker
+            tracker.observe(obs)
+            if tracker.is_search_reveal(obs):
+                tracker.record_search_reveal(obs)
+
             forced = forced_picks(obs["select"])
             if forced is not None:
                 obs = battle_select(forced)

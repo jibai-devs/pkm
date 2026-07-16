@@ -10,6 +10,8 @@ from pkm.engine import (
     battle_start,
 )
 
+from pkm.heuristics.context import GameContext
+from pkm.heuristics.deck_tracker import DeckTracker
 from pkm.types.obs import Observation
 
 from .encoder import EncodedDecision, encode_decision, prize_potential
@@ -73,11 +75,22 @@ def play_game(
     if obs is None:
         raise RuntimeError(f"battle_start failed: errorPlayer={start.errorPlayer}")
 
+    # One GameContext per player, each owning its own DeckTracker over its
+    # own deck -- never reused across games (see pkm/heuristics/context.py).
+    contexts = (
+        GameContext(list(decks[0]), DeckTracker(decks[0])),
+        GameContext(list(decks[1]), DeckTracker(decks[1])),
+    )
+
     trajectories: tuple[list[EncodedDecision], list[EncodedDecision]] = ([], [])
     count = 0
     try:
         while obs["current"]["result"] < 0 and count < MAX_DECISIONS:
             p = obs["current"]["yourIndex"]
+            tracker = contexts[p].tracker
+            tracker.observe(obs)
+            if tracker.is_search_reveal(obs):
+                tracker.record_search_reveal(obs)
             picks, record = policies[p].act(obs, collect=collect[p])
             if record is not None:
                 trajectories[p].append(record)

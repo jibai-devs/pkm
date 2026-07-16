@@ -10,6 +10,9 @@ import random
 from pathlib import Path
 from typing import Callable
 
+from pkm.heuristics.context import GameContext
+from pkm.heuristics.deck_tracker import DeckTracker
+
 
 def _find_weights(explicit: str | None) -> str | None:
     candidates = [
@@ -36,7 +39,13 @@ def make_neural_agent(
 
         policy = NumpyPolicy.load(path)
 
+    ctx = GameContext(list(deck), DeckTracker(deck))
+
     def agent(obs: dict) -> list[int]:
+        ctx.tracker.observe(obs)
+        if ctx.tracker.is_search_reveal(obs):
+            ctx.tracker.record_search_reveal(obs)
+
         if obs["select"] is None:
             return deck
         if policy is None:
