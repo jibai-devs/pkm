@@ -165,6 +165,33 @@ class LogType(IntEnum):
     RESULT = 23
 
 
+# --- Domain constants: vocabulary sizes and game limits ---
+
+NUM_CARDS = 1268
+"""Card-ID vocabulary size (id 0 = pad/unknown; real ids start at 1)."""
+
+NUM_ATTACKS = 1557
+"""Attack-ID vocabulary size."""
+
+NUM_OPT_TYPES = 17
+"""Number of :class:`OptionType` values (including 0)."""
+
+NUM_SELECT_TYPES = 11
+"""Number of :class:`SelectType` values (including 0)."""
+
+MAX_BENCH = 8
+"""Maximum number of benched Pokémon."""
+
+MAX_HAND = 25
+"""Maximum cards in hand."""
+
+N_POKEMON_SLOTS = 2 * (1 + MAX_BENCH)
+"""my active + my bench + opp active + opp bench."""
+
+N_BOARD_SLOTS = N_POKEMON_SLOTS + 1
+"""Pokémon slots + stadium."""
+
+
 def _as_enum[E: IntEnum](enum_cls: type[E], value: int | None) -> E | None:
     if value is None:
         return None

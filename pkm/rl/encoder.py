@@ -10,19 +10,50 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from pkm.data import get_attack_data
-from pkm.types.obs import GameState, Observation, PokemonRef, Select
+from pkm.types.obs import (
+    MAX_BENCH,
+    MAX_HAND,
+    N_BOARD_SLOTS,
+    N_POKEMON_SLOTS,
+    NUM_ATTACKS,
+    NUM_CARDS,
+    NUM_OPT_TYPES,
+    NUM_SELECT_TYPES,
+    GameState,
+    Observation,
+    PokemonRef,
+    Select,
+)
 
-# Vocabulary sizes (id 0 = pad/unknown; real ids start at 1)
-NUM_CARDS = 1268
-NUM_ATTACKS = 1557
-NUM_OPT_TYPES = 17
-NUM_SELECT_TYPES = 11
 
-MAX_BENCH = 8
-MAX_HAND = 25
-# my active + my bench, opp active + opp bench, stadium
-N_POKEMON_SLOTS = 2 * (1 + MAX_BENCH)
-N_BOARD_SLOTS = N_POKEMON_SLOTS + 1
+@dataclass(frozen=True)
+class Norm:
+    """Normalization divisors for feature encoding.
+
+    Each field is the assumed maximum for the corresponding game quantity.
+    Change these if the game's bounds evolve (e.g. larger bench, higher HP).
+    """
+
+    max_hp: float = 300.0
+    max_energies: float = 5.0
+    max_hand_count: float = 20.0
+    max_deck_count: float = 60.0
+    max_prize_count: float = 6.0
+    max_discard_count: float = 60.0
+    max_bench_count: float = 8.0
+    max_turn: float = 30.0
+    max_actions_per_turn: float = 20.0
+    max_pick_count: float = 5.0
+    max_energy_cost: float = 5.0
+    max_damage_counters: float = 10.0
+    max_damage: float = 300.0
+    max_option_number: float = 20.0
+    max_option_count: float = 5.0
+
+
+NORM = Norm()
+
+
 SLOT_FEATS = 5
 GLOBAL_FEATS = 45
 STATE_FEATS = N_POKEMON_SLOTS * SLOT_FEATS + GLOBAL_FEATS
@@ -88,9 +119,9 @@ def _pokemon_slot_feats(p: PokemonRef | None) -> list[float]:
         return [0.0] * SLOT_FEATS
     return [
         1.0,
-        p.hp / 300.0,
-        p.maxHp / 300.0,
-        len(p.energies) / 5.0,
+        p.hp / NORM.max_hp,
+        p.maxHp / NORM.max_hp,
+        len(p.energies) / NORM.max_energies,
         1.0 if p.appearThisTurn else 0.0,
     ]
 
@@ -136,17 +167,17 @@ def encode_state(obs: Observation) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     for player in (me, opp):
         g.extend(
             [
-                player.handCount / 20.0,
-                player.deckCount / 60.0,
-                len(player.prize) / 6.0,
-                len(player.discard) / 60.0,
+                player.handCount / NORM.max_hand_count,
+                player.deckCount / NORM.max_deck_count,
+                len(player.prize) / NORM.max_prize_count,
+                len(player.discard) / NORM.max_discard_count,
             ]
         )
     for player in (me, opp):
-        g.append(len(player.bench) / 8.0)
-        g.append(player.benchMax / 8.0)
-    g.append(state.turn / 30.0)
-    g.append(state.turnActionCount / 20.0)
+        g.append(len(player.bench) / NORM.max_bench_count)
+        g.append(player.benchMax / NORM.max_bench_count)
+    g.append(state.turn / NORM.max_turn)
+    g.append(state.turnActionCount / NORM.max_actions_per_turn)
     g.extend(
         [
             1.0 if state.energyAttached else 0.0,
@@ -165,10 +196,10 @@ def encode_state(obs: Observation) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     g.extend(sel_onehot)
     g.extend(
         [
-            sel.minCount / 5.0,
-            sel.maxCount / 5.0,
-            sel.remainEnergyCost / 5.0,
-            sel.remainDamageCounter / 10.0,
+            sel.minCount / NORM.max_pick_count,
+            sel.maxCount / NORM.max_pick_count,
+            sel.remainEnergyCost / NORM.max_energy_cost,
+            sel.remainDamageCounter / NORM.max_damage_counters,
         ]
     )
 
@@ -291,8 +322,8 @@ def encode_options(obs: Observation) -> dict[str, np.ndarray]:
                 card_id = active.id
             atk = attack_data.get(attack_id)
             if atk:
-                damage = atk.damage / 300.0
-                cost = len(atk.energies) / 5.0
+                damage = atk.damage / NORM.max_damage
+                cost = len(atk.energies) / NORM.max_energies
         elif t == OPT_SKILL:
             card_id = o.cardId or 0
 
@@ -300,8 +331,8 @@ def encode_options(obs: Observation) -> dict[str, np.ndarray]:
         opt_card2[i] = card2_id if 0 <= card2_id < NUM_CARDS else 0
         opt_attack[i] = attack_id if 0 <= attack_id < NUM_ATTACKS else 0
         opt_feats[i] = [
-            (o.number or 0) / 20.0,
-            (o.count or 0) / 5.0,
+            (o.number or 0) / NORM.max_option_number,
+            (o.count or 0) / NORM.max_option_count,
             damage,
             cost,
             1.0 if pi == you else 0.0,
@@ -343,4 +374,4 @@ def prize_potential(obs: Observation) -> float:
     you = state.yourIndex
     me = state.players[you]
     opp = state.players[1 - you]
-    return (len(opp.prize) - len(me.prize)) / 6.0
+    return (len(opp.prize) - len(me.prize)) / NORM.max_prize_count

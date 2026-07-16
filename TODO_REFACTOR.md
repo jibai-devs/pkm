@@ -12,7 +12,7 @@ Work top-to-bottom; each item is independent unless noted.
 ```
 Phase 1 — Quick wins (no architecture change)
   [x] 1. Canonical forced-pick check
-  [ ] 2. Encoder magic numbers -> dataclass
+  [x] 2. Encoder magic numbers -> dataclass
   [ ] 3. Numpy parity test
 
 Phase 2 — Extract shared code
@@ -72,7 +72,7 @@ All six call sites use the canonical implementation:
 
 ## 2. Encoder magic numbers -> dataclass
 
-**Status:** [ ] not started
+**Status:** [x] done (2026-07-16)
 
 **What:** Normalization constants are hardcoded inline throughout the encoder:
 
@@ -106,35 +106,12 @@ All six call sites use the canonical implementation:
 - `300` appears three times (HP, damage) but could easily diverge.
 
 **Fix:**
-Create a `NormalizationConstants` dataclass at the top of `encoder.py`:
+Domain constants (`NUM_CARDS`, `NUM_ATTACKS`, `MAX_BENCH`, `MAX_HAND`, etc.) moved
+to `pkm/types/obs.py` where the data model lives. `encoder.py` imports them from there.
 
-```python
-@dataclass(frozen=True)
-class Norm:
-    max_hp: float = 300.0
-    max_energies: float = 5.0
-    max_hand: float = 20.0
-    max_deck: float = 60.0
-    max_prize: float = 6.0
-    max_discard: float = 60.0
-    max_bench: float = 8.0
-    max_turn: float = 30.0
-    max_actions_per_turn: float = 20.0
-    max_pick_count: float = 5.0
-    max_energy_cost: float = 5.0
-    max_damage_counters: float = 10.0
-    max_damage: float = 300.0
-    max_option_number: float = 20.0
-    max_option_count: float = 5.0
-
-NORM = Norm()
-```
-
-Then replace every inline divisor with `NORM.max_hp`, `NORM.max_energies`, etc.
-Single source of truth, self-documenting, easy to override for experiments.
-
-**Files to change:**
-- `pkm/rl/encoder.py` — add `Norm` dataclass, replace ~20 inline divisors
+A `Norm` dataclass in `pkm/rl/encoder.py:36-61` replaces all ~20 inline divisors.
+Single instance `NORM = Norm()` at module level. Every normalization is now
+`NORM.max_hp`, `NORM.max_energies`, etc. — self-documenting and easy to override.
 
 ---
 
