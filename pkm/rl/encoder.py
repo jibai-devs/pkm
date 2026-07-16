@@ -22,6 +22,11 @@ DREEPY_CARD_ID = 119
 DRAKLOAK_CARD_ID = 120
 DRAGAPULT_EX_CARD_ID = 121
 DREEPY_LINE_CARD_IDS = {DREEPY_CARD_ID, DRAKLOAK_CARD_ID, DRAGAPULT_EX_CARD_ID}
+XEROSIC_MACHINATIONS_CARD_ID = 1197
+
+# EnergyType values (see pkm/types/obs.py's EnergyType enum)
+ENERGY_TYPE_FIRE = 2
+ENERGY_TYPE_PSYCHIC = 5
 
 # Vocabulary sizes (id 0 = pad/unknown; real ids start at 1)
 NUM_CARDS = 1268
@@ -90,11 +95,14 @@ class EncodedDecision:
     value: float = 0.0
     # filled by return computation
     potential: float = 0.0
+    board_setup_potential: float = 0.0
+    budew_setup_potential: float = 0.0
     energy_penalty: float = 0.0
     budew_bonus: float = 0.0
     wrong_type_energy_penalty: float = 0.0
     dragapult_attack_bonus: float = 0.0
     dreepy_spread_penalty: float = 0.0
+    xerosic_bonus: float = 0.0
     advantage: float = 0.0
     ret: float = 0.0
 
@@ -362,6 +370,40 @@ def prize_potential(obs: Observation) -> float:
     return (len(opp.prize) - len(me.prize)) / 6.0
 
 
+def dragapult_backup_potential(obs: Observation) -> float:
+    """1.0 if Dragapult ex is active and able to attack right now, AND a
+    bench Drakloak already has at least one Fire or Psychic energy attached
+    (a charged backup ready to take over if the active one falls) — 0.0
+    otherwise.
+
+    A pure function of state (like prize_potential), not of what was
+    picked — used as potential-based shaping so the reward lands on
+    whichever decision actually *reaches* this setup, not as a flat bonus
+    for every decision made while it happens to still hold.
+    """
+    state = obs.current
+    sel = obs.select
+    if state is None or sel is None:
+        return 0.0
+    you = state.yourIndex
+    me = state.players[you]
+    active = me.active_pokemon
+    if active is None or active.id != DRAGAPULT_EX_CARD_ID:
+        return 0.0
+    # Same "trust the engine's own legality check" trick as elsewhere:
+    # able to attack right now iff an attack option is actually offered.
+    can_attack = any(o.type == OPT_ATTACK for o in sel.option)
+    if not can_attack:
+        return 0.0
+    has_charged_drakloak = any(
+        p is not None
+        and p.id == DRAKLOAK_CARD_ID
+        and any(e in (ENERGY_TYPE_FIRE, ENERGY_TYPE_PSYCHIC) for e in p.energies)
+        for p in me.bench
+    )
+    return 1.0 if has_charged_drakloak else 0.0
+
+
 def _active_energy_already_sufficient(obs: Observation) -> bool:
     """True if every one of the active Pokemon's attacks, plus retreat, is
     already offered as an option — i.e. more energy on it can't unlock
@@ -448,6 +490,56 @@ def budew_first_turn_attack_bonus(obs: Observation, picks: list[int]) -> float:
         sel.option[i].type == OPT_ATTACK for i in picks if 0 <= i < len(sel.option)
     )
     return 1.0 if attacked else 0.0
+
+
+def budew_active_second_potential(obs: Observation) -> float:
+    """1.0 if, going second and still early (turn <= 2 -- before or on your
+    own first turn), Budew is your active Pokemon -- 0.0 otherwise.
+
+    A pure function of state, not of what was picked: potential-based
+    shaping so the reward lands on whichever decision actually puts Budew
+    into the active spot (setup, or a turn-1 switch), not as a flat bonus
+    paid every step it happens to still be there. Sets up the free Itchy
+    Pollen attack that budew_first_turn_attack_bonus rewards taking.
+    """
+    state = obs.current
+    if state is None:
+        return 0.0
+    went_second = state.firstPlayer >= 0 and state.firstPlayer != state.yourIndex
+    if not went_second or state.turn > 2:
+        return 0.0
+    active = state.players[state.yourIndex].active_pokemon
+    return 1.0 if active is not None and active.id == BUDEW_CARD_ID else 0.0
+
+
+def xerosic_machinations_bonus(obs: Observation, picks: list[int]) -> float:
+    """+1.0 if `picks` play Xerosic's Machinations (discards the opponent's
+    hand down to 3 cards) while they have 7+ cards -- a big swing. -3.0 if
+    played while they have 4 or fewer -- it does almost nothing (or, at 3
+    or below, literally nothing) and burns your Supporter for the turn, so
+    that's a much worse mistake than the upside is a win. 0.0 otherwise
+    (including the 5-6 card dead zone, and any turn it isn't played).
+    """
+    sel = obs.select
+    state = obs.current
+    if sel is None or state is None:
+        return 0.0
+    you = state.yourIndex
+    opp_hand_count = state.players[1 - you].handCount
+    for i in picks:
+        if i < 0 or i >= len(sel.option):
+            continue
+        opt = sel.option[i]
+        if opt.type != OPT_PLAY:
+            continue
+        card_id = _card_id_at(state, sel, you, AREA_HAND, opt.index)
+        if card_id != XEROSIC_MACHINATIONS_CARD_ID:
+            continue
+        if opp_hand_count >= 7:
+            return 1.0
+        if opp_hand_count <= 4:
+            return -3.0
+    return 0.0
 
 
 def _resolve_energy_attach(

@@ -72,11 +72,14 @@ def train(
     gamma: float = 0.99,
     lam: float = 0.95,
     shaping_coef: float = 0.2,
+    board_setup_coef: float = 0.0,
+    budew_setup_coef: float = 0.0,
     energy_penalty_coef: float = 0.0,
     budew_bonus_coef: float = 0.0,
     wrong_type_penalty_coef: float = 0.0,
     dragapult_bonus_coef: float = 0.0,
     dreepy_spread_coef: float = 0.0,
+    xerosic_coef: float = 0.0,
     pool_size: int = 8,
     pool_prob: float = 0.4,
     eval_every: int = 5,
@@ -154,6 +157,9 @@ def train(
                     wrong_type_penalty_coef,
                     dragapult_bonus_coef,
                     dreepy_spread_coef,
+                    board_setup_coef,
+                    budew_setup_coef,
+                    xerosic_coef,
                 )
                 w, losses, d = w + gw, losses + gl, d + gd
 
@@ -240,6 +246,11 @@ def main(
     lr: float = typer.Option(3e-4, help="learning rate"),
     gamma: float = typer.Option(0.99, help="discount factor"),
     shaping: float = typer.Option(0.2, help="reward shaping coefficient"),
+    board_setup: float = typer.Option(
+        0.0,
+        help="bonus for reaching a board where Dragapult ex can attack and a "
+        "bench Drakloak already has Fire/Psychic energy (0 = off)",
+    ),
     energy_penalty: float = typer.Option(
         0.0,
         help="penalty for attaching energy to the active Pokemon when it "
@@ -249,6 +260,11 @@ def main(
         0.0,
         help="bonus for attacking with Budew on your own first turn when "
         "going second (0 = off)",
+    ),
+    budew_setup: float = typer.Option(
+        0.0,
+        help="bonus for reaching a board where Budew is your active Pokemon "
+        "while going second, early game (0 = off)",
     ),
     wrong_type_penalty: float = typer.Option(
         0.0,
@@ -263,6 +279,11 @@ def main(
         0.0,
         help="penalty for stacking energy on a Dreepy that already has some "
         "while another Dreepy on board has none (0 = off)",
+    ),
+    xerosic: float = typer.Option(
+        0.0,
+        help="bonus for playing Xerosic's Machinations while the opponent "
+        "has 7+ cards, severe penalty if played with 4 or fewer (0 = off)",
     ),
     pool_size: int = typer.Option(8, help="opponent checkpoint pool size"),
     eval_every: int = typer.Option(5, help="evaluate every N iterations"),
@@ -292,11 +313,14 @@ def main(
         lr=lr,
         gamma=gamma,
         shaping_coef=shaping,
+        board_setup_coef=board_setup,
+        budew_setup_coef=budew_setup,
         energy_penalty_coef=energy_penalty,
         budew_bonus_coef=budew_bonus,
         wrong_type_penalty_coef=wrong_type_penalty,
         dragapult_bonus_coef=dragapult_bonus,
         dreepy_spread_coef=dreepy_spread,
+        xerosic_coef=xerosic,
         pool_size=pool_size,
         eval_every=eval_every,
         eval_games=eval_games,
