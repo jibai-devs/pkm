@@ -109,6 +109,72 @@ per-move time limits. The distilled *policy network* (one forward pass per
 decision, numpy) is the safe submission; enable a small search on top only if
 measured per-move budget allows.
 
+## GAE — Generalized Advantage Estimation
+
+GAE estimates **how much better an action was than the policy's average** at a
+given state — the *advantage*. It blends multi-step returns using a single
+parameter λ (lambda) to trade off bias vs variance.
+
+### TD error
+
+At step `t` the one-step temporal-difference error is:
+
+```
+δ_t = r_t + γ·V(s_{t+1}) − V(s_t)
+```
+
+This is the "surprise" — actual reward plus discounted next-value minus
+predicted value. A single δ is noisy but low-variance.
+
+### Multi-step returns
+
+Instead of using only 1-step δ, we could use 2-step, 3-step, ... or full
+episode returns. Each length has different bias/variance characteristics:
+
+- **1-step** (TD(0)): low variance, high bias (bootstraps heavily)
+- **N-step** (TD(N)): less bias, more variance
+- **Full episode** (Monte Carlo): unbiased, highest variance
+
+### The GAE formula
+
+GAE computes an exponentially-weighted average of all n-step advantages:
+
+```
+A_t = δ_t + (γλ)·δ_{t+1} + (γλ)²·δ_{t+2} + ...
+```
+
+- **λ = 0** → only 1-step TD (pure bootstrap, lowest variance)
+- **λ = 1** → full Monte Carlo returns (no bootstrap, lowest bias)
+- **λ ≈ 0.95** → practical sweet spot used in most PPO implementations
+
+### Implementation
+
+GAE is computed **backwards** through the trajectory in O(n):
+
+```python
+gae = 0.0
+for t in reversed(range(n)):
+    next_value = trajectory[t + 1].value if t + 1 < n else 0.0
+    delta = rewards[t] + gamma * next_value - trajectory[t].value
+    gae = delta + gamma * lam * gae
+    trajectory[t].advantage = gae
+    trajectory[t].ret = gae + trajectory[t].value
+```
+
+Each step accumulates: `gae_t = δ_t + γλ · gae_{t+1}`. The result is stored on
+each `EncodedDecision` so PPO can weight the policy gradient by how surprising
+each action was.
+
+### How it fits in the pipeline
+
+1. **Rollout** collects a trajectory of `EncodedDecision`s (state, action,
+   logprob, value prediction)
+2. **`compute_returns()`** walks the trajectory backwards, fills `advantage` and
+   `ret` on each decision via GAE
+3. **`ppo_update()`** reads those fields to compute the PPO clip loss and
+   update the network — actions with high advantage get reinforced, actions
+   with low/negative advantage get suppressed
+
 ## Verification milestones
 
 1. Rewritten `pkm/search.py` round-trips: `search_begin` on a live observation
