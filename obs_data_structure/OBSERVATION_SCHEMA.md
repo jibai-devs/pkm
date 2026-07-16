@@ -293,19 +293,33 @@ enum class AreaType : unsigned char {
 
 > Values are implicit (auto-incremented from 0).
 
-| Value | Name         | Description                       |
-|-------|--------------|-----------------------------------|
-| 0     | All          | (rarely used)                     |
-| 1     | Deck         | Deck                              |
-| 2     | Hand         | Hand                              |
-| 3     | Trash        | Discard pile                      |
-| 4     | Active       | Active (battle) spot              |
-| 5     | Bench        | Bench                             |
-| 6     | Prize        | Prize cards                       |
-| 7     | Stadium      | Stadium slot                      |
-| 8     | Energy       | Attached energy                   |
-| 9     | Tool         | Attached tool                     |
-| 10    | PreEvolution | Evolution cards beneath a Pokemon |
+| Value | Name               | Description                       |
+|-------|--------------------|-----------------------------------|
+| 0     | All                | (rarely used)                     |
+| 1     | Deck               | Deck                              |
+| 2     | Hand               | Hand                              |
+| 3     | Trash              | Discard pile                      |
+| 4     | Active             | Active (battle) spot              |
+| 5     | Bench              | Bench                             |
+| 6     | Prize              | Prize cards                       |
+| 7     | Stadium            | Stadium slot                      |
+| 8     | Energy             | Attached energy                   |
+| 9     | Tool               | Attached tool                     |
+| 10    | PreEvolution       | Evolution cards beneath a Pokemon |
+| 11    | Player             | Player reference                  |
+| 12    | Looking            | Cards being looked at             |
+| 13    | Playing            | Playing item/supporter            |
+| 14    | DeckBottom         | Bottom of deck                    |
+| 15    | Me                 | Self reference                    |
+| 16    | Effected           | Affected by effect                |
+| 17    | EffectedPreTarget  | Previous effect target            |
+| 18    | SelectedList       | Selected list                     |
+| 19    | TriggerSubject     | Trigger subject                   |
+| 20    | TriggerObject      | Trigger object                    |
+| 21    | Attach             | Attached to Pokemon               |
+| 22    | TurnPlay           | Played this turn                  |
+| 23    | AttackPreMyTurn    | Attacked previous turn            |
+| 24    | Temporary          | Temporary area                    |
 
 ---
 
