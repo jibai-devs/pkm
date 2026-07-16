@@ -122,6 +122,10 @@ class AreaType(IntEnum):
     ENERGY = 8
     TOOL = 9
     PRE_EVOLUTION = 10
+    # 11 unused on the wire. 12 is real (see pkm/rl/encoder.py's AREA_LOOKING,
+    # verified against the live engine) but undocumented in
+    # obs_data_structure/OBSERVATION_SCHEMA.md's AreaType table.
+    LOOKING = 12
 
 
 class EnergyType(IntEnum):

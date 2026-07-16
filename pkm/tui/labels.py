@@ -46,6 +46,7 @@ AREA_NAME = {
     AreaType.BENCH: "bench",
     AreaType.PRIZE: "prize",
     AreaType.STADIUM: "stadium",
+    AreaType.LOOKING: "revealed",
 }
 
 
@@ -92,6 +93,12 @@ def _card_at(
             return player.prize[index]
         if area == AreaType.STADIUM:
             return obs.current.stadium[index]
+        if area == AreaType.LOOKING:
+            # Not player-scoped: current.looking is a single shared list of
+            # cards currently revealed (e.g. "look at the top 2 of your
+            # deck"), same field pkm/rl/encoder.py's AREA_LOOKING reads.
+            looking = obs.current.looking
+            return looking[index] if looking else None
     except (IndexError, KeyError, TypeError):
         return None
     return None

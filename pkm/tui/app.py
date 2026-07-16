@@ -15,7 +15,15 @@ from textual.worker import get_current_worker
 
 from pkm.types.obs import Observation, OptionType
 from pkm.tui.labels import log_label
-from pkm.tui.session import AgentNote, Event, Failed, Finished, GameSession, Prompt
+from pkm.tui.session import (
+    AgentNote,
+    Event,
+    Failed,
+    Finished,
+    GameSession,
+    OpponentHand,
+    Prompt,
+)
 from pkm.tui.widgets import BoardPanel, ConfirmScreen, EventLog, HandBar, PromptPane
 
 # How often the pump wakes up to check whether the app is shutting down.
@@ -39,6 +47,7 @@ class BattleApp(App[None]):
     BoardPanel { border: round $accent; padding: 0 1; height: 1fr; }
     EventLog { border: round $secondary; width: 1fr; }
     HandBar { border: round $accent; padding: 0 1; height: auto; }
+    #opponent-hand { border: round $warning; }
     PromptPane { border: round $success; padding: 0 1; height: auto; min-height: 6; }
     #confirm-box { align: center middle; width: 50; height: auto;
                    border: thick $warning; background: $surface; padding: 1 2; }
@@ -68,11 +77,15 @@ class BattleApp(App[None]):
                 yield BoardPanel("YOU", id="me")
             yield EventLog(id="events", markup=False)
         yield HandBar(id="hand")
+        yield HandBar(id="opponent-hand")
         yield PromptPane(id="prompt")
         yield Footer()
 
     def on_mount(self) -> None:
         self.query_one("#hand", HandBar).border_title = "YOUR HAND"
+        opp_hand = self.query_one("#opponent-hand", HandBar)
+        opp_hand.border_title = "OPPONENT HAND (SPY VIEW)"
+        opp_hand.update("(not seen yet)")
         self.session.start()
         self.run_worker(self._pump, thread=True, exclusive=True)
 
@@ -100,6 +113,8 @@ class BattleApp(App[None]):
             self.query_one("#prompt", PromptPane).update(self.result_text)
         elif isinstance(event, AgentNote):
             self.query_one("#events", EventLog).add(f"[opponent] {event.message}")
+        elif isinstance(event, OpponentHand):
+            self.query_one("#opponent-hand", HandBar).show_ids(event.card_ids)
 
     def _show(self, obs: Observation) -> None:
         self.waiting = False
