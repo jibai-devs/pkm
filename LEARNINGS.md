@@ -101,3 +101,10 @@
 - Easiest to swap: value head (subclass), reward shaping (change prize_potential), PPO algo (new update fn)
 - Hardest to swap: option encoding format (changes both encoder and model input layer)
 - Key refactoring: extract encode_state/encode_options from model into standalone, define ModelProtocol, make trainer accept model factory + update fn
+
+### Optimizers
+- PPO uses Adam(lr=3e-4), exit_train uses Adam(lr=1e-4)
+- Adam = momentum + RMSprop + bias correction. Default "just works" choice for RL.
+- AdamW (decoupled weight decay) is a free upgrade: torch.optim.AdamW(..., weight_decay=0.01)
+- Adagrad good for sparse features (embeddings) but LR dies over time
+- SGD+momentum better final convergence but needs LR schedule, slower per update
