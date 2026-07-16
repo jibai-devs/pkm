@@ -12,7 +12,12 @@ from kaggle_environments.envs.cabt.cg.game import (
 
 from pkm.types.obs import Observation
 
-from .encoder import EncodedDecision, encode_decision, prize_potential
+from .encoder import (
+    EncodedDecision,
+    encode_decision,
+    energy_overattach_penalty,
+    prize_potential,
+)
 from .model import PolicyValueNet
 from .ppo import compute_returns
 
@@ -49,6 +54,7 @@ class TorchPolicy:
         d.logprob = res.logprob
         d.value = res.value
         d.potential = prize_potential(parsed)
+        d.energy_penalty = energy_overattach_penalty(parsed, res.picks)
         return res.picks, d
 
 
@@ -158,6 +164,7 @@ def aggregate_result(
     gamma: float,
     lam: float,
     shaping_coef: float,
+    energy_penalty_coef: float = 0.0,
 ) -> tuple[int, int, int]:
     """Extend `data` with this game's collected trajectories and return the
     (win, loss, draw) increment for `current` — same counting rule the
@@ -172,6 +179,7 @@ def aggregate_result(
             gamma=gamma,
             lam=lam,
             shaping_coef=shaping_coef,
+            energy_penalty_coef=energy_penalty_coef,
         )
         data.extend(result.trajectories[p])
         if spec.side == -1 and p == 1:

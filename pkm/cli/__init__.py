@@ -36,6 +36,11 @@ def train(
     lr: float = typer.Option(3e-4, help="learning rate"),
     gamma: float = typer.Option(0.99, help="discount factor"),
     shaping: float = typer.Option(0.2, help="reward shaping coefficient"),
+    energy_penalty: float = typer.Option(
+        0.0,
+        help="penalty for attaching energy to the active Pokemon when it "
+        "can already use every attack and retreat (0 = off)",
+    ),
     pool_size: int = typer.Option(8, help="opponent checkpoint pool size"),
     eval_every: int = typer.Option(5, help="evaluate every N iterations"),
     eval_games: int = typer.Option(20, help="games for evaluation"),
@@ -59,6 +64,7 @@ def train(
         lr=lr,
         gamma=gamma,
         shaping=shaping,
+        energy_penalty=energy_penalty,
         pool_size=pool_size,
         eval_every=eval_every,
         eval_games=eval_games,

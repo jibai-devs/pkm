@@ -13,12 +13,19 @@ def compute_returns(
     gamma: float = 0.99,
     lam: float = 0.95,
     shaping_coef: float = 0.2,
+    energy_penalty_coef: float = 0.0,
 ) -> None:
     """Fill advantage/ret on each decision in place.
 
-    Rewards are terminal win/loss plus potential-based shaping on the prize
+    Rewards are terminal win/loss, plus potential-based shaping on the prize
     differential: r_t += shaping_coef * (gamma * phi(s_{t+1}) - phi(s_t)),
-    which leaves the optimal policy unchanged.
+    which leaves the optimal policy unchanged; plus a direct (not
+    potential-based) penalty at any step where the agent attached energy to
+    the active Pokemon despite it already being able to use every attack and
+    retreat — that energy was wasted. Unlike the prize shaping, this one
+    isn't a smooth function of state (it's conditioned on the specific
+    action taken), so it's added straight into that step's reward instead of
+    as a potential difference.
     """
     n = len(trajectory)
     if n == 0:
@@ -28,8 +35,10 @@ def compute_returns(
         rewards[t] = shaping_coef * (
             gamma * trajectory[t + 1].potential - trajectory[t].potential
         )
+        rewards[t] += energy_penalty_coef * trajectory[t].energy_penalty
     # terminal step: shaping toward final potential is folded into the outcome
     rewards[n - 1] = terminal_reward - shaping_coef * trajectory[n - 1].potential
+    rewards[n - 1] += energy_penalty_coef * trajectory[n - 1].energy_penalty
 
     gae = 0.0
     for t in reversed(range(n)):

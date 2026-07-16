@@ -10,7 +10,12 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from pkm.data import get_attack_data
+from pkm.data.card_data import get_card_by_id
 from pkm.types.obs import GameState, Observation, PokemonRef, Select
+
+# CardType values (see obs_data_structure/OBSERVATION_SCHEMA.md)
+CARD_TYPE_BASIC_ENERGY = 5
+CARD_TYPE_SPECIAL_ENERGY = 6
 
 # Vocabulary sizes (id 0 = pad/unknown; real ids start at 1)
 NUM_CARDS = 1268
@@ -79,6 +84,7 @@ class EncodedDecision:
     value: float = 0.0
     # filled by return computation
     potential: float = 0.0
+    energy_penalty: float = 0.0
     advantage: float = 0.0
     ret: float = 0.0
 
@@ -344,3 +350,67 @@ def prize_potential(obs: Observation) -> float:
     me = state.players[you]
     opp = state.players[1 - you]
     return (len(opp.prize) - len(me.prize)) / 6.0
+
+
+def _active_energy_already_sufficient(obs: Observation) -> bool:
+    """True if every one of the active Pokemon's attacks, plus retreat, is
+    already offered as an option — i.e. more energy on it can't unlock
+    anything new right now.
+
+    Checking option *availability* rather than computing energy costs by
+    hand means this automatically accounts for anything that changes what's
+    needed (e.g. an effect that raises attack costs), since the engine has
+    already factored that into what it offers.
+    """
+    state = obs.current
+    sel = obs.select
+    if state is None or sel is None:
+        return False
+    active = state.players[state.yourIndex].active_pokemon
+    if active is None:
+        return False
+    card = get_card_by_id(active.id)
+    if card is None or not card.attacks:
+        return False
+    required = {a.attack_id for a in card.attacks}
+    offered = {
+        o.attackId
+        for o in sel.option
+        if o.type == OPT_ATTACK and o.attackId is not None
+    }
+    can_retreat = any(o.type == OPT_RETREAT for o in sel.option)
+    return required <= offered and can_retreat
+
+
+def energy_overattach_penalty(obs: Observation, picks: list[int]) -> float:
+    """-1.0 if `picks` attach an energy card to the active Pokemon despite it
+    already being able to use every attack and retreat — that energy can't
+    unlock anything, it's wasted. 0.0 otherwise.
+    """
+    sel = obs.select
+    state = obs.current
+    if sel is None or state is None:
+        return 0.0
+    if not _active_energy_already_sufficient(obs):
+        return 0.0
+    you = state.yourIndex
+    active = state.players[you].active_pokemon
+    if active is None:
+        return 0.0
+    for i in picks:
+        if i < 0 or i >= len(sel.option):
+            continue
+        opt = sel.option[i]
+        if opt.type != OPT_ATTACH:
+            continue
+        target = _pokemon_at(state, you, opt.inPlayArea, opt.inPlayIndex)
+        if target is None or target.serial != active.serial:
+            continue
+        card_id = _card_id_at(state, sel, you, opt.area, opt.index)
+        card = get_card_by_id(card_id) if card_id else None
+        if card is not None and card.card_type in (
+            CARD_TYPE_BASIC_ENERGY,
+            CARD_TYPE_SPECIAL_ENERGY,
+        ):
+            return -1.0
+    return 0.0
