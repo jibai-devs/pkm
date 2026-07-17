@@ -19,8 +19,13 @@ exposes a ``kind`` property that returns the enum or ``None``.
 """
 
 from enum import IntEnum
+from typing import TypeVar
 
 from pydantic import BaseModel, ConfigDict
+
+# Kaggle's cabt sandbox runs Python 3.11, so this file must parse there — avoid
+# 3.12-only PEP 695 syntax (`def f[E: IntEnum]`) and use a TypeVar instead.
+_E = TypeVar("_E", bound=IntEnum)
 
 
 # C++ source: engine/src/core/ApiTypes.h — enum class SelectType : unsigned char
@@ -218,7 +223,7 @@ N_BOARD_SLOTS = N_POKEMON_SLOTS + 1
 """Pokémon slots + stadium."""
 
 
-def _as_enum[E: IntEnum](enum_cls: type[E], value: int | None) -> E | None:
+def _as_enum(enum_cls: type[_E], value: int | None) -> _E | None:
     if value is None:
         return None
     try:
