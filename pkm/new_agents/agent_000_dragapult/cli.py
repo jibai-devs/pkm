@@ -21,14 +21,23 @@ from __future__ import annotations
 
 import dataclasses
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from pkm.new_agents.agent_000_dragapult.config import Config, RunConfig, TrainConfig
+if TYPE_CHECKING:
+    # Type-only: gives editors/ruff the `Config` symbol for annotations without
+    # importing it at runtime (that would pull in torch). Annotations are strings
+    # under `from __future__ import annotations`, so they're never evaluated.
+    from pkm.new_agents.agent_000_dragapult.config import Config
+
+# NOTE: heavy imports (config/train/engine -> torch) are deferred into the command
+# bodies below so that merely importing this module (e.g. when the main `pkm` CLI
+# registers it as a subcommand) stays cheap and torch-free. Only `typer`/`rich`
+# and stdlib load at import time.
 
 app = typer.Typer(
     add_completion=False,
@@ -75,6 +84,8 @@ def _build_config(
     seed: int,
     ckpt_every: int,
 ) -> Config:
+    from pkm.new_agents.agent_000_dragapult.config import Config, RunConfig, TrainConfig
+
     train = dataclasses.replace(
         TrainConfig(),
         num_workers=workers,
@@ -184,10 +195,17 @@ def _run_training(
 
 @app.command()
 def info(
-    data_dir: Path = typer.Option(DATA_DIR, help="Artifact root directory."),
+    data_dir: Path = typer.Option(
+        DATA_DIR,
+        "--output-dir",
+        "-o",
+        help="Output/artifact root directory (checkpoints + logs).",
+    ),
 ) -> None:
     """Print the default config, engine backend, and artifact paths."""
     from pkm.engine import ENGINE_BACKEND, ENGINE_LIB_PATH
+
+    from pkm.new_agents.agent_000_dragapult.config import Config
 
     p = _paths(data_dir)
     console.print(
@@ -210,7 +228,12 @@ def info(
 
 @app.command()
 def smoke(
-    data_dir: Path = typer.Option(DATA_DIR, help="Artifact root directory."),
+    data_dir: Path = typer.Option(
+        DATA_DIR,
+        "--output-dir",
+        "-o",
+        help="Output/artifact root directory (checkpoints + logs).",
+    ),
     workers: int = typer.Option(
         1, help="Rollout workers (1 = verified single-process path)."
     ),
@@ -262,7 +285,12 @@ def train(
     ),
     eval_games: int = typer.Option(100, help="Games per evaluation."),
     ckpt_every: int = typer.Option(50, help="Checkpoint snapshot every N updates."),
-    data_dir: Path = typer.Option(DATA_DIR, help="Artifact root directory."),
+    data_dir: Path = typer.Option(
+        DATA_DIR,
+        "--output-dir",
+        "-o",
+        help="Output/artifact root directory (checkpoints + logs).",
+    ),
     resume: bool = typer.Option(False, help="Resume from checkpoints/latest.pt."),
 ) -> None:
     """Run PPO self-play training."""
@@ -300,7 +328,12 @@ def resume(
         10, help="Evaluate vs random every N updates (0 = never)."
     ),
     eval_games: int = typer.Option(100, help="Games per evaluation."),
-    data_dir: Path = typer.Option(DATA_DIR, help="Artifact root directory."),
+    data_dir: Path = typer.Option(
+        DATA_DIR,
+        "--output-dir",
+        "-o",
+        help="Output/artifact root directory (checkpoints + logs).",
+    ),
 ) -> None:
     """Resume training from checkpoints/latest.pt (config is restored from the checkpoint)."""
     from pkm.new_agents.agent_000_dragapult.train import TrainState
@@ -333,7 +366,12 @@ def eval(
         None, help="Checkpoint (defaults to checkpoints/latest.pt)."
     ),
     seed: int = typer.Option(0, help="Baseline RNG seed."),
-    data_dir: Path = typer.Option(DATA_DIR, help="Artifact root directory."),
+    data_dir: Path = typer.Option(
+        DATA_DIR,
+        "--output-dir",
+        "-o",
+        help="Output/artifact root directory (checkpoints + logs).",
+    ),
 ) -> None:
     """Report a checkpoint's win-rate vs the random baseline (alternating seats)."""
     from pkm.new_agents.agent_000_dragapult.eval import winrate_vs_random

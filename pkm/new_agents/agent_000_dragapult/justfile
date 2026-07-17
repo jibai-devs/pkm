@@ -3,7 +3,7 @@
 # Artifacts land in <repo>/pkm_data/new_agents/agent_000_dragapult/.
 
 root := justfile_directory() / "../../.."
-cli  := "uv run python -m pkm.new_agents.agent_000_dragapult.cli"
+cli  := "uv run pkm new_agents 000_dragapult"
 
 # List available recipes.
 default:
