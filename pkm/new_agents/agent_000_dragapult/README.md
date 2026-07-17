@@ -4,6 +4,9 @@ A Dragapult ex **specialist** for the cabt competition. Everything here is bound
 to one fixed decklist (`deck.py`): the card vocabulary, tensor dimensions, and
 learned embeddings are meaningless away from this deck.
 
+> **How to train / read metrics / stop & resume: [`TRAINING.md`](TRAINING.md).**
+> Run it with `pkm new_agents 000_dragapult train …` (or the `justfile` here).
+
 Related docs: **state representation coverage map (what's embedded, and where in
 the code)** in [`state-representation.md`]; engine/data model in
 [`../../../../docs/cabt-engine-reference.md`],
