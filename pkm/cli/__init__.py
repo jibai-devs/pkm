@@ -35,45 +35,13 @@ def train(
     games: int = typer.Option(8, help="games per iteration"),
     lr: float = typer.Option(3e-4, help="learning rate"),
     gamma: float = typer.Option(0.99, help="discount factor"),
-    shaping: float = typer.Option(0.2, help="reward shaping coefficient"),
-    board_setup: float = typer.Option(
-        0.0,
-        help="bonus for reaching a board where Dragapult ex can attack and a "
-        "bench Drakloak already has Fire/Psychic energy (0 = off)",
-    ),
-    energy_penalty: float = typer.Option(
-        0.0,
-        help="penalty for attaching energy to the active Pokemon when it "
-        "can already use every attack and retreat (0 = off)",
-    ),
-    budew_bonus: float = typer.Option(
-        0.0,
-        help="bonus for attacking with Budew on your own first turn when "
-        "going second (0 = off)",
-    ),
-    budew_setup: float = typer.Option(
-        0.0,
-        help="bonus for reaching a board where Budew is your active Pokemon "
-        "while going second, early game (0 = off)",
-    ),
-    wrong_type_penalty: float = typer.Option(
-        0.0,
-        help="penalty for attaching energy to a Dreepy/Drakloak/Dragapult ex "
-        "that leaves it with 2 same-type energy (Phantom Dive needs Fire+"
-        "Psychic) (0 = off)",
-    ),
-    dragapult_bonus: float = typer.Option(
-        0.0, help="bonus for attacking with Dragapult ex as active (0 = off)"
-    ),
-    dreepy_spread: float = typer.Option(
-        0.0,
-        help="penalty for stacking energy on a Dreepy that already has some "
-        "while another Dreepy on board has none (0 = off)",
-    ),
-    xerosic: float = typer.Option(
-        0.0,
-        help="bonus for playing Xerosic's Machinations while the opponent "
-        "has 7+ cards, severe penalty if played with 4 or fewer (0 = off)",
+    weights: str | None = typer.Option(
+        None,
+        "--weights",
+        help="path to a JSON file of {term: weight} overrides -- see "
+        "pkm/rl/reward_terms.py for term names and defaults. Defaults to "
+        "the agent's own reward_weights.json (auto-created there on first "
+        "use) when --agent is given, otherwise the built-in defaults.",
     ),
     pool_size: int = typer.Option(8, help="opponent checkpoint pool size"),
     eval_every: int = typer.Option(5, help="evaluate every N iterations"),
@@ -97,15 +65,7 @@ def train(
         games=games,
         lr=lr,
         gamma=gamma,
-        shaping=shaping,
-        board_setup=board_setup,
-        budew_setup=budew_setup,
-        energy_penalty=energy_penalty,
-        budew_bonus=budew_bonus,
-        wrong_type_penalty=wrong_type_penalty,
-        dragapult_bonus=dragapult_bonus,
-        dreepy_spread=dreepy_spread,
-        xerosic=xerosic,
+        weights=weights,
         pool_size=pool_size,
         eval_every=eval_every,
         eval_games=eval_games,

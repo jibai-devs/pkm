@@ -1,2 +1,0 @@
-iter,games,wins,losses,draws,decisions,samples,pi_loss,v_loss,entropy,clip_frac,time_s,eval_win_rate,eval_games
-1,4,2,2,0,808,613,-0.003479,0.068811,1.867729,0.0000,0.48,,

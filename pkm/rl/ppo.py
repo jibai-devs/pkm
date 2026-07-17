@@ -5,6 +5,7 @@ import torch
 
 from .encoder import EncodedDecision
 from .model import PolicyValueNet
+from .reward_terms import DIRECT_TERMS, POTENTIAL_TERMS
 
 
 def compute_returns(
@@ -12,19 +13,13 @@ def compute_returns(
     terminal_reward: float,
     gamma: float = 0.99,
     lam: float = 0.95,
-    shaping_coef: float = 0.2,
-    board_setup_coef: float = 0.0,
-    budew_setup_coef: float = 0.0,
-    energy_penalty_coef: float = 0.0,
-    budew_bonus_coef: float = 0.0,
-    wrong_type_penalty_coef: float = 0.0,
-    dragapult_bonus_coef: float = 0.0,
-    dreepy_spread_coef: float = 0.0,
-    xerosic_coef: float = 0.0,
+    weights: dict[str, float] | None = None,
 ) -> None:
     """Fill advantage/ret on each decision in place.
 
-    Rewards are terminal win/loss, plus two kinds of shaping:
+    `weights` maps a term name (see reward_terms.py) to its coefficient;
+    a missing name means 0.0 (off). Rewards are terminal win/loss, plus two
+    kinds of shaping:
 
     - Potential-based terms, each a pure function of state (not of what was
       picked): r_t += coef * (gamma * phi(s_{t+1}) - phi(s_t)). This leaves
@@ -40,38 +35,31 @@ def compute_returns(
     n = len(trajectory)
     if n == 0:
         return
-    # (coefficient, attribute name) pairs for every potential-based term --
-    # each contributes coef * (gamma * phi(s_{t+1}) - phi(s_t)).
-    potential_terms = (
-        (shaping_coef, "potential"),
-        (board_setup_coef, "board_setup_potential"),
-        (budew_setup_coef, "budew_setup_potential"),
-    )
-    # (coefficient, attribute name) pairs for every direct, action-conditioned
-    # shaping term -- add a new term here rather than another rewards[t] line.
-    direct_terms = (
-        (energy_penalty_coef, "energy_penalty"),
-        (budew_bonus_coef, "budew_bonus"),
-        (wrong_type_penalty_coef, "wrong_type_energy_penalty"),
-        (dragapult_bonus_coef, "dragapult_attack_bonus"),
-        (dreepy_spread_coef, "dreepy_spread_penalty"),
-        (xerosic_coef, "xerosic_bonus"),
-    )
+    w = weights or {}
     rewards = np.zeros(n, dtype=np.float64)
     for t in range(n - 1):
-        for coef, attr in potential_terms:
-            rewards[t] += coef * (
-                gamma * getattr(trajectory[t + 1], attr) - getattr(trajectory[t], attr)
-            )
-        for coef, attr in direct_terms:
-            rewards[t] += coef * getattr(trajectory[t], attr)
+        for name, attr in POTENTIAL_TERMS:
+            coef = w.get(name, 0.0)
+            if coef:
+                rewards[t] += coef * (
+                    gamma * getattr(trajectory[t + 1], attr)
+                    - getattr(trajectory[t], attr)
+                )
+        for name, attr in DIRECT_TERMS:
+            coef = w.get(name, 0.0)
+            if coef:
+                rewards[t] += coef * getattr(trajectory[t], attr)
     # terminal step: shaping toward final potential is folded into the outcome
     # (the terminal state's potential is implicitly 0 -- the game is over).
     rewards[n - 1] = terminal_reward
-    for coef, attr in potential_terms:
-        rewards[n - 1] -= coef * getattr(trajectory[n - 1], attr)
-    for coef, attr in direct_terms:
-        rewards[n - 1] += coef * getattr(trajectory[n - 1], attr)
+    for name, attr in POTENTIAL_TERMS:
+        coef = w.get(name, 0.0)
+        if coef:
+            rewards[n - 1] -= coef * getattr(trajectory[n - 1], attr)
+    for name, attr in DIRECT_TERMS:
+        coef = w.get(name, 0.0)
+        if coef:
+            rewards[n - 1] += coef * getattr(trajectory[n - 1], attr)
 
     gae = 0.0
     for t in reversed(range(n)):

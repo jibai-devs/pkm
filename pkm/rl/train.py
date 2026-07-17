@@ -3,6 +3,7 @@
 Usage:
     pkm train --iterations 50 --games 8
     pkm train --agent 01_psychic --iterations 100
+    pkm train --agent 01_psychic --weights agents/01_psychic/reward_weights.json
 """
 
 import typer
@@ -20,6 +21,7 @@ from pkm.data import Deck
 
 from .model import PolicyValueNet
 from .ppo import ppo_update
+from .reward_terms import DEFAULT_WEIGHTS, load_weights, write_default_weights_file
 from .rollout import (
     RandomPolicy,
     TorchPolicy,
@@ -71,15 +73,7 @@ def train(
     lr: float = 3e-4,
     gamma: float = 0.99,
     lam: float = 0.95,
-    shaping_coef: float = 0.2,
-    board_setup_coef: float = 0.0,
-    budew_setup_coef: float = 0.0,
-    energy_penalty_coef: float = 0.0,
-    budew_bonus_coef: float = 0.0,
-    wrong_type_penalty_coef: float = 0.0,
-    dragapult_bonus_coef: float = 0.0,
-    dreepy_spread_coef: float = 0.0,
-    xerosic_coef: float = 0.0,
+    weights: dict[str, float] | None = None,
     pool_size: int = 8,
     pool_prob: float = 0.4,
     eval_every: int = 5,
@@ -94,6 +88,7 @@ def train(
     random.seed(seed)
     torch.manual_seed(seed)
     rng = random.Random(seed)
+    effective_weights = {**DEFAULT_WEIGHTS, **(weights or {})}
 
     deck = Deck.from_csv(deck_path).card_ids
     model = PolicyValueNet()
@@ -146,20 +141,7 @@ def train(
             for spec, result in zip(specs, results):
                 total_decisions += result.decisions
                 gw, gl, gd = aggregate_result(
-                    spec,
-                    result,
-                    data,
-                    gamma,
-                    lam,
-                    shaping_coef,
-                    energy_penalty_coef,
-                    budew_bonus_coef,
-                    wrong_type_penalty_coef,
-                    dragapult_bonus_coef,
-                    dreepy_spread_coef,
-                    board_setup_coef,
-                    budew_setup_coef,
-                    xerosic_coef,
+                    spec, result, data, gamma, lam, weights=effective_weights
                 )
                 w, losses, d = w + gw, losses + gl, d + gd
 
@@ -239,51 +221,21 @@ app = typer.Typer(help=__doc__)
 
 @app.command()
 def main(
-    agent: str | None = typer.Option(None, help="agent profile name (e.g. 00_basic, 01_psychic)"),
+    agent: str | None = typer.Option(
+        None, help="agent profile name (e.g. 00_basic, 01_psychic)"
+    ),
     deck: str = typer.Option("deck/02_dragapult.csv", help="path to deck CSV"),
     iterations: int = typer.Option(50, help="number of training iterations"),
     games: int = typer.Option(8, help="games per iteration"),
     lr: float = typer.Option(3e-4, help="learning rate"),
     gamma: float = typer.Option(0.99, help="discount factor"),
-    shaping: float = typer.Option(0.2, help="reward shaping coefficient"),
-    board_setup: float = typer.Option(
-        0.0,
-        help="bonus for reaching a board where Dragapult ex can attack and a "
-        "bench Drakloak already has Fire/Psychic energy (0 = off)",
-    ),
-    energy_penalty: float = typer.Option(
-        0.0,
-        help="penalty for attaching energy to the active Pokemon when it "
-        "can already use every attack and retreat (0 = off)",
-    ),
-    budew_bonus: float = typer.Option(
-        0.0,
-        help="bonus for attacking with Budew on your own first turn when "
-        "going second (0 = off)",
-    ),
-    budew_setup: float = typer.Option(
-        0.0,
-        help="bonus for reaching a board where Budew is your active Pokemon "
-        "while going second, early game (0 = off)",
-    ),
-    wrong_type_penalty: float = typer.Option(
-        0.0,
-        help="penalty for attaching energy to a Dreepy/Drakloak/Dragapult ex "
-        "that leaves it with 2 same-type energy (Phantom Dive needs Fire+"
-        "Psychic) (0 = off)",
-    ),
-    dragapult_bonus: float = typer.Option(
-        0.0, help="bonus for attacking with Dragapult ex as active (0 = off)"
-    ),
-    dreepy_spread: float = typer.Option(
-        0.0,
-        help="penalty for stacking energy on a Dreepy that already has some "
-        "while another Dreepy on board has none (0 = off)",
-    ),
-    xerosic: float = typer.Option(
-        0.0,
-        help="bonus for playing Xerosic's Machinations while the opponent "
-        "has 7+ cards, severe penalty if played with 4 or fewer (0 = off)",
+    weights: str | None = typer.Option(
+        None,
+        "--weights",
+        help="path to a JSON file of {term: weight} overrides -- see "
+        "pkm/rl/reward_terms.py for term names and defaults. Defaults to "
+        "the agent's own reward_weights.json (auto-created there on first "
+        "use) when --agent is given, otherwise the built-in defaults.",
     ),
     pool_size: int = typer.Option(8, help="opponent checkpoint pool size"),
     eval_every: int = typer.Option(5, help="evaluate every N iterations"),
@@ -306,21 +258,16 @@ def main(
         log_dir = str(profile.runs_dir / "ppo")
         if init is None:
             init = profile.ppo_init()
+        if weights is None:
+            write_default_weights_file(profile.reward_weights_path)
+            weights = str(profile.reward_weights_path)
     train(
         deck_path=deck,
         iterations=iterations,
         games_per_iter=games,
         lr=lr,
         gamma=gamma,
-        shaping_coef=shaping,
-        board_setup_coef=board_setup,
-        budew_setup_coef=budew_setup,
-        energy_penalty_coef=energy_penalty,
-        budew_bonus_coef=budew_bonus,
-        wrong_type_penalty_coef=wrong_type_penalty,
-        dragapult_bonus_coef=dragapult_bonus,
-        dreepy_spread_coef=dreepy_spread,
-        xerosic_coef=xerosic,
+        weights=load_weights(weights),
         pool_size=pool_size,
         eval_every=eval_every,
         eval_games=eval_games,

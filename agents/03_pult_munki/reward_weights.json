@@ -1,0 +1,18 @@
+{
+  "shaping": 0.05,
+  "board_setup": 0.1,
+  "budew_setup": 0.075,
+  "dreepy_field": 0.075,
+  "energy_penalty": 0.175,
+  "budew_bonus": 0.125,
+  "wrong_type_penalty": 0.125,
+  "dragapult_bonus": 0.075,
+  "dreepy_spread": 0.075,
+  "xerosic": 0.125,
+  "budew_bench_setup": 0.125,
+  "dreepy_evolve": 0.125,
+  "dreepy_bench_charge": 0.125,
+  "dreepy_active_charge": 0.15,
+  "wasted_resources": 0.1,
+  "phantom_dive": 0.15
+}
