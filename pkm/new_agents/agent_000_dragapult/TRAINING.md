@@ -211,6 +211,14 @@ tensorboard --logdir pkm_data/new_agents/agent_000_dragapult/runs
 Scalars are grouped: `loss/policy`, `loss/value`, `policy/entropy`,
 `eval/win_rate`, `rollout/*`. Disable with `--no-tb`; custom dir with `--log-dir`.
 
+**Backfill from CSV.** For a run that predates TensorBoard logging (only its
+`train.csv` exists), replay the whole history into TensorBoard:
+```bash
+pkm new_agents 000_dragapult import-csv          # -> runs/csv-import/
+```
+It reads `<output>/logs/train.csv` (override with `--csv`) and writes the same
+grouped scalars, so the full history shows up alongside live runs.
+
 **Weights & Biases — opt in with `--wandb-project`**, and **offline by default**
 (fully local, no network; run dirs under `<output>/wandb/`). Sync to the cloud
 later with `wandb sync`, or stream live with `--wandb-mode online` (needs

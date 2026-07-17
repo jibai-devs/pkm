@@ -597,5 +597,62 @@ def sweep(
     console.print(f"[dim]dashboard:[/] optuna-dashboard {storage}")
 
 
+@app.command(name="import-csv")
+def import_csv(
+    csv: Optional[Path] = typer.Option(
+        None, help="train.csv to import (default: <output>/logs/train.csv)."
+    ),
+    run_name: str = typer.Option(
+        "csv-import", help="TensorBoard run name for the imported history."
+    ),
+    data_dir: Path = typer.Option(
+        DATA_DIR,
+        "--output-dir",
+        "-o",
+        help="Output/artifact root directory (checkpoints + logs).",
+    ),
+) -> None:
+    """Backfill TensorBoard from an existing train.csv.
+
+    Useful for runs started before TensorBoard logging existed: replays every CSV
+    row through the same TensorBoard sink so the full history shows up under
+    <output>/runs/<run-name>/ with the usual grouped scalars.
+    """
+    import csv as csvlib
+
+    from pkm.new_agents.agent_000_dragapult.monitor import RunContext, TensorBoardSink
+
+    p = _paths(data_dir)
+    csv_path = Path(csv) if csv else p["csv"]
+    if not csv_path.exists():
+        console.print(f"[red]no CSV at[/] {csv_path}")
+        raise typer.Exit(1)
+
+    log_dir = p["runs"] / run_name
+    sink = TensorBoardSink(log_dir)
+    sink.start(
+        RunContext(run_name=run_name, config={}, config_hash="", output_dir=p["data"])
+    )
+    n = 0
+    with csv_path.open(newline="") as fh:
+        for row in csvlib.DictReader(fh):
+            if not row.get("update"):
+                continue
+            update = int(float(row["update"]))
+            stats = {
+                k: float(v)
+                for k, v in row.items()
+                if k != "update" and v not in (None, "")
+            }
+            sink.log(update, update, stats)
+            n += 1
+    sink.close()
+    console.print(
+        f"[green]imported[/] {n} rows from {csv_path}\n"
+        f"[dim]->[/] {log_dir}\n"
+        f"[dim]view:[/] tensorboard --logdir {p['runs']}"
+    )
+
+
 if __name__ == "__main__":
     app()
