@@ -28,3 +28,23 @@ resume updates="50" games="16" workers="1":
 # Win-rate of the latest checkpoint vs the random baseline.
 eval games="100":
     cd {{root}} && {{cli}} eval --games {{games}}
+
+# Launch TensorBoard over this agent's runs/ dir.
+tensorboard port="6006":
+    cd {{root}} && uv run tensorboard --logdir=pkm_data/new_agents/agent_000_dragapult/runs --port {{port}}
+
+# Optuna hyperparameter sweep. e.g. `just sweep trials=30 updates=15 games=32 workers=8`.
+sweep trials="30" updates="15" games="32" workers="8":
+    cd {{root}} && {{cli}} sweep --trials {{trials}} --updates {{updates}} --games {{games}} --workers {{workers}}
+
+# Backfill TensorBoard from an existing train.csv (-> runs/csv-import/).
+import-csv:
+    cd {{root}} && {{cli}} import-csv
+
+# Pack the latest weights into a Kaggle submission bundle (.tar.gz).
+pack:
+    cd {{root}} && {{cli}} pack
+
+# Upload the newest packed bundle to Kaggle. e.g. `just submit message="v1"`.
+submit message="agent_000_dragapult":
+    cd {{root}} && {{cli}} submit --message "{{message}}"
