@@ -71,6 +71,7 @@ def _paths(data_dir: Path) -> dict[str, Path]:
         "runs": data_dir / "runs",  # TensorBoard event files
         "wandb": data_dir / "wandb",  # wandb (offline) run dirs
         "sweeps": data_dir / "sweeps",  # Optuna sqlite studies
+        "submissions": data_dir / "submissions",  # packed .tar.gz bundles
     }
 
 
@@ -652,6 +653,141 @@ def import_csv(
         f"[dim]->[/] {log_dir}\n"
         f"[dim]view:[/] tensorboard --logdir {p['runs']}"
     )
+
+
+_MAX_BUNDLE_MIB = 197.7  # Kaggle submission size limit
+_COMPETITION = "pokemon-tcg-ai-battle"
+
+
+@app.command()
+def pack(
+    checkpoint: Optional[Path] = typer.Option(
+        None, help="Checkpoint to pack (default: checkpoints/latest.pt)."
+    ),
+    data_dir: Path = typer.Option(
+        DATA_DIR,
+        "--output-dir",
+        "-o",
+        help="Output/artifact root directory (checkpoints + logs).",
+    ),
+) -> None:
+    """Pack the latest weights into a Kaggle submission bundle (.tar.gz).
+
+    Extracts the model weights from the checkpoint into ``weights.pt``, adds the
+    submission ``main.py`` entry point and the ``pkm/`` package, and writes a
+    timestamped tarball under <output>/submissions/. Torch is NOT bundled (size
+    limit); the bundle relies on torch existing in the cabt sandbox at inference.
+    """
+    import tarfile
+    import tempfile
+    from datetime import datetime as _dt
+
+    import torch
+
+    p = _paths(data_dir)
+    ckpt = checkpoint or (p["ckpt"] / "latest.pt")
+    if not ckpt.exists():
+        console.print(f"[red]no checkpoint at[/] {ckpt}")
+        raise typer.Exit(1)
+    repo_root = Path(__file__).resolve().parents[3]
+    template = Path(__file__).with_name("submit_main.py")
+    p["submissions"].mkdir(parents=True, exist_ok=True)
+
+    # Extract just the model state_dict (checkpoints are TrainState blobs).
+    blob = torch.load(ckpt, map_location="cpu", weights_only=False)
+    state_dict = blob["model"] if isinstance(blob, dict) and "model" in blob else blob
+
+    def _no_pycache(info: tarfile.TarInfo):
+        base = Path(info.name).name
+        if "__pycache__" in info.name or base.endswith((".pyc", ".pyo")):
+            return None
+        return info
+
+    ts = _dt.now().strftime("%Y%m%d_%H%M%S")
+    out = p["submissions"] / f"submission_{ts}.tar.gz"
+    with tempfile.TemporaryDirectory() as tmp:
+        weights_file = Path(tmp) / "weights.pt"
+        torch.save(state_dict, weights_file)
+        with tarfile.open(out, "w:gz") as tar:
+            tar.add(template, arcname="main.py")
+            tar.add(weights_file, arcname="weights.pt")
+            tar.add(repo_root / "pkm", arcname="pkm", filter=_no_pycache)
+
+    size_mib = out.stat().st_size / 1024 / 1024
+    ok = size_mib <= _MAX_BUNDLE_MIB
+    console.print(
+        f"[green]packed[/] {ckpt.name} -> {out}\n"
+        f"[dim]size:[/] {size_mib:.1f} MiB "
+        + (
+            f"[green](≤ {_MAX_BUNDLE_MIB} limit)[/]"
+            if ok
+            else f"[red](> {_MAX_BUNDLE_MIB} limit!)[/]"
+        )
+    )
+    console.print(
+        "[yellow]note:[/] inference uses torch; the bundle assumes the cabt "
+        "sandbox provides it (no torch is bundled)."
+    )
+    console.print("[dim]submit with:[/] pkm new_agents 000_dragapult submit")
+
+
+@app.command()
+def submit(
+    bundle: Optional[Path] = typer.Option(
+        None, help="Bundle to submit (default: newest <output>/submissions/*.tar.gz)."
+    ),
+    message: str = typer.Option(
+        "agent_000_dragapult", help="Kaggle submission message."
+    ),
+    competition: str = typer.Option(_COMPETITION, help="Kaggle competition slug."),
+    data_dir: Path = typer.Option(
+        DATA_DIR,
+        "--output-dir",
+        "-o",
+        help="Output/artifact root directory (checkpoints + logs).",
+    ),
+) -> None:
+    """Upload a packed bundle to Kaggle (`kaggle competitions submit`).
+
+    Requires the `kaggle` CLI and configured credentials (`~/.kaggle/kaggle.json`).
+    Defaults to the newest bundle produced by `pack`.
+    """
+    import shutil
+    import subprocess
+
+    p = _paths(data_dir)
+    if bundle is None:
+        bundles = sorted(p["submissions"].glob("submission_*.tar.gz"))
+        if not bundles:
+            console.print(
+                f"[red]no bundles in[/] {p['submissions']} — run `pack` first."
+            )
+            raise typer.Exit(1)
+        bundle = bundles[-1]
+    if not bundle.exists():
+        console.print(f"[red]no bundle at[/] {bundle}")
+        raise typer.Exit(1)
+    if shutil.which("kaggle") is None:
+        console.print(
+            "[red]`kaggle` CLI not found.[/] Install: uv add --group dev kaggle"
+        )
+        raise typer.Exit(1)
+
+    cmd = [
+        "kaggle",
+        "competitions",
+        "submit",
+        "-c",
+        competition,
+        "-f",
+        str(bundle),
+        "-m",
+        message,
+    ]
+    console.print(f"[dim]submitting[/] {bundle.name} [dim]to[/] {competition}")
+    console.print(f"[dim]$[/] {' '.join(cmd)}")
+    result = subprocess.run(cmd)
+    raise typer.Exit(result.returncode)
 
 
 if __name__ == "__main__":

@@ -274,6 +274,35 @@ checkpoints via the config-hash guard, forcing a full retrain): the model dims i
 
 ---
 
+## 10. Packaging & submitting to Kaggle
+
+Two commands turn a trained checkpoint into a Kaggle submission:
+
+```bash
+pkm new_agents 000_dragapult pack       # latest.pt -> <output>/submissions/submission_<ts>.tar.gz
+pkm new_agents 000_dragapult submit     # upload the newest bundle to Kaggle
+```
+
+**`pack`** extracts the model weights from the checkpoint into `weights.pt`, adds
+the submission entry point (`submit_main.py` → `main.py`, a plain `agent(obs)`
+callable) and the `pkm/` package, and writes a timestamped `.tar.gz`. It prints
+the size and checks it against the 197.7 MiB limit. Pack a specific checkpoint
+with `--checkpoint path/to/ckpt.pt`.
+
+**`submit`** runs `kaggle competitions submit -c pokemon-tcg-ai-battle -f <bundle>`
+on the newest bundle (override with `--bundle`, `--competition`, `--message`).
+Requires the `kaggle` CLI and credentials (`~/.kaggle/kaggle.json`).
+
+> ⚠️ **Inference uses torch.** Unlike the original `pkm` agent (which exports a
+> numpy `policy.npz` for torch-free eval), this agent runs a `PolicyValueModel` at
+> inference. Torch is **not** bundled (it exceeds the size limit), so the bundle
+> only runs on Kaggle **if the cabt sandbox provides torch**. If it doesn't, the
+> submission will fail on import — the fix is to add a numpy-only inference path
+> (port the encoder/model forward to numpy, like the old agent's export). Verify
+> before relying on a live submission.
+
+---
+
 ## 10. Notes / gotchas
 
 - **CPU by design.** The net is tiny (~79k params) and the bottleneck is the C++
