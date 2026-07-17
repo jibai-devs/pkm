@@ -20,10 +20,10 @@ from typing import Any
 
 import torch
 
-from pkm.cabt.api import to_observation
-from pkm.agents.agent_000_dragapult.deck import DECK_60
-from pkm.agents.agent_000_dragapult.features import featurize
-from pkm.agents.agent_000_dragapult.model import PolicyValueModel, collate
+from pkm.new_agents.agent_000_dragapult.cabt import to_observation
+from pkm.new_agents.agent_000_dragapult.deck import DECK_60
+from pkm.new_agents.agent_000_dragapult.features import featurize
+from pkm.new_agents.agent_000_dragapult.model import PolicyValueModel, collate
 
 
 class DragapultAgent:
@@ -65,7 +65,7 @@ class DragapultAgent:
 
         batch = collate([feats])
         logits, _value = self.model(batch)
-        probs = torch.softmax(logits[0, :n], dim=-1)   # only the n real options
+        probs = torch.softmax(logits[0, :n], dim=-1)  # only the n real options
 
         if self.greedy:
             idx = torch.topk(probs, k).indices

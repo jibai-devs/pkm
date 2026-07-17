@@ -12,18 +12,25 @@ the same `model.evaluate()` interface.
 
 from __future__ import annotations
 
+import csv
 import random
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 import numpy as np
 import torch
 
-from pkm.cabt import battle_finish, battle_select, battle_start, to_observation
-from pkm.agents.agent_000_dragapult import deck, policy
-from pkm.agents.agent_000_dragapult.config import Config, build_model
-from pkm.agents.agent_000_dragapult.features import Features, featurize
-from pkm.agents.agent_000_dragapult.model import collate
+from pkm.new_agents.agent_000_dragapult.cabt import (
+    battle_finish,
+    battle_select,
+    battle_start,
+    to_observation,
+)
+from pkm.new_agents.agent_000_dragapult import deck, policy
+from pkm.new_agents.agent_000_dragapult.config import Config, build_model
+from pkm.new_agents.agent_000_dragapult.features import Features, featurize
+from pkm.new_agents.agent_000_dragapult.model import collate
 
 
 @dataclass
@@ -43,12 +50,13 @@ class Step:
 # Rollout (self-play)
 # --------------------------------------------------------------------------- #
 
+
 def _seat_reward(result: int, seat: int) -> float:
     if result == seat:
         return 1.0
-    if result in (0, 1):        # a decisive result for the other seat
+    if result in (0, 1):  # a decisive result for the other seat
         return -1.0
-    return 0.0                  # draw / unknown
+    return 0.0  # draw / unknown
 
 
 def _gae(steps: list[Step], gamma: float, lam: float, result: int) -> None:
@@ -76,13 +84,15 @@ def play_game(
     n_iter = 0
     while obs["current"]["result"] < 0 and n_iter < 100000:
         if obs["select"] is None or obs["current"] is None:
-            obs = battle_select(list(deck.DECK_60))          # deck-selection phase
+            obs = battle_select(list(deck.DECK_60))  # deck-selection phase
             n_iter += 1
             continue
         f = featurize(to_observation(obs))
         n = f.n_options
         if n == 0:
-            obs = battle_select([]); n_iter += 1; continue
+            obs = battle_select([])
+            n_iter += 1
+            continue
         b = collate([f])
         with torch.no_grad():
             logits, value = model(b)
@@ -90,8 +100,15 @@ def play_game(
         valid = torch.zeros(logits.shape[1], dtype=torch.bool)
         valid[:n] = True
         picks, logprob = policy.sample_action(logits[0], valid, k, gen=gen)
-        steps.append(Step(features=f, action=picks, logprob=logprob,
-                          value=float(value[0]), seat=obs["current"]["yourIndex"]))
+        steps.append(
+            Step(
+                features=f,
+                action=picks,
+                logprob=logprob,
+                value=float(value[0]),
+                seat=obs["current"]["yourIndex"],
+            )
+        )
         obs = battle_select(picks)
         n_iter += 1
     result = obs["current"]["result"]
@@ -101,7 +118,10 @@ def play_game(
 
 
 def collect_rollout(
-    model: torch.nn.Module, n_games: int, cfg: Config, gen: torch.Generator | None = None
+    model: torch.nn.Module,
+    n_games: int,
+    cfg: Config,
+    gen: torch.Generator | None = None,
 ) -> tuple[list[Step], dict[str, float]]:
     model.eval()
     steps: list[Step] = []
@@ -124,6 +144,7 @@ def collect_rollout(
 # PPO update
 # --------------------------------------------------------------------------- #
 
+
 def _minibatch(steps: list[Step]) -> dict[str, torch.Tensor]:
     """Collate a list of steps into a training batch."""
     b = collate([s.features for s in steps])
@@ -141,7 +162,10 @@ def _minibatch(steps: list[Step]) -> dict[str, torch.Tensor]:
 
 
 def ppo_update(
-    model: torch.nn.Module, optimizer: torch.optim.Optimizer, steps: list[Step], cfg: Config
+    model: torch.nn.Module,
+    optimizer: torch.optim.Optimizer,
+    steps: list[Step],
+    cfg: Config,
 ) -> dict[str, float]:
     model.train()
     tc = cfg.train
@@ -158,7 +182,9 @@ def ppo_update(
                 continue
             b = _minibatch(mb)
             logits, value = model(b)
-            new_lp = policy.batched_action_logprob(logits, b["option_mask"], b["actions"], b["action_len"])
+            new_lp = policy.batched_action_logprob(
+                logits, b["option_mask"], b["actions"], b["action_len"]
+            )
             ent = policy.batched_entropy(logits, b["option_mask"]).mean()
             adv = (b["adv"] - adv_mean) / adv_std
             ratio = (new_lp - b["old_logprob"]).exp()
@@ -171,16 +197,22 @@ def ppo_update(
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), tc.max_grad_norm)
             optimizer.step()
-            stats["pol_loss"] += pol_loss.item(); stats["val_loss"] += val_loss.item()
-            stats["entropy"] += ent.item(); stats["n"] += 1
+            stats["pol_loss"] += pol_loss.item()
+            stats["val_loss"] += val_loss.item()
+            stats["entropy"] += ent.item()
+            stats["n"] += 1
     n = max(stats["n"], 1)
-    return {"pol_loss": stats["pol_loss"] / n, "val_loss": stats["val_loss"] / n,
-            "entropy": stats["entropy"] / n}
+    return {
+        "pol_loss": stats["pol_loss"] / n,
+        "val_loss": stats["val_loss"] / n,
+        "entropy": stats["entropy"] / n,
+    }
 
 
 # --------------------------------------------------------------------------- #
 # Checkpoint / resume
 # --------------------------------------------------------------------------- #
+
 
 @dataclass
 class TrainState:
@@ -206,7 +238,7 @@ class TrainState:
         }
         tmp = path.with_suffix(path.suffix + ".tmp")
         torch.save(blob, tmp)
-        tmp.replace(path)   # atomic
+        tmp.replace(path)  # atomic
 
     @classmethod
     def load(cls, path: str | Path) -> "TrainState":
@@ -221,28 +253,84 @@ class TrainState:
         torch.set_rng_state(blob["rng"]["torch"])
         np.random.set_state(blob["rng"]["numpy"])
         random.setstate(blob["rng"]["python"])
-        return cls(cfg=cfg, model=model, optimizer=optimizer, update_idx=blob["update_idx"])
+        return cls(
+            cfg=cfg, model=model, optimizer=optimizer, update_idx=blob["update_idx"]
+        )
+
+
+# --------------------------------------------------------------------------- #
+# Metrics logging
+# --------------------------------------------------------------------------- #
+
+CSV_FIELDS = [
+    "update",
+    "games",
+    "steps",
+    "p0_win",
+    "p1_win",
+    "pol_loss",
+    "val_loss",
+    "entropy",
+    "eval_win_rate",
+]
+
+
+class CsvLogger:
+    """Append one row of per-update metrics to a CSV (header written once)."""
+
+    def __init__(self, path: str | Path):
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        if not self.path.exists():
+            with self.path.open("w", newline="") as fh:
+                csv.DictWriter(fh, fieldnames=CSV_FIELDS).writeheader()
+
+    def log(self, row: dict) -> None:
+        with self.path.open("a", newline="") as fh:
+            csv.DictWriter(fh, fieldnames=CSV_FIELDS).writerow(
+                {k: row.get(k, "") for k in CSV_FIELDS}
+            )
 
 
 # --------------------------------------------------------------------------- #
 # Train loop
 # --------------------------------------------------------------------------- #
 
-def train(cfg: Config, updates: int, games_per_update: int, ckpt_dir: str | Path,
-          resume: bool = False, eval_every: int = 0, eval_games: int = 100) -> TrainState:
+
+def train(
+    cfg: Config,
+    updates: int,
+    games_per_update: int,
+    ckpt_dir: str | Path,
+    resume: bool = False,
+    eval_every: int = 0,
+    eval_games: int = 100,
+    log_csv: str | Path | None = None,
+    on_update: Callable[[int, int, dict], None] | None = None,
+) -> TrainState:
+    """Run ``updates`` PPO self-play updates.
+
+    ``on_update(update_idx, total_updates, stats)`` is called after every update
+    for progress display (falls back to ``print`` when not given). ``log_csv``, if
+    set, receives one metrics row per update.
+    """
     ckpt_dir = Path(ckpt_dir)
     latest = ckpt_dir / "latest.pt"
     if resume and latest.exists():
         ts = TrainState.load(latest)
-        print(f"resumed at update {ts.update_idx}")
     else:
         model = build_model(cfg)
         opt = torch.optim.Adam(model.parameters(), lr=cfg.train.lr)
         ts = TrainState(cfg=cfg, model=model, optimizer=opt)
 
+    logger = CsvLogger(log_csv) if log_csv else None
+    start_idx = ts.update_idx
+    target = start_idx + updates
+
     pool = None
     if cfg.train.num_workers and cfg.train.num_workers > 1:
-        from pkm.agents.agent_000_dragapult.parallel import ParallelRollout
+        from pkm.new_agents.agent_000_dragapult.parallel import ParallelRollout
+
         pool = ParallelRollout(cfg, cfg.train.num_workers, base_seed=cfg.train.seed)
     try:
         for _ in range(updates):
@@ -252,12 +340,21 @@ def train(cfg: Config, updates: int, games_per_update: int, ckpt_dir: str | Path
                 steps, roll_stats = collect_rollout(ts.model, games_per_update, cfg)
             upd_stats = ppo_update(ts.model, ts.optimizer, steps, cfg)
             ts.update_idx += 1
-            print(f"update {ts.update_idx}: {roll_stats} {upd_stats}")
+
+            stats = {**roll_stats, **upd_stats}
             if eval_every and ts.update_idx % eval_every == 0:
-                from pkm.agents.agent_000_dragapult.eval import winrate_vs_random
+                from pkm.new_agents.agent_000_dragapult.eval import winrate_vs_random
+
                 ev = winrate_vs_random(ts.model, n_games=eval_games)
-                print(f"  eval@{ts.update_idx} vs random: win_rate={ev['win_rate']:.2%} "
-                      f"(W{ev['wins']}/L{ev['losses']}/D{ev['draws']})")
+                stats["eval_win_rate"] = ev["win_rate"]
+
+            if logger is not None:
+                logger.log({"update": ts.update_idx, **stats})
+            if on_update is not None:
+                on_update(ts.update_idx, target, stats)
+            else:
+                print(f"update {ts.update_idx}/{target}: {stats}")
+
             if ts.update_idx % cfg.run.checkpoint_every_updates == 0:
                 ts.save(ckpt_dir / f"ckpt_{ts.update_idx}.pt")
             ts.save(latest)

@@ -21,23 +21,28 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 
-from pkm.cabt.api import Attack, CardData, all_attack, all_card_data
+from pkm.new_agents.agent_000_dragapult.cabt import (
+    Attack,
+    CardData,
+    all_attack,
+    all_card_data,
+)
 
 _SPEC = json.loads(Path(__file__).with_name("spec.json").read_text())
-_MAX_HP = float(_SPEC["global_max"]["max_hp"])              # 380
+_MAX_HP = float(_SPEC["global_max"]["max_hp"])  # 380
 _MAX_RETREAT = float(_SPEC["global_max"]["max_retreat_cost"])  # 4
-_MAX_DMG = float(_SPEC["global_max"]["max_damage"])         # 350
+_MAX_DMG = float(_SPEC["global_max"]["max_damage"])  # 350
 _MAX_ATK = float(_SPEC["global_max"]["max_attacks_per_card"])  # 2
-_N_CARD = _SPEC["constants"]["n_card_types"]                # 7
-_N_ENERGY = _SPEC["constants"]["n_energy_types"]            # 12
+_N_CARD = _SPEC["constants"]["n_card_types"]  # 7
+_N_ENERGY = _SPEC["constants"]["n_energy_types"]  # 12
 
 # Documented column layout of each card's attribute vector.
 ATTR_COLS = (
     ["hp_norm", "retreat_norm"]
-    + [f"cardtype_{i}" for i in range(_N_CARD)]        # one-hot CardType
-    + [f"energy_{i}" for i in range(_N_ENERGY)]        # one-hot energyType
-    + [f"weak_{i}" for i in range(_N_ENERGY)]          # one-hot weakness (zeros if none)
-    + [f"resist_{i}" for i in range(_N_ENERGY)]        # one-hot resistance (zeros if none)
+    + [f"cardtype_{i}" for i in range(_N_CARD)]  # one-hot CardType
+    + [f"energy_{i}" for i in range(_N_ENERGY)]  # one-hot energyType
+    + [f"weak_{i}" for i in range(_N_ENERGY)]  # one-hot weakness (zeros if none)
+    + [f"resist_{i}" for i in range(_N_ENERGY)]  # one-hot resistance (zeros if none)
     + ["basic", "stage1", "stage2", "ex", "megaEx", "tera", "aceSpec"]
     + ["max_atk_dmg_norm", "n_attacks_norm"]
 )
@@ -47,10 +52,14 @@ A = len(ATTR_COLS)
 def _attr_vector(cd: CardData, atk_by_id: dict[int, Attack]) -> npt.NDArray[np.float32]:
     v = np.zeros(A, dtype=np.float32)
     i = 0
-    v[i] = cd.hp / _MAX_HP; i += 1
-    v[i] = cd.retreatCost / _MAX_RETREAT; i += 1
-    v[i + int(cd.cardType)] = 1.0; i += _N_CARD
-    v[i + int(cd.energyType)] = 1.0; i += _N_ENERGY
+    v[i] = cd.hp / _MAX_HP
+    i += 1
+    v[i] = cd.retreatCost / _MAX_RETREAT
+    i += 1
+    v[i + int(cd.cardType)] = 1.0
+    i += _N_CARD
+    v[i + int(cd.energyType)] = 1.0
+    i += _N_ENERGY
     if cd.weakness is not None:
         v[i + int(cd.weakness)] = 1.0
     i += _N_ENERGY
@@ -58,10 +67,13 @@ def _attr_vector(cd: CardData, atk_by_id: dict[int, Attack]) -> npt.NDArray[np.f
         v[i + int(cd.resistance)] = 1.0
     i += _N_ENERGY
     for flag in (cd.basic, cd.stage1, cd.stage2, cd.ex, cd.megaEx, cd.tera, cd.aceSpec):
-        v[i] = float(flag); i += 1
+        v[i] = float(flag)
+        i += 1
     dmgs = [atk_by_id[a].damage for a in cd.attacks if a in atk_by_id]
-    v[i] = (max(dmgs) / _MAX_DMG) if dmgs else 0.0; i += 1
-    v[i] = len(cd.attacks) / _MAX_ATK; i += 1
+    v[i] = (max(dmgs) / _MAX_DMG) if dmgs else 0.0
+    i += 1
+    v[i] = len(cd.attacks) / _MAX_ATK
+    i += 1
     return v
 
 

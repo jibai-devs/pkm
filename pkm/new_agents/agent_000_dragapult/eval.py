@@ -16,9 +16,13 @@ from typing import Any, Callable
 
 import torch
 
-from pkm.cabt import battle_finish, battle_select, battle_start
-from pkm.agents.agent_000_dragapult.agent import DragapultAgent
-from pkm.agents.agent_000_dragapult.deck import DECK_60
+from pkm.new_agents.agent_000_dragapult.cabt import (
+    battle_finish,
+    battle_select,
+    battle_start,
+)
+from pkm.new_agents.agent_000_dragapult.agent import DragapultAgent
+from pkm.new_agents.agent_000_dragapult.deck import DECK_60
 
 AgentFn = Callable[[dict[str, Any]], list[int]]
 
@@ -47,7 +51,7 @@ def play_match(agent_fn: AgentFn, opp_fn: AgentFn, agent_seat: int) -> int:
     it = 0
     while obs["current"]["result"] < 0 and it < 100000:
         if obs["select"] is None or obs["current"] is None:
-            obs = battle_select(list(DECK_60))            # deck-selection phase
+            obs = battle_select(list(DECK_60))  # deck-selection phase
             it += 1
             continue
         who = obs["current"]["yourIndex"]
@@ -62,7 +66,9 @@ def play_match(agent_fn: AgentFn, opp_fn: AgentFn, agent_seat: int) -> int:
     return 0
 
 
-def evaluate(agent_fn: AgentFn, opp_fn: AgentFn, n_games: int = 100) -> dict[str, float]:
+def evaluate(
+    agent_fn: AgentFn, opp_fn: AgentFn, n_games: int = 100
+) -> dict[str, float]:
     """Win-rate of agent_fn vs opp_fn over n_games, alternating seats (removes
     first-player bias)."""
     wins = losses = draws = 0
@@ -76,13 +82,20 @@ def evaluate(agent_fn: AgentFn, opp_fn: AgentFn, n_games: int = 100) -> dict[str
             draws += 1
     n = max(n_games, 1)
     return {
-        "n": n_games, "wins": wins, "losses": losses, "draws": draws,
-        "win_rate": wins / n, "loss_rate": losses / n, "draw_rate": draws / n,
+        "n": n_games,
+        "wins": wins,
+        "losses": losses,
+        "draws": draws,
+        "win_rate": wins / n,
+        "loss_rate": losses / n,
+        "draw_rate": draws / n,
     }
 
 
 @torch.no_grad()
-def winrate_vs_random(model: torch.nn.Module, n_games: int = 100, seed: int = 0) -> dict[str, float]:
+def winrate_vs_random(
+    model: torch.nn.Module, n_games: int = 100, seed: int = 0
+) -> dict[str, float]:
     """Convenience: greedy agent from `model` vs a RandomAgent baseline."""
     agent = DragapultAgent(model=model, greedy=True)
     return evaluate(agent, RandomAgent(seed=seed), n_games=n_games)

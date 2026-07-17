@@ -6,7 +6,7 @@ Everything here is derived from the engine's *static* card/attack tables
 deterministic and reproducible (unlike gameplay-derived maxima such as the
 number of options in a selection, which are stochastic and bounded at runtime).
 
-Run:  ``uv run python -m pkm.agents.agent_000_dragapult.build_spec``
+Run:  ``uv run python -m pkm.new_agents.agent_000_dragapult.build_spec``
 Writes ``spec.json`` next to this file and prints a summary.
 """
 
@@ -16,8 +16,14 @@ import json
 from pathlib import Path
 from typing import Any
 
-from pkm.cabt.api import CardType, EnergyType, SpecialConditionType, all_attack, all_card_data
-from pkm.agents.agent_000_dragapult import deck
+from pkm.new_agents.agent_000_dragapult.cabt import (
+    CardType,
+    EnergyType,
+    SpecialConditionType,
+    all_attack,
+    all_card_data,
+)
+from pkm.new_agents.agent_000_dragapult import deck
 
 SPEC_PATH = Path(__file__).with_name("spec.json")
 
@@ -46,7 +52,9 @@ def build_spec() -> dict[str, Any]:
         "max_retreat_cost": max((c.retreatCost for c in own_cards), default=0),
         "max_attacks_per_card": max((len(c.attacks) for c in own_cards), default=0),
         "max_damage": max((a.damage for a in own_attacks), default=0),
-        "max_energies_per_attack": max((len(a.energies) for a in own_attacks), default=0),
+        "max_energies_per_attack": max(
+            (len(a.energies) for a in own_attacks), default=0
+        ),
         "num_own_attacks": len(own_attack_ids),
     }
 

@@ -26,70 +26,109 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 
-from pkm.cabt.api import Card, Observation, Option, Pokemon
-from pkm.agents.agent_000_dragapult import deck
+from pkm.new_agents.agent_000_dragapult.cabt import Card, Observation, Option, Pokemon
+from pkm.new_agents.agent_000_dragapult import deck
 
 FEATURE_VERSION = "v1"
 
 _SPEC = json.loads(Path(__file__).with_name("spec.json").read_text())
-_MAX_HP = float(_SPEC["global_max"]["max_hp"])          # 380
-_N_ENERGY = _SPEC["constants"]["n_energy_types"]        # 12
-_BOARD_SLOTS = _SPEC["constants"]["board_slots"]        # 12
-_VOCAB = deck.VOCAB_SIZE                                 # 27
+_MAX_HP = float(_SPEC["global_max"]["max_hp"])  # 380
+_N_ENERGY = _SPEC["constants"]["n_energy_types"]  # 12
+_BOARD_SLOTS = _SPEC["constants"]["board_slots"]  # 12
+_VOCAB = deck.VOCAB_SIZE  # 27
 
 # --- normalizers, with sources (no magic numbers) ---
 # Rule / spec-derived (exact, meaningful denominators):
-_DECK_SIZE = _SPEC["vocab"]["deck_size"]                # 60 — deck-construction rule
-_BENCH_MAX = _SPEC["constants"]["bench_max"]            # 5  — max bench
-_N_PRIZES = 6                                           # standard Prize count (game rule)
-_MAX_AREA = 24                                          # max AreaType code (core/CardTypes.h:18)
+_DECK_SIZE = _SPEC["vocab"]["deck_size"]  # 60 — deck-construction rule
+_BENCH_MAX = _SPEC["constants"]["bench_max"]  # 5  — max bench
+_N_PRIZES = 6  # standard Prize count (game rule)
+_MAX_AREA = 24  # max AreaType code (core/CardTypes.h:18)
 # Arbitrary display scales: no natural maximum exists, so these are provisional
 # ~typical magnitudes chosen only to keep inputs O(1). Tune later; not meaningful.
 _TURN_SCALE = 50.0
 _ACTION_SCALE = 10.0
 _HAND_SCALE = 15.0
-_INDEX_SCALE = 12.0     # provisional: index-within-area (bench/hand) magnitude
-_NUMBER_SCALE = 64.0    # provisional: COUNT option numeric magnitude
-_ATTACH_SCALE = 8.0     # provisional: tool/energy sub-index magnitude
+_INDEX_SCALE = 12.0  # provisional: index-within-area (bench/hand) magnitude
+_NUMBER_SCALE = 64.0  # provisional: COUNT option numeric magnitude
+_ATTACH_SCALE = 8.0  # provisional: tool/energy sub-index magnitude
 
 # entity_feat column layout (F = 26); documented so downstream never guesses.
 ENTITY_FEAT_COLS = (
-    ["hp_norm", "maxhp_norm", "hp_frac", "appear_this_turn",
-     "n_tools", "n_energy_cards", "evo_depth", "is_own", "is_active"]
+    [
+        "hp_norm",
+        "maxhp_norm",
+        "hp_frac",
+        "appear_this_turn",
+        "n_tools",
+        "n_energy_cards",
+        "evo_depth",
+        "is_own",
+        "is_active",
+    ]
     + [f"energy_{i}" for i in range(_N_ENERGY)]
     + ["poisoned", "burned", "asleep", "paralyzed", "confused"]
 )
 F = len(ENTITY_FEAT_COLS)  # 26
 
 GLOBAL_COLS = [
-    "turn", "turn_action_count", "we_are_first",
-    "supporter_played", "stadium_played", "energy_attached", "retreated",
-    "own_prize", "opp_prize", "own_deck", "opp_deck",
-    "own_hand", "opp_hand", "stadium_present", "own_bench", "opp_bench",
+    "turn",
+    "turn_action_count",
+    "we_are_first",
+    "supporter_played",
+    "stadium_played",
+    "energy_attached",
+    "retreated",
+    "own_prize",
+    "opp_prize",
+    "own_deck",
+    "opp_deck",
+    "own_hand",
+    "opp_hand",
+    "stadium_present",
+    "own_bench",
+    "opp_bench",
 ]
 G = len(GLOBAL_COLS)  # 16
 
 # option_feat column layout (O). Provisional raw-field encoding.
 OPTION_FEAT_COLS = [
-    "has_area", "area", "index", "player_index", "tool_index", "energy_index",
-    "count", "number", "has_inplay_area", "inplay_area", "inplay_index", "has_attack",
+    "has_area",
+    "area",
+    "index",
+    "player_index",
+    "tool_index",
+    "energy_index",
+    "count",
+    "number",
+    "has_inplay_area",
+    "inplay_area",
+    "inplay_index",
+    "has_attack",
 ]
-O = len(OPTION_FEAT_COLS)  # 12
+O = len(OPTION_FEAT_COLS)  # 12  # noqa: E741 (dimension constant, matches F/G/A)
 
 
 @dataclass(slots=True)
 class Features:
     """Fixed-shape featurized observation. Batch dim added later by the collator."""
 
-    entity_id_row: npt.NDArray[np.int64]     # [12]      row into our 27-vocab (UNK for opp/unknown)
-    entity_card_id: npt.NDArray[np.int64]    # [12]      raw card id (0 if empty) -> attribute lookup
-    entity_feat: npt.NDArray[np.float32]     # [12, F]
-    entity_mask: npt.NDArray[np.float32]     # [12]      1 = occupied
-    hand_hist: npt.NDArray[np.float32]       # [27]      our hand as count histogram over vocab
-    discard_hist: npt.NDArray[np.float32]    # [27]      our discard as count histogram over vocab
-    globals: npt.NDArray[np.float32]         # [G]
-    option_type: npt.NDArray[np.int64]       # [L]
-    option_feat: npt.NDArray[np.float32]     # [L, O]
+    entity_id_row: npt.NDArray[
+        np.int64
+    ]  # [12]      row into our 27-vocab (UNK for opp/unknown)
+    entity_card_id: npt.NDArray[
+        np.int64
+    ]  # [12]      raw card id (0 if empty) -> attribute lookup
+    entity_feat: npt.NDArray[np.float32]  # [12, F]
+    entity_mask: npt.NDArray[np.float32]  # [12]      1 = occupied
+    hand_hist: npt.NDArray[
+        np.float32
+    ]  # [27]      our hand as count histogram over vocab
+    discard_hist: npt.NDArray[
+        np.float32
+    ]  # [27]      our discard as count histogram over vocab
+    globals: npt.NDArray[np.float32]  # [G]
+    option_type: npt.NDArray[np.int64]  # [L]
+    option_feat: npt.NDArray[np.float32]  # [L, O]
     select_type: int
     select_context: int
     min_count: int
@@ -146,7 +185,9 @@ def _option_row(opt: Option) -> npt.NDArray[np.float32]:
     f[0] = float(opt.area is not None)
     f[1] = (int(opt.area) / _MAX_AREA) if opt.area is not None else 0.0
     f[2] = (opt.index / _INDEX_SCALE) if opt.index is not None else 0.0
-    f[3] = float(opt.playerIndex) if opt.playerIndex is not None else 0.0  # 0/1 owner indicator (already O(1))
+    f[3] = (
+        float(opt.playerIndex) if opt.playerIndex is not None else 0.0
+    )  # 0/1 owner indicator (already O(1))
     f[4] = (opt.toolIndex / _ATTACH_SCALE) if opt.toolIndex is not None else 0.0
     f[5] = (opt.energyIndex / _ATTACH_SCALE) if opt.energyIndex is not None else 0.0
     f[6] = (opt.count / _ATTACH_SCALE) if opt.count is not None else 0.0
@@ -169,15 +210,27 @@ def featurize(obs: Observation) -> Features:
         raise ValueError("featurize() needs obs.current; deck-selection phase has none")
     me = st.players[st.yourIndex]
     opp = st.players[1 - st.yourIndex]
-    my_status = {k: getattr(me, k) for k in ("poisoned", "burned", "asleep", "paralyzed", "confused")}
-    op_status = {k: getattr(opp, k) for k in ("poisoned", "burned", "asleep", "paralyzed", "confused")}
+    my_status = {
+        k: getattr(me, k)
+        for k in ("poisoned", "burned", "asleep", "paralyzed", "confused")
+    }
+    op_status = {
+        k: getattr(opp, k)
+        for k in ("poisoned", "burned", "asleep", "paralyzed", "confused")
+    }
 
     id_rows = np.zeros(_BOARD_SLOTS, dtype=np.int64)
     card_ids = np.zeros(_BOARD_SLOTS, dtype=np.int64)
     feats = np.zeros((_BOARD_SLOTS, F), dtype=np.float32)
     mask = np.zeros(_BOARD_SLOTS, dtype=np.float32)
 
-    def put(slot: int, pk: Pokemon | None, is_own: bool, is_active: bool, status: dict[str, bool]) -> None:
+    def put(
+        slot: int,
+        pk: Pokemon | None,
+        is_own: bool,
+        is_active: bool,
+        status: dict[str, bool],
+    ) -> None:
         r, cid, f = _entity_row(pk, is_own, is_active, status)
         id_rows[slot] = r
         card_ids[slot] = cid
@@ -190,7 +243,9 @@ def featurize(obs: Observation) -> Features:
         put(1 + i, me.bench[i] if i < len(me.bench) else None, True, False, my_status)
     put(6, opp.active[0] if opp.active else None, False, True, op_status)
     for i in range(5):
-        put(7 + i, opp.bench[i] if i < len(opp.bench) else None, False, False, op_status)
+        put(
+            7 + i, opp.bench[i] if i < len(opp.bench) else None, False, False, op_status
+        )
 
     g = np.zeros(G, dtype=np.float32)
     g[0] = st.turn / _TURN_SCALE
@@ -214,7 +269,12 @@ def featurize(obs: Observation) -> Features:
     if sel is not None and sel.option:
         opt_type = np.array([int(o.type) for o in sel.option], dtype=np.int64)
         opt_feat = np.stack([_option_row(o) for o in sel.option]).astype(np.float32)
-        stype, sctx, mn, mx = int(sel.type), int(sel.context), sel.minCount, sel.maxCount
+        stype, sctx, mn, mx = (
+            int(sel.type),
+            int(sel.context),
+            sel.minCount,
+            sel.maxCount,
+        )
     else:
         opt_type = np.zeros(0, dtype=np.int64)
         opt_feat = np.zeros((0, O), dtype=np.float32)

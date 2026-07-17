@@ -1,0 +1,30 @@
+# agent_000_dragapult — self-contained PPO self-play trainer.
+# All recipes run from the repo root so `python -m` resolves the `pkm` package.
+# Artifacts land in <repo>/pkm_data/new_agents/agent_000_dragapult/.
+
+root := justfile_directory() / "../../.."
+cli  := "uv run python -m pkm.new_agents.agent_000_dragapult.cli"
+
+# List available recipes.
+default:
+    @just --list --unsorted
+
+# Show default config, engine backend, and artifact paths.
+info:
+    cd {{root}} && {{cli}} info
+
+# Tiny end-to-end sanity run (2 updates x 2 games). Proves the pipeline works.
+smoke workers="1":
+    cd {{root}} && {{cli}} smoke --workers {{workers}}
+
+# PPO self-play training. e.g. `just train updates=200 games=16 workers=8`.
+train updates="200" games="16" workers="1":
+    cd {{root}} && {{cli}} train --updates {{updates}} --games {{games}} --workers {{workers}}
+
+# Resume from checkpoints/latest.pt for more updates.
+resume updates="50" games="16" workers="1":
+    cd {{root}} && {{cli}} resume --updates {{updates}} --games {{games}} --workers {{workers}}
+
+# Win-rate of the latest checkpoint vs the random baseline.
+eval games="100":
+    cd {{root}} && {{cli}} eval --games {{games}}

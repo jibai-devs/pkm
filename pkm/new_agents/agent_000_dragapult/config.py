@@ -21,9 +21,9 @@ import json
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from pkm.agents.agent_000_dragapult.encoder import StateEncoder
-from pkm.agents.agent_000_dragapult.features import FEATURE_VERSION
-from pkm.agents.agent_000_dragapult.model import PolicyValueModel
+from pkm.new_agents.agent_000_dragapult.encoder import StateEncoder
+from pkm.new_agents.agent_000_dragapult.features import FEATURE_VERSION
+from pkm.new_agents.agent_000_dragapult.model import PolicyValueModel
 
 
 @dataclass(frozen=True)
@@ -44,17 +44,17 @@ class TrainConfig:
     """PROVISIONAL PPO-style hyperparameters (algorithm not yet chosen)."""
 
     seed: int = 0
-    batch_size: int = 256          # decisions per optimizer batch
+    batch_size: int = 256  # decisions per optimizer batch
     minibatch_size: int = 64
     epochs_per_update: int = 4
     lr: float = 3e-4
-    gamma: float = 0.997           # long horizon (~77 decisions/game)
+    gamma: float = 0.997  # long horizon (~77 decisions/game)
     gae_lambda: float = 0.95
     clip_eps: float = 0.2
     entropy_coef: float = 0.01
     value_coef: float = 0.5
     max_grad_norm: float = 0.5
-    num_workers: int = 8           # parallel self-play envs (one engine/process)
+    num_workers: int = 8  # parallel self-play envs (one engine/process)
 
 
 @dataclass(frozen=True)

@@ -30,16 +30,16 @@ def _worker(rank: int, cfg_dict: dict, cmd_q, res_q, base_seed: int) -> None:
     own engine load + ``GameInitialize()``.
     """
     try:
-        torch.set_num_threads(1)                       # avoid N x BLAS oversubscription
-        torch.manual_seed(base_seed + rank)            # distinct sampling per worker
-        from pkm.agents.agent_000_dragapult.config import Config, build_model
-        from pkm.agents.agent_000_dragapult.train import collect_rollout
+        torch.set_num_threads(1)  # avoid N x BLAS oversubscription
+        torch.manual_seed(base_seed + rank)  # distinct sampling per worker
+        from pkm.new_agents.agent_000_dragapult.config import Config, build_model
+        from pkm.new_agents.agent_000_dragapult.train import collect_rollout
 
         cfg = Config.from_dict(cfg_dict)
         model = build_model(cfg)
         while True:
             cmd = cmd_q.get()
-            if cmd is None:                            # shutdown sentinel
+            if cmd is None:  # shutdown sentinel
                 break
             state_dict, n_games = cmd
             model.load_state_dict(state_dict)
@@ -47,6 +47,7 @@ def _worker(rank: int, cfg_dict: dict, cmd_q, res_q, base_seed: int) -> None:
             res_q.put((rank, steps, stats, None))
     except Exception:  # propagate so the learner doesn't hang on res_q.get()
         import traceback
+
         res_q.put((rank, [], {}, traceback.format_exc()))
 
 
@@ -75,7 +76,9 @@ class ParallelRollout:
             per[i] += 1
         return per
 
-    def collect(self, model: torch.nn.Module, total_games: int) -> tuple[list, dict[str, Any]]:
+    def collect(
+        self, model: torch.nn.Module, total_games: int
+    ) -> tuple[list, dict[str, Any]]:
         """Broadcast weights, gather trajectories from all workers, aggregate stats."""
         per = self._split(total_games)
         state_dict = {k: v.detach().cpu() for k, v in model.state_dict().items()}
@@ -96,8 +99,14 @@ class ParallelRollout:
         return steps, {
             "games": games,
             "steps": len(steps),
-            "p0_win": sum(st.get("p0_win", 0.0) * st.get("games", 0) for st in stats_list) / d,
-            "p1_win": sum(st.get("p1_win", 0.0) * st.get("games", 0) for st in stats_list) / d,
+            "p0_win": sum(
+                st.get("p0_win", 0.0) * st.get("games", 0) for st in stats_list
+            )
+            / d,
+            "p1_win": sum(
+                st.get("p1_win", 0.0) * st.get("games", 0) for st in stats_list
+            )
+            / d,
         }
 
     def close(self) -> None:

@@ -23,9 +23,13 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 
-from pkm.cabt.api import OptionType, SelectContext, SelectType
-from pkm.agents.agent_000_dragapult.encoder import StateEncoder, collate_states
-from pkm.agents.agent_000_dragapult.features import O, Features
+from pkm.new_agents.agent_000_dragapult.cabt import (
+    OptionType,
+    SelectContext,
+    SelectType,
+)
+from pkm.new_agents.agent_000_dragapult.encoder import StateEncoder, collate_states
+from pkm.new_agents.agent_000_dragapult.features import O, Features
 
 # Masked-option fill: a FINITE large-negative sentinel, not -inf. exp(-1e9)
 # underflows to 0 so real rows still put ~0 mass on padding, but a fully-masked
@@ -36,10 +40,10 @@ MASK_FILL = -1e9
 
 # Provisional dims.
 D_OPT = 64
-D_CTX = 16          # select type/context embedding dim (each)
-N_OPTION_TYPES = len(OptionType)      # 17
-N_SELECT_TYPES = len(SelectType)      # 11
-N_SELECT_CTX = len(SelectContext)     # 49
+D_CTX = 16  # select type/context embedding dim (each)
+N_OPTION_TYPES = len(OptionType)  # 17
+N_SELECT_TYPES = len(SelectType)  # 11
+N_SELECT_CTX = len(SelectContext)  # 49
 
 
 def collate(batch: list[Features]) -> dict[str, torch.Tensor]:
@@ -61,7 +65,9 @@ def collate(batch: list[Features]) -> dict[str, torch.Tensor]:
         option_feat=ofeat,
         option_mask=omask,
         select_type=torch.tensor([f.select_type for f in batch], dtype=torch.long),
-        select_context=torch.tensor([f.select_context for f in batch], dtype=torch.long),
+        select_context=torch.tensor(
+            [f.select_context for f in batch], dtype=torch.long
+        ),
     )
     return s
 
@@ -74,8 +80,10 @@ class OptionEncoder(nn.Module):
         self.type_emb = nn.Embedding(N_OPTION_TYPES, d_opt)
         self.feat_proj = nn.Linear(O, d_opt)
 
-    def forward(self, option_type: torch.Tensor, option_feat: torch.Tensor) -> torch.Tensor:
-        return self.type_emb(option_type) + self.feat_proj(option_feat)   # [B,L,d_opt]
+    def forward(
+        self, option_type: torch.Tensor, option_feat: torch.Tensor
+    ) -> torch.Tensor:
+        return self.type_emb(option_type) + self.feat_proj(option_feat)  # [B,L,d_opt]
 
 
 class PolicyValueModel(nn.Module):
@@ -101,11 +109,14 @@ class PolicyValueModel(nn.Module):
         self.sel_ctx_emb = nn.Embedding(N_SELECT_CTX, d_ctx)
         # policy scorer: per-option MLP over [option_vec, state, decision-context]
         self.scorer = nn.Sequential(
-            nn.Linear(d_opt + d_state + 2 * d_ctx, d_opt), nn.ReLU(),
+            nn.Linear(d_opt + d_state + 2 * d_ctx, d_opt),
+            nn.ReLU(),
             nn.Linear(d_opt, 1),
         )
         self.value_head = nn.Sequential(
-            nn.Linear(d_state, d_state), nn.ReLU(), nn.Linear(d_state, 1),
+            nn.Linear(d_state, d_state),
+            nn.ReLU(),
+            nn.Linear(d_state, 1),
         )
 
     # --- trunk ---
@@ -115,16 +126,23 @@ class PolicyValueModel(nn.Module):
 
     # --- heads (operate on a precomputed state, so the trunk runs once) ---
     def value_from_state(self, state: torch.Tensor) -> torch.Tensor:
-        return self.value_head(state).squeeze(-1)                          # [B]
+        return self.value_head(state).squeeze(-1)  # [B]
 
-    def policy_from_state(self, state: torch.Tensor, b: dict[str, torch.Tensor]) -> torch.Tensor:
-        opt = self.option_enc(b["option_type"], b["option_feat"])          # [B,L,d_opt]
-        ctx = torch.cat([self.sel_type_emb(b["select_type"]),
-                         self.sel_ctx_emb(b["select_context"])], dim=-1)   # [B,2*d_ctx]
+    def policy_from_state(
+        self, state: torch.Tensor, b: dict[str, torch.Tensor]
+    ) -> torch.Tensor:
+        opt = self.option_enc(b["option_type"], b["option_feat"])  # [B,L,d_opt]
+        ctx = torch.cat(
+            [
+                self.sel_type_emb(b["select_type"]),
+                self.sel_ctx_emb(b["select_context"]),
+            ],
+            dim=-1,
+        )  # [B,2*d_ctx]
         bsz, lmax = opt.shape[0], opt.shape[1]
         cond = torch.cat([state, ctx], dim=-1).unsqueeze(1).expand(bsz, lmax, -1)
-        logits = self.scorer(torch.cat([opt, cond], dim=-1)).squeeze(-1)   # [B,L]
-        return logits.masked_fill(b["option_mask"] == 0, MASK_FILL)        # mask padding
+        logits = self.scorer(torch.cat([opt, cond], dim=-1)).squeeze(-1)  # [B,L]
+        return logits.masked_fill(b["option_mask"] == 0, MASK_FILL)  # mask padding
 
     def forward(self, b: dict[str, torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
         state, _entity = self.encode(b)

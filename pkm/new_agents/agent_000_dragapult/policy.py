@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import torch
 
-from pkm.agents.agent_000_dragapult.model import MASK_FILL
+from pkm.new_agents.agent_000_dragapult.model import MASK_FILL
 
 
 def select_count(min_count: int, max_count: int, n: int) -> int:
@@ -26,8 +26,8 @@ def select_count(min_count: int, max_count: int, n: int) -> int:
 
 @torch.no_grad()
 def sample_action(
-    logits: torch.Tensor,          # [L] (already padding-masked)
-    valid: torch.Tensor,           # [L] bool, True = real option
+    logits: torch.Tensor,  # [L] (already padding-masked)
+    valid: torch.Tensor,  # [L] bool, True = real option
     k: int,
     gen: torch.Generator | None = None,
     greedy: bool = False,
@@ -50,10 +50,10 @@ def sample_action(
 
 
 def batched_action_logprob(
-    logits: torch.Tensor,          # [B,L] padding-masked
-    option_mask: torch.Tensor,     # [B,L] 1 = real option
-    actions: torch.Tensor,         # [B,K] padded with 0
-    action_len: torch.Tensor,      # [B] number of real picks per row
+    logits: torch.Tensor,  # [B,L] padding-masked
+    option_mask: torch.Tensor,  # [B,L] 1 = real option
+    actions: torch.Tensor,  # [B,K] padded with 0
+    action_len: torch.Tensor,  # [B] number of real picks per row
 ) -> torch.Tensor:
     """Recompute logprob of the given ordered actions under ``logits`` -> [B]."""
     valid = option_mask.bool().clone()
@@ -61,10 +61,10 @@ def batched_action_logprob(
     K = actions.shape[1]
     for j in range(K):
         masked = logits.masked_fill(~valid, MASK_FILL)
-        logp = masked - torch.logsumexp(masked, dim=-1, keepdim=True)   # [B,L]
-        a_j = actions[:, j].unsqueeze(1)                                # [B,1]
-        step_lp = logp.gather(1, a_j).squeeze(1)                        # [B]
-        has = (j < action_len).to(logits.dtype)                        # rows picking at step j
+        logp = masked - torch.logsumexp(masked, dim=-1, keepdim=True)  # [B,L]
+        a_j = actions[:, j].unsqueeze(1)  # [B,1]
+        step_lp = logp.gather(1, a_j).squeeze(1)  # [B]
+        has = (j < action_len).to(logits.dtype)  # rows picking at step j
         total = total + step_lp * has
         # remove the chosen index from valid, only for rows that actually picked
         picked = torch.zeros_like(valid).scatter(1, a_j, True) & has.bool().unsqueeze(1)
