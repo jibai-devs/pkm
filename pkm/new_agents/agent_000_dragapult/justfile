@@ -49,6 +49,6 @@ pack:
 submit message="agent_000_dragapult":
     cd {{root}} && {{cli}} submit --message "{{message}}"
 
-# Poll Kaggle for submission status + score. `just status watch=--watch` to poll.
-status watch="":
-    cd {{root}} && {{cli}} status {{watch}}
+# Poll Kaggle for submission status + score. `just status --watch` to poll.
+status *args:
+    cd {{root}} && {{cli}} status {{args}}
