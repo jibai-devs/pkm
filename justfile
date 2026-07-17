@@ -111,7 +111,7 @@ sweep-exit agent="02_dragapult" trials="30" iterations="10" games="4":
 # --- weights / evaluation / replays -----------------------------------------
 
 # export a checkpoint to .npz for torch-free inference (default: agent's best)
-export agent="02_dragapult":
+export agent="03_pult_munki":
     pkm export --agent {{agent}} pkm/policy.npz
 
 # play one rendered match and write result.html + replay.json
@@ -138,7 +138,7 @@ replay-react file="":
 # --- submission ---------------------------------------------------------------
 
 # export freshest weights and build submissions/submission_<agent>_<ts>.tar.gz
-build_submit agent="02_dragapult":
+build_submit agent="03_pult_munki":
     pkm export --agent {{agent}} pkm/policy.npz
     ./submit.sh {{agent}}
 

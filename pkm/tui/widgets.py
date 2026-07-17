@@ -79,6 +79,14 @@ class HandBar(Static):
             return
         self.update(" · ".join(card_name(c.id) for c in player.hand))
 
+    def show_ids(self, card_ids: list[int]) -> None:
+        """Like `show`, but from raw card IDs instead of a `Player` — used
+        for the opponent-hand spy view, which only has IDs, not `CardRef`s."""
+        if not card_ids:
+            self.update("hand: (empty)")
+            return
+        self.update(" · ".join(card_name(cid) for cid in card_ids))
+
 
 class EventLog(RichLog):
     """Scrolling feed of translated log entries."""

@@ -61,7 +61,26 @@ class Failed:
     error: BaseException
 
 
-Event = Prompt | Finished | Failed
+@dataclass(frozen=True)
+class AgentNote:
+    """A note from the opponent agent (e.g. singaporean_middleman's deduced
+    prize list) meant for the human's on-screen log, not the terminal."""
+
+    message: str
+
+
+@dataclass(frozen=True)
+class OpponentHand:
+    """The opponent's actual hand, spied from its own obs. Debug/curiosity
+    view only — the human's own obs never contains this (real hidden
+    information the engine enforces), so this comes from watching what the
+    engine tells the *opponent* agent about itself, not from unhiding
+    anything the human was ever supposed to see."""
+
+    card_ids: list[int]
+
+
+Event = Prompt | Finished | Failed | AgentNote | OpponentHand
 
 
 class _Quit:
@@ -126,6 +145,36 @@ class ThreadedEnvSession:
             raise _Abort
         return picks
 
+    def _note(self, message: str) -> None:
+        """Called by the opponent agent (worker thread); queue.Queue is
+        thread-safe, so this is safe to call from there directly."""
+        self._events.put(AgentNote(message))
+
+    def _spy_hand(self, obs: dict) -> None:
+        """Peek at the opponent's own hand from its own obs, before it acts.
+
+        This is not "unhiding" anything the human's obs ever had — the
+        engine never sends the opponent's hand to the human's side at all.
+        This reads it from the *opponent's* perspective instead, where it's
+        genuinely visible (a player always sees its own hand).
+        """
+        if obs["select"] is None:
+            return
+        state = obs["current"]
+        me = state["players"][state["yourIndex"]]
+        hand = me.get("hand")
+        if hand:
+            self._events.put(OpponentHand([c["id"] for c in hand]))
+
+    def _wrap_with_hand_spy(
+        self, agent: Callable[[dict], list[int]]
+    ) -> Callable[[dict], list[int]]:
+        def spied(obs: dict) -> list[int]:
+            self._spy_hand(obs)
+            return agent(obs)
+
+        return spied
+
     # -- GameSession -------------------------------------------------------
 
     def start(self) -> None:
@@ -156,7 +205,17 @@ class ThreadedEnvSession:
 
         from pkm.rl.play import make_agent_by_name
 
-        opponent_agent = make_agent_by_name(self.opponent, self.deck, self.weights)
+        if self.opponent == "singaporean_middleman":
+            # Give it a sink so its prize log lands in our own EventLog
+            # instead of the terminal (which Textual owns during play).
+            from pkm.agents import make_singaporean_middleman
+
+            opponent_agent = make_singaporean_middleman(
+                self.deck, self.weights, log_sink=self._note
+            )
+        else:
+            opponent_agent = make_agent_by_name(self.opponent, self.deck, self.weights)
+        opponent_agent = self._wrap_with_hand_spy(opponent_agent)
         agents: list[Callable[[dict], list[int]]] = [None, None]  # type: ignore[list-item]
         # kaggle's Agent.act() inspects agent.__code__.co_argcount to decide how
         # many positional args to pass. A bound method's co_argcount includes the

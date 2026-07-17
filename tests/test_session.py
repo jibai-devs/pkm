@@ -8,6 +8,7 @@ from pkm.tui.session import (
     Failed,
     Finished,
     HUMAN,
+    OpponentHand,
     Prompt,
     ThreadedEnvSession,
 )
@@ -16,6 +17,15 @@ FIXTURE = json.loads(
     (Path(__file__).parent / "fixtures" / "observations.json").read_text()
 )
 RAW_MAIN = FIXTURE["observations"]["0:0"]
+
+
+def _next_non_hand_event(session, timeout=60):
+    """Skip OpponentHand spy events (fired on the opponent's own turns)
+    while waiting for the next Prompt/Finished/Failed."""
+    while True:
+        event = session.next_event(timeout=timeout)
+        if not isinstance(event, OpponentHand):
+            return event
 
 
 def test_human_agent_returns_deck_when_select_is_none():
@@ -79,11 +89,11 @@ def test_quit_mid_game_unwinds_the_real_env_and_writes_nothing(tmp_path):
     session.start()
 
     for _ in range(3):  # play a few turns, then walk away
-        event = session.next_event(timeout=60)
+        event = _next_non_hand_event(session)
         assert isinstance(event, Prompt)
         session.submit([0])
 
-    session.next_event(timeout=60)
+    _next_non_hand_event(session)
     session.quit()
     session._thread.join(timeout=30)
 
@@ -127,7 +137,7 @@ def test_full_game_against_random_through_the_real_engine():
 
     prompts = 0
     while True:
-        event = session.next_event(timeout=60)
+        event = _next_non_hand_event(session)
         if isinstance(event, Finished):
             assert event.rewards[0] in (-1, 0, 1)
             break

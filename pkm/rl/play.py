@@ -6,7 +6,7 @@ Usage:
     pkm play --p0 neural --p1 random --games 20   # win-rate only
     pkm play --agent 01_psychic --p0 neural --p1 random
 
-Agents: random | neural (greedy policy, needs pkm/policy.npz) | mcts
+Agents: random | neural (greedy policy, needs pkm/policy.npz) | mcts | singaporean_middleman
 The HTML file is self-contained — open it in a browser to watch the match.
 The JSON log is kaggle-environments' full episode record (per-step
 observations, actions, rewards); reload it with json.load for analysis.
@@ -18,7 +18,11 @@ from typing import Callable
 
 from kaggle_environments import make
 
-from pkm.agents import make_neural_agent, make_random_agent
+from pkm.agents import (
+    make_neural_agent,
+    make_random_agent,
+    make_singaporean_middleman,
+)
 from pkm.agents.profile import AgentProfile
 from pkm.data import Deck
 from pkm.tui.session import HUMAN
@@ -40,7 +44,12 @@ def make_agent_by_name(
         from pkm.mcts.agent import make_mcts_agent
 
         return make_mcts_agent(deck, weights_path=weights)
-    raise ValueError(f"unknown agent: {name!r} (expected random|neural|mcts|human)")
+    if name == "singaporean_middleman":
+        return make_singaporean_middleman(deck, weights)
+    raise ValueError(
+        "unknown agent: "
+        f"{name!r} (expected random|neural|mcts|singaporean_middleman|human)"
+    )
 
 
 def play_human_match(
