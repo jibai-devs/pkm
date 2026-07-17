@@ -16,12 +16,12 @@ def test_resolve_deck_prefers_bundled_deck(tmp_path, monkeypatch):
     assert deck.card_ids == [1] * 60
 
 
-def test_resolve_deck_uses_dragapult_fallback(tmp_path, monkeypatch):
+def test_resolve_deck_uses_pult_munki_fallback(tmp_path, monkeypatch):
     agent_dir = tmp_path / "kaggle_simulations" / "agent"
     agent_dir.mkdir(parents=True)
     deck_dir = agent_dir / "deck"
     deck_dir.mkdir()
-    (deck_dir / "02_dragapult.csv").write_text("2\n" * 60)
+    (deck_dir / "03_pult_munki.csv").write_text("2\n" * 60)
 
     working_dir = tmp_path / "working"
     working_dir.mkdir()

@@ -1,4 +1,4 @@
-#!/run/current-system/sw/bin/bash
+#!/usr/bin/env bash
 # Create submission bundle for Kaggle
 # Usage: ./submit.sh [agent_name]
 #
@@ -24,7 +24,7 @@ mkdir -p submissions
 cp main.py submission/
 
 # Generate flat deck.csv from the agent's deck for kaggle
-python -c "
+uv run python -c "
 from pkm.data import Deck
 Deck.from_csv('deck/${AGENT}.csv').to_csv('submission/deck.csv')
 "
