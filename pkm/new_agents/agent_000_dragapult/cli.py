@@ -20,6 +20,7 @@ Run ``cli.py <command> --help`` for the full flag list.
 from __future__ import annotations
 
 import dataclasses
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
@@ -67,6 +68,9 @@ def _paths(data_dir: Path) -> dict[str, Path]:
         "ckpt": data_dir / "checkpoints",
         "logs": data_dir / "logs",
         "csv": data_dir / "logs" / "train.csv",
+        "runs": data_dir / "runs",  # TensorBoard event files
+        "wandb": data_dir / "wandb",  # wandb (offline) run dirs
+        "sweeps": data_dir / "sweeps",  # Optuna sqlite studies
     }
 
 
@@ -126,22 +130,37 @@ def _config_table(cfg: Config) -> Table:
     return t
 
 
-def _make_on_update(target: int):
-    def on_update(i: int, total: int, stats: dict) -> None:
-        ev = stats.get("eval_win_rate", "")
-        ev_s = f"[green]{ev:.1%}[/]" if isinstance(ev, (int, float)) else "[dim]-[/]"
-        console.print(
-            f"[bold cyan]{i:>4}[/]/[cyan]{total}[/]  "
-            f"games=[bold]{stats.get('games', 0):>3}[/]  "
-            f"steps=[bold]{stats.get('steps', 0):>5}[/]  "
-            f"pol=[yellow]{stats.get('pol_loss', 0):+.4f}[/]  "
-            f"val=[yellow]{stats.get('val_loss', 0):.4f}[/]  "
-            f"ent=[magenta]{stats.get('entropy', 0):.3f}[/]  "
-            f"p0/p1={stats.get('p0_win', 0):.0%}/{stats.get('p1_win', 0):.0%}  "
-            f"eval={ev_s}"
-        )
+def _build_observers(
+    p: dict[str, Path],
+    *,
+    run_name: str,
+    tb: bool,
+    log_dir: Optional[Path],
+    wandb_project: Optional[str],
+    wandb_mode: str,
+):
+    """Assemble the metric sinks (observers) for a run from the enabled backends."""
+    from pkm.new_agents.agent_000_dragapult.monitor import (
+        ConsoleSink,
+        CsvSink,
+        TensorBoardSink,
+        WandbSink,
+    )
 
-    return on_update
+    observers = [ConsoleSink(console), CsvSink(p["csv"])]
+    tb_dir = None
+    if tb:
+        tb_dir = Path(log_dir) if log_dir else p["runs"] / run_name
+        observers.append(TensorBoardSink(tb_dir))
+    if wandb_project:
+        # wandb creates its own `wandb/` subdir inside `dir`, so point at the data
+        # root -> runs land at <output>/wandb/ (not <output>/wandb/wandb/).
+        observers.append(
+            WandbSink(
+                project=wandb_project, mode=wandb_mode, name=run_name, dir=p["data"]
+            )
+        )
+    return observers, tb_dir
 
 
 def _run_training(
@@ -154,6 +173,11 @@ def _run_training(
     eval_every: int,
     eval_games: int,
     title: str,
+    tb: bool = True,
+    log_dir: Optional[Path] = None,
+    wandb_project: Optional[str] = None,
+    wandb_mode: str = "offline",
+    run_name: Optional[str] = None,
 ) -> None:
     # Import here so `--help` / `info` don't pay the heavy engine + torch import.
     from pkm.new_agents.agent_000_dragapult.train import train
@@ -161,6 +185,16 @@ def _run_training(
     p = _paths(data_dir)
     p["ckpt"].mkdir(parents=True, exist_ok=True)
     p["logs"].mkdir(parents=True, exist_ok=True)
+    run_name = run_name or f"{title}-{datetime.now():%Y%m%d-%H%M%S}"
+
+    observers, tb_dir = _build_observers(
+        p,
+        run_name=run_name,
+        tb=tb,
+        log_dir=log_dir,
+        wandb_project=wandb_project,
+        wandb_mode=wandb_mode,
+    )
 
     console.print(
         Panel.fit(_config_table(cfg), title=f"[bold]{title}[/]", border_style="cyan")
@@ -168,8 +202,17 @@ def _run_training(
     console.print(
         f"[dim]updates=[/]{updates}  [dim]games/update=[/]{games}  "
         f"[dim]resume=[/]{resume}  [dim]eval_every=[/]{eval_every}\n"
-        f"[dim]checkpoints ->[/] {p['ckpt']}\n[dim]metrics ->[/] {p['csv']}\n"
+        f"[dim]checkpoints ->[/] {p['ckpt']}\n[dim]metrics ->[/] {p['csv']}"
     )
+    if tb_dir is not None:
+        console.print(
+            f"[dim]tensorboard ->[/] {tb_dir}  [dim](tensorboard --logdir {p['runs']})[/]"
+        )
+    if wandb_project:
+        console.print(
+            f"[dim]wandb ->[/] project={wandb_project} mode={wandb_mode} dir={p['wandb']}"
+        )
+    console.print()
 
     ts = train(
         cfg,
@@ -179,8 +222,8 @@ def _run_training(
         resume=resume,
         eval_every=eval_every,
         eval_games=eval_games,
-        log_csv=p["csv"],
-        on_update=_make_on_update(updates),
+        observers=observers,
+        run_name=run_name,
     )
     console.print(
         f"\n[bold green]done[/] at update [bold]{ts.update_idx}[/] · "
@@ -292,6 +335,22 @@ def train(
         help="Output/artifact root directory (checkpoints + logs).",
     ),
     resume: bool = typer.Option(False, help="Resume from checkpoints/latest.pt."),
+    tb: bool = typer.Option(
+        True, "--tb/--no-tb", help="Log to TensorBoard (<output>/runs/)."
+    ),
+    log_dir: Optional[Path] = typer.Option(
+        None, help="TensorBoard log dir (default: <output>/runs/<run-name>)."
+    ),
+    wandb_project: Optional[str] = typer.Option(
+        None, help="Enable Weights & Biases logging to this project (else off)."
+    ),
+    wandb_mode: str = typer.Option(
+        "offline",
+        help="wandb mode: offline (local, default), online (cloud), disabled.",
+    ),
+    run_name: Optional[str] = typer.Option(
+        None, help="Run name (TB subdir + wandb run name)."
+    ),
 ) -> None:
     """Run PPO self-play training."""
     cfg = _build_config(
@@ -316,6 +375,11 @@ def train(
         eval_every=eval_every,
         eval_games=eval_games,
         title="train" if not resume else "resume",
+        tb=tb,
+        log_dir=log_dir,
+        wandb_project=wandb_project,
+        wandb_mode=wandb_mode,
+        run_name=run_name,
     )
 
 
@@ -333,6 +397,19 @@ def resume(
         "--output-dir",
         "-o",
         help="Output/artifact root directory (checkpoints + logs).",
+    ),
+    tb: bool = typer.Option(
+        True, "--tb/--no-tb", help="Log to TensorBoard (<output>/runs/)."
+    ),
+    wandb_project: Optional[str] = typer.Option(
+        None, help="Enable Weights & Biases logging to this project (else off)."
+    ),
+    wandb_mode: str = typer.Option(
+        "offline",
+        help="wandb mode: offline (local, default), online (cloud), disabled.",
+    ),
+    run_name: Optional[str] = typer.Option(
+        None, help="Run name (TB subdir + wandb run name)."
     ),
 ) -> None:
     """Resume training from checkpoints/latest.pt (config is restored from the checkpoint)."""
@@ -356,6 +433,10 @@ def resume(
         eval_every=eval_every,
         eval_games=eval_games,
         title="resume",
+        tb=tb,
+        wandb_project=wandb_project,
+        wandb_mode=wandb_mode,
+        run_name=run_name,
     )
 
 
@@ -392,6 +473,128 @@ def eval(
     t.add_row("W / L / D", f"{ev['wins']} / {ev['losses']} / {ev['draws']}")
     t.add_row("games", str(ev["n"]))
     console.print(t)
+
+
+@app.command()
+def sweep(
+    trials: int = typer.Option(30, help="Number of Optuna trials."),
+    updates: int = typer.Option(15, help="PPO updates per trial (keep short)."),
+    games: int = typer.Option(32, help="Self-play games per update."),
+    workers: int = typer.Option(8, help="Rollout workers per trial."),
+    eval_games: int = typer.Option(100, help="Games per evaluation (the objective)."),
+    study: str = typer.Option(
+        "dragapult_ppo", help="Optuna study name (sqlite, resumable)."
+    ),
+    seed: int = typer.Option(0, help="Base RNG seed (offset per trial)."),
+    data_dir: Path = typer.Option(
+        DATA_DIR,
+        "--output-dir",
+        "-o",
+        help="Output/artifact root directory (checkpoints + logs).",
+    ),
+) -> None:
+    """Optuna hyperparameter sweep — maximize eval win-rate vs random.
+
+    Each trial samples lr/entropy/clip/epochs/minibatch/gamma/lam, runs a short
+    training, and returns its win-rate vs random. The study is SQLite-backed under
+    <output>/sweeps/<study>.db (resumable; view with `optuna-dashboard`). Trials
+    are pruned early via reported intermediate evals (MedianPruner).
+    """
+    import optuna
+
+    from pkm.new_agents.agent_000_dragapult.eval import winrate_vs_random
+    from pkm.new_agents.agent_000_dragapult.monitor import (
+        MetricSink,
+        StopTraining,
+        TensorBoardSink,
+    )
+    from pkm.new_agents.agent_000_dragapult.train import train
+
+    p = _paths(data_dir)
+    p["sweeps"].mkdir(parents=True, exist_ok=True)
+    storage = f"sqlite:///{p['sweeps'] / (study + '.db')}"
+
+    class PruningSink(MetricSink):
+        """Report intermediate eval win-rate to Optuna and prune hopeless trials."""
+
+        def __init__(self, trial: optuna.Trial):
+            self.trial = trial
+
+        def log(self, update: int, total: int, stats: dict) -> None:
+            ev = stats.get("eval_win_rate")
+            if isinstance(ev, (int, float)):
+                self.trial.report(ev, update)
+                if self.trial.should_prune():
+                    raise StopTraining
+
+    def objective(trial: optuna.Trial) -> float:
+        lr = trial.suggest_float("lr", 1e-5, 1e-2, log=True)
+        entropy_coef = trial.suggest_float("entropy_coef", 1e-4, 5e-2, log=True)
+        clip_eps = trial.suggest_float("clip_eps", 0.1, 0.3)
+        epochs = trial.suggest_int("epochs", 2, 6)
+        minibatch = trial.suggest_categorical("minibatch_size", [32, 64, 128])
+        gamma = trial.suggest_float("gamma", 0.95, 0.999)
+        lam = trial.suggest_float("lam", 0.9, 0.99)
+        cfg = _build_config(
+            workers=workers,
+            lr=lr,
+            gamma=gamma,
+            lam=lam,
+            clip_eps=clip_eps,
+            entropy_coef=entropy_coef,
+            value_coef=0.5,
+            epochs=epochs,
+            minibatch_size=minibatch,
+            seed=seed + trial.number,
+            ckpt_every=updates,
+        )
+        trial_dir = p["sweeps"] / study / f"trial_{trial.number}"
+        observers = [
+            TensorBoardSink(p["runs"] / f"sweep-{study}" / f"trial_{trial.number}"),
+            PruningSink(trial),
+        ]
+        try:
+            ts = train(
+                cfg,
+                updates=updates,
+                games_per_update=games,
+                ckpt_dir=trial_dir / "checkpoints",
+                eval_every=max(1, updates // 3),
+                eval_games=eval_games,
+                observers=observers,
+                run_name=f"{study}-trial{trial.number}",
+            )
+        except StopTraining as exc:  # pruned mid-run
+            raise optuna.TrialPruned() from exc
+        return winrate_vs_random(ts.model, n_games=eval_games, seed=seed)["win_rate"]
+
+    console.print(
+        f"[bold]sweep[/] study=[cyan]{study}[/] trials={trials} "
+        f"updates/trial={updates} games={games} workers={workers}"
+    )
+    console.print(f"[dim]storage ->[/] {storage}\n")
+    st = optuna.create_study(
+        study_name=study,
+        storage=storage,
+        direction="maximize",
+        load_if_exists=True,
+        pruner=optuna.pruners.MedianPruner(n_warmup_steps=1),
+    )
+    st.optimize(objective, n_trials=trials)
+
+    try:
+        best = st.best_trial
+    except ValueError:
+        console.print("[yellow]no completed trials (all pruned/failed).[/]")
+        return
+    t = Table(title="best trial", title_style="bold")
+    t.add_column("param", style="dim")
+    t.add_column("value", justify="right", style="bold")
+    t.add_row("win_rate", f"[green]{best.value:.1%}[/]")
+    for k, v in best.params.items():
+        t.add_row(k, str(v))
+    console.print(t)
+    console.print(f"[dim]dashboard:[/] optuna-dashboard {storage}")
 
 
 if __name__ == "__main__":

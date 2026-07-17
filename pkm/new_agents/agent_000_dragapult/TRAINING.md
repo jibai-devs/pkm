@@ -70,6 +70,33 @@ declining smoothly, `val` stable/low, `pol` small. Because `eval` is only vs
 *random* (a weak opponent), it saturates near 100% — beating stronger opponents
 is future work (league / MCTS), so don't over-train against random alone.
 
+## Live monitoring (TensorBoard / wandb)
+
+Metrics fan out through an **observer pattern** (`monitor.py`): the train loop
+notifies a list of `MetricSink`s each update. Built-in sinks: console, CSV,
+TensorBoard, Weights & Biases. Add a backend by subclassing `MetricSink`.
+
+**TensorBoard — on by default**, local, no account. Writes to
+`<output>/runs/<run-name>/`:
+```bash
+pkm new_agents 000_dragapult train …          # TB on automatically
+tensorboard --logdir pkm_data/new_agents/agent_000_dragapult/runs
+# turn off with --no-tb; custom dir with --log-dir PATH
+```
+Scalars are grouped: `loss/policy`, `loss/value`, `policy/entropy`,
+`eval/win_rate`, `rollout/*`.
+
+**Weights & Biases — opt in with `--wandb-project`.** Default mode is
+**`offline`** (fully local, no network; run dirs under `<output>/wandb/`); sync to
+the cloud later with `wandb sync`. `--wandb-mode online` streams live (needs
+`wandb login`); `disabled` is a no-op.
+```bash
+pkm new_agents 000_dragapult train --wandb-project dragapult          # offline
+pkm new_agents 000_dragapult train --wandb-project dragapult --wandb-mode online
+```
+Both can run at once. A failing sink never crashes training (errors are isolated,
+printed to stderr). `--run-name` names the TB subdir + wandb run.
+
 ## Hyperparameters
 
 Exposed as `train` flags (defaults in parens):
@@ -89,6 +116,25 @@ learned.
 Config-only (not flags, because changing them invalidates checkpoints via the
 config-hash guard → full retrain): the model dims in `config.py`
 (`d_card`, `d_state`, `n_heads`, …) and `max_grad_norm` (0.5).
+
+## Automated tuning (Optuna sweep)
+
+`sweep` searches hyperparameters to **maximize eval win-rate vs random**. Each
+trial samples `lr`/`entropy_coef`/`clip_eps`/`epochs`/`minibatch`/`gamma`/`lam`,
+runs a short training, and reports its win-rate; weak trials are pruned early
+(MedianPruner on intermediate evals).
+
+```bash
+pkm new_agents 000_dragapult sweep --trials 30 --updates 15 --games 32 --workers 8
+```
+
+- Study is **SQLite-backed** at `<output>/sweeps/<study>.db` → **resumable** (rerun
+  the same `--study` to add trials) and inspectable: `optuna-dashboard sqlite:///…`.
+- Each trial also logs to TensorBoard under `runs/sweep-<study>/trial_<n>/`.
+- Trials run **sequentially**, each using `--workers` internally — don't stack
+  trial-parallelism on top (you'd oversubscribe cores).
+- Keep `--updates` short (10–20): sweeps find good `lr`/`entropy` fast; then do a
+  full-length `train` with the winning params.
 
 ## Notes / gotchas
 

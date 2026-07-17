@@ -12,11 +12,10 @@ the same `model.evaluate()` interface.
 
 from __future__ import annotations
 
-import csv
 import random
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Sequence
 
 import numpy as np
 import torch
@@ -31,6 +30,7 @@ from pkm.new_agents.agent_000_dragapult import deck, policy
 from pkm.new_agents.agent_000_dragapult.config import Config, build_model
 from pkm.new_agents.agent_000_dragapult.features import Features, featurize
 from pkm.new_agents.agent_000_dragapult.model import collate
+from pkm.new_agents.agent_000_dragapult.monitor import MetricSink, RunContext, notify
 
 
 @dataclass
@@ -259,40 +259,6 @@ class TrainState:
 
 
 # --------------------------------------------------------------------------- #
-# Metrics logging
-# --------------------------------------------------------------------------- #
-
-CSV_FIELDS = [
-    "update",
-    "games",
-    "steps",
-    "p0_win",
-    "p1_win",
-    "pol_loss",
-    "val_loss",
-    "entropy",
-    "eval_win_rate",
-]
-
-
-class CsvLogger:
-    """Append one row of per-update metrics to a CSV (header written once)."""
-
-    def __init__(self, path: str | Path):
-        self.path = Path(path)
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        if not self.path.exists():
-            with self.path.open("w", newline="") as fh:
-                csv.DictWriter(fh, fieldnames=CSV_FIELDS).writeheader()
-
-    def log(self, row: dict) -> None:
-        with self.path.open("a", newline="") as fh:
-            csv.DictWriter(fh, fieldnames=CSV_FIELDS).writerow(
-                {k: row.get(k, "") for k in CSV_FIELDS}
-            )
-
-
-# --------------------------------------------------------------------------- #
 # Train loop
 # --------------------------------------------------------------------------- #
 
@@ -305,14 +271,15 @@ def train(
     resume: bool = False,
     eval_every: int = 0,
     eval_games: int = 100,
-    log_csv: str | Path | None = None,
-    on_update: Callable[[int, int, dict], None] | None = None,
+    observers: Sequence[MetricSink] = (),
+    run_name: str | None = None,
 ) -> TrainState:
     """Run ``updates`` PPO self-play updates.
 
-    ``on_update(update_idx, total_updates, stats)`` is called after every update
-    for progress display (falls back to ``print`` when not given). ``log_csv``, if
-    set, receives one metrics row per update.
+    ``observers`` are :class:`~.monitor.MetricSink` objects notified after every
+    update with that update's ``stats`` (console, CSV, TensorBoard, wandb, …).
+    Their ``start``/``log``/``close`` hooks are called with per-sink failures
+    isolated (see :func:`~.monitor.notify`), so a broken sink never aborts a run.
     """
     ckpt_dir = Path(ckpt_dir)
     latest = ckpt_dir / "latest.pt"
@@ -323,9 +290,16 @@ def train(
         opt = torch.optim.Adam(model.parameters(), lr=cfg.train.lr)
         ts = TrainState(cfg=cfg, model=model, optimizer=opt)
 
-    logger = CsvLogger(log_csv) if log_csv else None
     start_idx = ts.update_idx
     target = start_idx + updates
+    ctx = RunContext(
+        run_name=run_name or f"{cfg.run.name}-{cfg.hash()}",
+        config=cfg.to_dict(),
+        config_hash=cfg.hash(),
+        output_dir=ckpt_dir.parent,
+        resume=resume,
+    )
+    notify(observers, "start", ctx)
 
     pool = None
     if cfg.train.num_workers and cfg.train.num_workers > 1:
@@ -348,17 +322,15 @@ def train(
                 ev = winrate_vs_random(ts.model, n_games=eval_games)
                 stats["eval_win_rate"] = ev["win_rate"]
 
-            if logger is not None:
-                logger.log({"update": ts.update_idx, **stats})
-            if on_update is not None:
-                on_update(ts.update_idx, target, stats)
-            else:
-                print(f"update {ts.update_idx}/{target}: {stats}")
+            # notify() isolates ordinary sink errors but re-raises StopTraining
+            # (e.g. an Optuna PruningSink deciding to abort this trial early).
+            notify(observers, "log", ts.update_idx, target, stats)
 
             if ts.update_idx % cfg.run.checkpoint_every_updates == 0:
                 ts.save(ckpt_dir / f"ckpt_{ts.update_idx}.pt")
             ts.save(latest)
     finally:
+        notify(observers, "close")
         if pool is not None:
             pool.close()
     return ts
