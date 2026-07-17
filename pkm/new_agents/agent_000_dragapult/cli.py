@@ -799,7 +799,10 @@ def status(
         "-w",
         help="Keep polling until the latest submission finishes.",
     ),
-    interval: int = typer.Option(30, help="Seconds between polls in --watch mode."),
+    interval: int = typer.Option(5, help="Seconds between polls in --watch mode."),
+    timeout: int = typer.Option(
+        180, help="Give up watching after this many seconds."
+    ),
     limit: int = typer.Option(10, help="Max submissions to show."),
 ) -> None:
     """Show (or poll) your Kaggle submission status + score for this competition.
@@ -856,12 +859,16 @@ def status(
         console.print(t)
         return (rows[0].get("status") or "").lower()
 
+    deadline = time.monotonic() + timeout
     while True:
         latest = _poll_once()
         if not watch or latest is None:
             break
         if "complete" in latest or "error" in latest or "fail" in latest:
             console.print("[bold]latest submission finished.[/]")
+            break
+        if time.monotonic() >= deadline:
+            console.print(f"[yellow]gave up after {timeout}s (still pending).[/]")
             break
         console.print(f"[dim]pending… re-checking in {interval}s (Ctrl-C to stop)[/]")
         time.sleep(interval)

@@ -14,8 +14,11 @@ from pathlib import Path
 
 from pkm.new_agents.agent_000_dragapult.agent import DragapultAgent
 
-_DIR = Path(__file__).resolve().parent
 _KAGGLE_DIR = Path("/kaggle_simulations/agent")
+# kaggle runs this module via ``exec()``, which does NOT define ``__file__``.
+# Fall back to the sandbox dir so import doesn't NameError.
+_file = globals().get("__file__")
+_DIR = Path(_file).resolve().parent if _file else _KAGGLE_DIR
 
 
 def _weights_path() -> str | None:
