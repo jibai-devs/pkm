@@ -358,504 +358,772 @@ zerosum
 [kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO: OpenSpiel games skipped: 2.
 [kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    universal_poker(betting=nolimit,bettingAbstraction=fullgame,blind=2 1,firstPlayer=2 1 1 1,numBoardCards=0 3 1 1,numHoleCards=2,numPlayers=2,numRanks=13,numRounds=4,numSuits=4,stack=200 200,calcOddsNumSims=1000000)
 [kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    repeated_poker(max_num_hands=100,reset_stacks=True,rotate_dealer=True,universal_poker_game_string=universal_poker(betting=nolimit,bettingAbstraction=fullgame,blind=2 1,firstPlayer=2 1 1 1,numBoardCards=0 3 1 1,numHoleCards=2,numPlayers=2,numRanks=13,numRounds=4,numSuits=4,stack=200 200,calcOddsNumSims=1000000))
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/deepseek/deepseek-v3.2-speciale not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/qwen/qwen3-max not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/z-ai/glm-4.5 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/z-ai/glm-4.5-air not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/qwen/qwen3-30b-a3b not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/x-ai/grok-4-fast not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/moonshotai/kimi-k2-thinking not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/google/gemini-2.5-flash-lite not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/meituan/longcat-flash-chat not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-3-5-haiku@20241022 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-3-5-sonnet-v2@20241022 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-opus-4@20250514 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-opus-4-1@20250805 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-sonnet-4@20250514 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-sonnet-4-5@20250929 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-sonnet-4-6@default not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-opus-4-5@20251101 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-opus-4-6@default not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/deepseek-ai/deepseek-r1-0528 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/deepseek-ai/deepseek-v3.1 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-1.5-flash not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-1.5-pro not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-2.0-flash-001 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-2.0-flash-lite not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-2.5-flash not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-2.5-flash-lite not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-2.5-pro not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-3-pro-preview not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-3.1-pro-preview not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-3-flash-preview not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/meta/llama-3.1-70b not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/openai/gpt-oss-20b not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/openai/gpt-oss-120b not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
-[92m22:28:54 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/qwen/qwen3-235b-a22b-instruct-2507 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/deepseek/deepseek-v3.2-speciale not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/qwen/qwen3-max not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/z-ai/glm-4.5 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/z-ai/glm-4.5-air not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/qwen/qwen3-30b-a3b not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/x-ai/grok-4-fast not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/moonshotai/kimi-k2-thinking not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/google/gemini-2.5-flash-lite not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/meituan/longcat-flash-chat not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-3-5-haiku@20241022 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-3-5-sonnet-v2@20241022 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-opus-4@20250514 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-opus-4-1@20250805 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-sonnet-4@20250514 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-sonnet-4-5@20250929 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-sonnet-4-6@default not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-opus-4-5@20251101 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-opus-4-6@default not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/deepseek-ai/deepseek-r1-0528 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/deepseek-ai/deepseek-v3.1 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-1.5-flash not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-1.5-pro not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-2.0-flash-001 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-2.0-flash-lite not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-2.5-flash not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-2.5-flash-lite not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-2.5-pro not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-3-pro-preview not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-3.1-pro-preview not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-3-flash-preview not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/meta/llama-3.1-70b not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/openai/gpt-oss-20b not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/openai/gpt-oss-120b not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m02:21:51 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/qwen/qwen3-235b-a22b-instruct-2507 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
 resumed from agents\03_pult_munki\checkpoints\ppo_latest.pt
-iter   1 | games 16 (W/L/D 11/5/0) | decisions 2553 | samples 2357 | pi_loss 0.0010 | v_loss 0.1349 | ent 0.650 | clip 0.11 | 2.5s
-iter   2 | games 16 (W/L/D 7/9/0) | decisions 3043 | samples 2486 | pi_loss -0.0065 | v_loss 0.1379 | ent 0.742 | clip 0.08 | 2.9s
-iter   3 | games 16 (W/L/D 5/11/0) | decisions 2592 | samples 1929 | pi_loss -0.0076 | v_loss 0.1649 | ent 0.706 | clip 0.06 | 2.4s
-iter   4 | games 16 (W/L/D 4/12/0) | decisions 2960 | samples 2532 | pi_loss -0.0069 | v_loss 0.1564 | ent 0.710 | clip 0.07 | 2.8s
-iter   5 | games 16 (W/L/D 9/7/0) | decisions 2743 | samples 1657 | pi_loss -0.0114 | v_loss 0.1500 | ent 0.721 | clip 0.08 | 2.4s
-iter   6 | games 16 (W/L/D 8/8/0) | decisions 2856 | samples 2062 | pi_loss -0.0264 | v_loss 0.0950 | ent 0.709 | clip 0.07 | 2.6s
-iter   7 | games 16 (W/L/D 5/11/0) | decisions 2631 | samples 2115 | pi_loss -0.0091 | v_loss 0.1150 | ent 0.744 | clip 0.08 | 2.4s
-iter   8 | games 16 (W/L/D 10/6/0) | decisions 2462 | samples 1846 | pi_loss -0.0088 | v_loss 0.1795 | ent 0.736 | clip 0.05 | 2.3s
-iter   9 | games 16 (W/L/D 7/9/0) | decisions 2644 | samples 1981 | pi_loss -0.0084 | v_loss 0.1168 | ent 0.687 | clip 0.09 | 2.5s
-iter  10 | games 16 (W/L/D 8/8/0) | decisions 2751 | samples 2114 | pi_loss -0.0085 | v_loss 0.1193 | ent 0.680 | clip 0.08 | 2.6s
-iter  10 | eval vs random: 100.0% (20 games)
-iter  11 | games 16 (W/L/D 11/5/0) | decisions 2659 | samples 1714 | pi_loss -0.0072 | v_loss 0.1121 | ent 0.685 | clip 0.06 | 2.3s
-iter  12 | games 16 (W/L/D 8/8/0) | decisions 2858 | samples 2088 | pi_loss -0.0113 | v_loss 0.1373 | ent 0.721 | clip 0.07 | 2.6s
-iter  13 | games 16 (W/L/D 9/7/0) | decisions 2948 | samples 2033 | pi_loss -0.0101 | v_loss 0.1111 | ent 0.717 | clip 0.07 | 2.8s
-iter  14 | games 16 (W/L/D 10/6/0) | decisions 2607 | samples 1772 | pi_loss -0.0067 | v_loss 0.1402 | ent 0.662 | clip 0.09 | 2.4s
-iter  15 | games 16 (W/L/D 7/9/0) | decisions 3142 | samples 2717 | pi_loss -0.0066 | v_loss 0.1117 | ent 0.714 | clip 0.09 | 2.9s
-iter  16 | games 16 (W/L/D 9/7/0) | decisions 2758 | samples 2077 | pi_loss -0.0142 | v_loss 0.1045 | ent 0.677 | clip 0.08 | 2.5s
-iter  17 | games 16 (W/L/D 6/10/0) | decisions 3005 | samples 2131 | pi_loss -0.0079 | v_loss 0.1248 | ent 0.728 | clip 0.09 | 2.7s
-iter  18 | games 16 (W/L/D 10/6/0) | decisions 2765 | samples 2298 | pi_loss -0.0100 | v_loss 0.1365 | ent 0.720 | clip 0.07 | 2.6s
-iter  19 | games 16 (W/L/D 10/6/0) | decisions 2824 | samples 2169 | pi_loss -0.0070 | v_loss 0.1188 | ent 0.710 | clip 0.07 | 2.7s
-iter  20 | games 16 (W/L/D 10/6/0) | decisions 2778 | samples 1968 | pi_loss -0.0069 | v_loss 0.1578 | ent 0.695 | clip 0.07 | 2.5s
-iter  20 | eval vs random: 100.0% (20 games)
-iter  21 | games 16 (W/L/D 10/6/0) | decisions 2957 | samples 2265 | pi_loss -0.0064 | v_loss 0.1118 | ent 0.712 | clip 0.08 | 2.8s
-iter  22 | games 16 (W/L/D 9/7/0) | decisions 2711 | samples 2074 | pi_loss -0.0133 | v_loss 0.1368 | ent 0.691 | clip 0.07 | 2.5s
-iter  23 | games 16 (W/L/D 11/5/0) | decisions 2515 | samples 1889 | pi_loss -0.0151 | v_loss 0.1293 | ent 0.694 | clip 0.08 | 2.4s
-iter  24 | games 16 (W/L/D 9/7/0) | decisions 2798 | samples 1942 | pi_loss -0.0083 | v_loss 0.1266 | ent 0.685 | clip 0.08 | 2.5s
-iter  25 | games 16 (W/L/D 11/5/0) | decisions 2949 | samples 2211 | pi_loss -0.0080 | v_loss 0.1074 | ent 0.691 | clip 0.06 | 2.7s
-iter  26 | games 16 (W/L/D 9/7/0) | decisions 2678 | samples 1840 | pi_loss -0.0150 | v_loss 0.1804 | ent 0.684 | clip 0.06 | 2.4s
-iter  27 | games 16 (W/L/D 7/9/0) | decisions 3028 | samples 2652 | pi_loss -0.0087 | v_loss 0.1120 | ent 0.670 | clip 0.06 | 3.0s
-iter  28 | games 16 (W/L/D 4/12/0) | decisions 3106 | samples 2051 | pi_loss -0.0102 | v_loss 0.1169 | ent 0.744 | clip 0.07 | 2.9s
-iter  29 | games 16 (W/L/D 6/10/0) | decisions 2564 | samples 1571 | pi_loss -0.0030 | v_loss 0.1269 | ent 0.691 | clip 0.05 | 2.3s
-iter  30 | games 16 (W/L/D 10/6/0) | decisions 2696 | samples 2088 | pi_loss -0.0089 | v_loss 0.1471 | ent 0.685 | clip 0.08 | 2.5s
-iter  30 | eval vs random: 100.0% (20 games)
-iter  31 | games 16 (W/L/D 9/7/0) | decisions 2945 | samples 1887 | pi_loss 0.0029 | v_loss 0.1006 | ent 0.684 | clip 0.07 | 2.6s
-iter  32 | games 16 (W/L/D 7/9/0) | decisions 2920 | samples 2291 | pi_loss -0.0086 | v_loss 0.1185 | ent 0.696 | clip 0.07 | 2.7s
-iter  33 | games 16 (W/L/D 4/12/0) | decisions 2802 | samples 1701 | pi_loss -0.0041 | v_loss 0.1268 | ent 0.718 | clip 0.05 | 2.5s
-iter  34 | games 16 (W/L/D 12/4/0) | decisions 2787 | samples 2072 | pi_loss -0.0059 | v_loss 0.1170 | ent 0.684 | clip 0.08 | 2.5s
-iter  35 | games 16 (W/L/D 6/10/0) | decisions 2695 | samples 2131 | pi_loss -0.0071 | v_loss 0.1290 | ent 0.672 | clip 0.08 | 2.7s
-iter  36 | games 16 (W/L/D 10/6/0) | decisions 2749 | samples 2278 | pi_loss -0.0076 | v_loss 0.1205 | ent 0.673 | clip 0.08 | 2.6s
-iter  37 | games 16 (W/L/D 7/9/0) | decisions 2732 | samples 1802 | pi_loss -0.0351 | v_loss 0.1184 | ent 0.690 | clip 0.08 | 2.5s
-iter  38 | games 16 (W/L/D 14/2/0) | decisions 2633 | samples 2110 | pi_loss -0.0029 | v_loss 0.1202 | ent 0.687 | clip 0.08 | 2.4s
-iter  39 | games 16 (W/L/D 9/7/0) | decisions 2615 | samples 2104 | pi_loss -0.0044 | v_loss 0.1755 | ent 0.690 | clip 0.05 | 2.5s
-iter  40 | games 16 (W/L/D 7/9/0) | decisions 2851 | samples 2214 | pi_loss -0.0047 | v_loss 0.1163 | ent 0.737 | clip 0.09 | 2.8s
+training vs fixed opponent '04_mega_abomasnow' only -- no self-play
+iter   1 | games 16 (W/L/D 3/13/0) | decisions 2002 | samples 1200 | pi_loss -0.0072 | v_loss 0.1664 | ent 0.573 | clip 0.08 | 1.8s
+iter   2 | games 16 (W/L/D 1/15/0) | decisions 2146 | samples 1260 | pi_loss -0.0054 | v_loss 0.1474 | ent 0.622 | clip 0.04 | 2.0s
+iter   3 | games 16 (W/L/D 3/13/0) | decisions 1966 | samples 1199 | pi_loss -0.0053 | v_loss 0.2095 | ent 0.619 | clip 0.05 | 1.6s
+iter   4 | games 16 (W/L/D 3/13/0) | decisions 2003 | samples 1173 | pi_loss -0.0010 | v_loss 0.2231 | ent 0.645 | clip 0.04 | 1.7s
+iter   5 | games 16 (W/L/D 4/12/0) | decisions 2150 | samples 1268 | pi_loss -0.0056 | v_loss 0.1904 | ent 0.619 | clip 0.04 | 1.8s
+iter   6 | games 16 (W/L/D 9/7/0) | decisions 1993 | samples 1227 | pi_loss 0.0007 | v_loss 0.3714 | ent 0.620 | clip 0.03 | 1.7s
+iter   7 | games 16 (W/L/D 3/13/0) | decisions 2073 | samples 1190 | pi_loss -0.0056 | v_loss 0.2116 | ent 0.649 | clip 0.03 | 1.9s
+iter   8 | games 16 (W/L/D 4/12/0) | decisions 1847 | samples 1011 | pi_loss -0.0069 | v_loss 0.2764 | ent 0.587 | clip 0.05 | 1.6s
+iter   9 | games 16 (W/L/D 3/13/0) | decisions 1838 | samples 1090 | pi_loss -0.0096 | v_loss 0.2397 | ent 0.597 | clip 0.06 | 1.7s
+iter  10 | games 16 (W/L/D 3/13/0) | decisions 1956 | samples 1130 | pi_loss -0.0065 | v_loss 0.1722 | ent 0.581 | clip 0.05 | 1.5s
+iter  10 | eval vs random: 95.0% (20 games)
+iter  11 | games 16 (W/L/D 7/9/0) | decisions 1660 | samples 951 | pi_loss -0.0022 | v_loss 0.3751 | ent 0.562 | clip 0.03 | 1.3s
+iter  12 | games 16 (W/L/D 2/14/0) | decisions 1886 | samples 1116 | pi_loss -0.0146 | v_loss 0.1890 | ent 0.576 | clip 0.05 | 1.6s
+iter  13 | games 16 (W/L/D 6/10/0) | decisions 2095 | samples 1209 | pi_loss -0.0002 | v_loss 0.2144 | ent 0.542 | clip 0.05 | 1.6s
+iter  14 | games 16 (W/L/D 9/7/0) | decisions 2077 | samples 1207 | pi_loss -0.0046 | v_loss 0.2518 | ent 0.565 | clip 0.03 | 1.7s
+iter  15 | games 16 (W/L/D 3/13/0) | decisions 2145 | samples 1272 | pi_loss -0.0029 | v_loss 0.1862 | ent 0.559 | clip 0.04 | 1.8s
+iter  16 | games 16 (W/L/D 6/10/0) | decisions 2346 | samples 1326 | pi_loss -0.0173 | v_loss 0.2508 | ent 0.614 | clip 0.05 | 2.2s
+iter  17 | games 16 (W/L/D 6/10/0) | decisions 2138 | samples 1326 | pi_loss -0.0250 | v_loss 0.2432 | ent 0.617 | clip 0.06 | 1.7s
+iter  18 | games 16 (W/L/D 3/13/0) | decisions 1744 | samples 1043 | pi_loss -0.0459 | v_loss 0.2588 | ent 0.578 | clip 0.04 | 1.4s
+iter  19 | games 16 (W/L/D 6/10/0) | decisions 1977 | samples 1186 | pi_loss -0.0058 | v_loss 0.2641 | ent 0.602 | clip 0.06 | 1.7s
+iter  20 | games 16 (W/L/D 3/13/0) | decisions 1986 | samples 1223 | pi_loss -0.0068 | v_loss 0.2392 | ent 0.609 | clip 0.04 | 1.6s
+iter  20 | eval vs random: 80.0% (20 games)
+iter  21 | games 16 (W/L/D 4/12/0) | decisions 2027 | samples 1237 | pi_loss -0.0067 | v_loss 0.2348 | ent 0.601 | clip 0.06 | 1.7s
+iter  22 | games 16 (W/L/D 9/7/0) | decisions 1931 | samples 1120 | pi_loss -0.0143 | v_loss 0.3607 | ent 0.601 | clip 0.02 | 1.5s
+iter  23 | games 16 (W/L/D 3/13/0) | decisions 2396 | samples 1340 | pi_loss -0.0067 | v_loss 0.2404 | ent 0.655 | clip 0.05 | 1.9s
+iter  24 | games 16 (W/L/D 4/12/0) | decisions 2091 | samples 1292 | pi_loss 0.0206 | v_loss 0.1868 | ent 0.607 | clip 0.04 | 1.6s
+iter  25 | games 16 (W/L/D 4/12/0) | decisions 2003 | samples 1181 | pi_loss -0.0067 | v_loss 0.2339 | ent 0.576 | clip 0.05 | 1.6s
+iter  26 | games 16 (W/L/D 1/15/0) | decisions 1823 | samples 1098 | pi_loss -0.0068 | v_loss 0.1434 | ent 0.620 | clip 0.04 | 1.4s
+iter  27 | games 16 (W/L/D 3/13/0) | decisions 2080 | samples 1166 | pi_loss -0.0075 | v_loss 0.2205 | ent 0.601 | clip 0.05 | 1.6s
+iter  28 | games 16 (W/L/D 4/12/0) | decisions 1854 | samples 1080 | pi_loss -0.0138 | v_loss 0.2002 | ent 0.617 | clip 0.03 | 1.4s
+iter  29 | games 16 (W/L/D 4/12/0) | decisions 1855 | samples 1100 | pi_loss -0.0062 | v_loss 0.1790 | ent 0.573 | clip 0.06 | 1.4s
+iter  30 | games 16 (W/L/D 6/10/0) | decisions 1898 | samples 1131 | pi_loss -0.0075 | v_loss 0.2495 | ent 0.568 | clip 0.03 | 1.4s
+iter  30 | eval vs random: 95.0% (20 games)
+iter  31 | games 16 (W/L/D 6/10/0) | decisions 1981 | samples 1149 | pi_loss -0.0044 | v_loss 0.2873 | ent 0.649 | clip 0.05 | 1.6s
+iter  32 | games 16 (W/L/D 4/12/0) | decisions 1985 | samples 1183 | pi_loss 0.0002 | v_loss 0.2257 | ent 0.632 | clip 0.05 | 1.5s
+iter  33 | games 16 (W/L/D 4/12/0) | decisions 1914 | samples 1127 | pi_loss 0.0006 | v_loss 0.2075 | ent 0.643 | clip 0.04 | 1.5s
+iter  34 | games 16 (W/L/D 2/14/0) | decisions 2385 | samples 1421 | pi_loss -0.0112 | v_loss 0.1611 | ent 0.681 | clip 0.10 | 1.9s
+iter  35 | games 16 (W/L/D 5/11/0) | decisions 1855 | samples 1153 | pi_loss -0.0110 | v_loss 0.2811 | ent 0.602 | clip 0.05 | 1.5s
+iter  36 | games 16 (W/L/D 5/11/0) | decisions 1954 | samples 1150 | pi_loss -0.0006 | v_loss 0.2457 | ent 0.650 | clip 0.07 | 1.5s
+iter  37 | games 16 (W/L/D 7/9/0) | decisions 2063 | samples 1225 | pi_loss -0.0067 | v_loss 0.3136 | ent 0.621 | clip 0.04 | 1.6s
+iter  38 | games 16 (W/L/D 4/12/0) | decisions 2164 | samples 1199 | pi_loss -0.0075 | v_loss 0.2593 | ent 0.640 | clip 0.02 | 1.7s
+iter  39 | games 16 (W/L/D 3/13/0) | decisions 1846 | samples 1077 | pi_loss -0.0088 | v_loss 0.2076 | ent 0.601 | clip 0.05 | 1.5s
+iter  40 | games 16 (W/L/D 6/10/0) | decisions 2132 | samples 1291 | pi_loss 0.0119 | v_loss 0.2199 | ent 0.624 | clip 0.05 | 1.7s
 iter  40 | eval vs random: 100.0% (20 games)
-iter  41 | games 16 (W/L/D 9/7/0) | decisions 3031 | samples 2139 | pi_loss -0.0075 | v_loss 0.1229 | ent 0.668 | clip 0.05 | 2.8s
-iter  42 | games 16 (W/L/D 9/7/0) | decisions 2734 | samples 2299 | pi_loss -0.0053 | v_loss 0.1204 | ent 0.740 | clip 0.07 | 2.6s
-iter  43 | games 16 (W/L/D 10/6/0) | decisions 2947 | samples 2140 | pi_loss -0.0077 | v_loss 0.1239 | ent 0.684 | clip 0.10 | 2.8s
-iter  44 | games 16 (W/L/D 9/7/0) | decisions 2820 | samples 1943 | pi_loss -0.0084 | v_loss 0.1257 | ent 0.697 | clip 0.08 | 2.5s
-iter  45 | games 16 (W/L/D 9/7/0) | decisions 2749 | samples 2080 | pi_loss -0.0133 | v_loss 0.1322 | ent 0.678 | clip 0.08 | 2.6s
-iter  46 | games 16 (W/L/D 10/6/0) | decisions 2745 | samples 2192 | pi_loss -0.0129 | v_loss 0.1209 | ent 0.693 | clip 0.10 | 2.5s
-iter  47 | games 16 (W/L/D 9/7/0) | decisions 2832 | samples 1973 | pi_loss -0.0100 | v_loss 0.1239 | ent 0.711 | clip 0.09 | 2.5s
-iter  48 | games 16 (W/L/D 9/7/0) | decisions 2967 | samples 2414 | pi_loss -0.0038 | v_loss 0.1162 | ent 0.713 | clip 0.07 | 2.6s
-iter  49 | games 16 (W/L/D 6/10/0) | decisions 2993 | samples 2327 | pi_loss -0.0046 | v_loss 0.1265 | ent 0.724 | clip 0.06 | 2.7s
-iter  50 | games 16 (W/L/D 9/7/0) | decisions 2869 | samples 2147 | pi_loss -0.0099 | v_loss 0.1054 | ent 0.699 | clip 0.06 | 2.7s
-iter  50 | eval vs random: 100.0% (20 games)
-iter  51 | games 16 (W/L/D 8/8/0) | decisions 2411 | samples 1568 | pi_loss 0.0047 | v_loss 0.1415 | ent 0.671 | clip 0.09 | 2.2s
-iter  52 | games 16 (W/L/D 10/6/0) | decisions 2691 | samples 2090 | pi_loss -0.0038 | v_loss 0.1308 | ent 0.701 | clip 0.07 | 2.5s
-iter  53 | games 16 (W/L/D 7/9/0) | decisions 2722 | samples 1961 | pi_loss -0.0085 | v_loss 0.0985 | ent 0.709 | clip 0.06 | 2.4s
-iter  54 | games 16 (W/L/D 7/9/0) | decisions 2882 | samples 1934 | pi_loss -0.0143 | v_loss 0.1136 | ent 0.703 | clip 0.10 | 2.6s
-iter  55 | games 16 (W/L/D 5/11/0) | decisions 2507 | samples 2010 | pi_loss -0.0074 | v_loss 0.1562 | ent 0.664 | clip 0.06 | 2.3s
-iter  56 | games 16 (W/L/D 10/6/0) | decisions 2717 | samples 1751 | pi_loss -0.0094 | v_loss 0.1054 | ent 0.675 | clip 0.07 | 2.4s
-iter  57 | games 16 (W/L/D 3/13/0) | decisions 2853 | samples 2357 | pi_loss -0.0126 | v_loss 0.1497 | ent 0.702 | clip 0.07 | 2.7s
-iter  58 | games 16 (W/L/D 10/6/0) | decisions 2666 | samples 1682 | pi_loss -0.0061 | v_loss 0.1241 | ent 0.671 | clip 0.08 | 2.4s
-iter  59 | games 16 (W/L/D 6/10/0) | decisions 2979 | samples 2580 | pi_loss -0.0073 | v_loss 0.1067 | ent 0.711 | clip 0.08 | 2.8s
-iter  60 | games 16 (W/L/D 10/6/0) | decisions 2287 | samples 1710 | pi_loss -0.0070 | v_loss 0.1354 | ent 0.648 | clip 0.06 | 2.1s
-iter  60 | eval vs random: 100.0% (20 games)
-iter  61 | games 16 (W/L/D 10/6/0) | decisions 2518 | samples 1823 | pi_loss -0.0098 | v_loss 0.1341 | ent 0.663 | clip 0.07 | 2.4s
-iter  62 | games 16 (W/L/D 8/8/0) | decisions 2769 | samples 2332 | pi_loss -0.0121 | v_loss 0.1472 | ent 0.727 | clip 0.08 | 2.5s
-iter  63 | games 16 (W/L/D 10/6/0) | decisions 2774 | samples 1967 | pi_loss -0.0076 | v_loss 0.1295 | ent 0.674 | clip 0.07 | 2.5s
-iter  64 | games 16 (W/L/D 10/6/0) | decisions 2494 | samples 1996 | pi_loss -0.0068 | v_loss 0.1560 | ent 0.656 | clip 0.07 | 2.3s
-iter  65 | games 16 (W/L/D 9/7/0) | decisions 2632 | samples 1805 | pi_loss -0.0142 | v_loss 0.1377 | ent 0.691 | clip 0.06 | 2.3s
-iter  66 | games 16 (W/L/D 9/7/0) | decisions 2620 | samples 1670 | pi_loss -0.0098 | v_loss 0.1200 | ent 0.725 | clip 0.07 | 2.3s
-iter  67 | games 16 (W/L/D 4/12/0) | decisions 2961 | samples 2413 | pi_loss -0.0098 | v_loss 0.1154 | ent 0.735 | clip 0.07 | 2.9s
-iter  68 | games 16 (W/L/D 8/8/0) | decisions 2839 | samples 2072 | pi_loss 0.0107 | v_loss 0.1391 | ent 0.703 | clip 0.06 | 2.5s
-iter  69 | games 16 (W/L/D 8/8/0) | decisions 2621 | samples 1813 | pi_loss 0.0043 | v_loss 0.1135 | ent 0.701 | clip 0.06 | 2.3s
-iter  70 | games 16 (W/L/D 6/10/0) | decisions 2893 | samples 2093 | pi_loss -0.0004 | v_loss 0.1035 | ent 0.710 | clip 0.09 | 2.6s
-iter  70 | eval vs random: 100.0% (20 games)
-iter  71 | games 16 (W/L/D 7/9/0) | decisions 2915 | samples 2124 | pi_loss -0.0076 | v_loss 0.1403 | ent 0.668 | clip 0.06 | 2.8s
-iter  72 | games 16 (W/L/D 8/8/0) | decisions 2776 | samples 2277 | pi_loss -0.0072 | v_loss 0.1202 | ent 0.634 | clip 0.07 | 2.5s
-iter  73 | games 16 (W/L/D 10/6/0) | decisions 2787 | samples 1894 | pi_loss -0.0144 | v_loss 0.1158 | ent 0.681 | clip 0.06 | 2.6s
-iter  74 | games 16 (W/L/D 9/7/0) | decisions 2835 | samples 2454 | pi_loss -0.0062 | v_loss 0.1337 | ent 0.690 | clip 0.07 | 2.7s
-iter  75 | games 16 (W/L/D 7/9/0) | decisions 2928 | samples 2389 | pi_loss -0.0058 | v_loss 0.1172 | ent 0.674 | clip 0.07 | 2.7s
-iter  76 | games 16 (W/L/D 9/7/0) | decisions 2805 | samples 2074 | pi_loss -0.0177 | v_loss 0.1371 | ent 0.668 | clip 0.08 | 2.6s
-iter  77 | games 16 (W/L/D 6/10/0) | decisions 2856 | samples 2262 | pi_loss -0.0050 | v_loss 0.1063 | ent 0.635 | clip 0.05 | 2.6s
-iter  78 | games 16 (W/L/D 11/5/0) | decisions 2826 | samples 2312 | pi_loss 0.0371 | v_loss 0.1078 | ent 0.671 | clip 0.07 | 2.6s
-iter  79 | games 16 (W/L/D 9/7/0) | decisions 2604 | samples 1973 | pi_loss -0.0058 | v_loss 0.1272 | ent 0.653 | clip 0.06 | 2.3s
-iter  80 | games 16 (W/L/D 7/9/0) | decisions 2728 | samples 2030 | pi_loss -0.0078 | v_loss 0.1419 | ent 0.646 | clip 0.07 | 2.4s
-iter  80 | eval vs random: 100.0% (20 games)
-iter  81 | games 16 (W/L/D 7/9/0) | decisions 2845 | samples 2230 | pi_loss -0.0080 | v_loss 0.1324 | ent 0.686 | clip 0.06 | 2.8s
-iter  82 | games 16 (W/L/D 8/8/0) | decisions 2771 | samples 2007 | pi_loss -0.0073 | v_loss 0.1182 | ent 0.678 | clip 0.07 | 2.4s
-iter  83 | games 16 (W/L/D 6/10/0) | decisions 3035 | samples 2754 | pi_loss -0.0065 | v_loss 0.1399 | ent 0.658 | clip 0.08 | 2.9s
-iter  84 | games 16 (W/L/D 7/9/0) | decisions 2958 | samples 2441 | pi_loss -0.0025 | v_loss 0.1286 | ent 0.672 | clip 0.08 | 2.8s
-iter  85 | games 16 (W/L/D 11/5/0) | decisions 2791 | samples 2041 | pi_loss -0.0070 | v_loss 0.1219 | ent 0.662 | clip 0.06 | 2.5s
-iter  86 | games 16 (W/L/D 10/6/0) | decisions 2767 | samples 2046 | pi_loss -0.0071 | v_loss 0.1248 | ent 0.686 | clip 0.05 | 2.6s
-iter  87 | games 16 (W/L/D 9/7/0) | decisions 2869 | samples 2468 | pi_loss -0.0105 | v_loss 0.1173 | ent 0.678 | clip 0.07 | 2.6s
-iter  88 | games 16 (W/L/D 8/8/0) | decisions 2736 | samples 1928 | pi_loss -0.0029 | v_loss 0.1087 | ent 0.695 | clip 0.07 | 2.5s
-iter  89 | games 16 (W/L/D 9/7/0) | decisions 3069 | samples 2372 | pi_loss -0.0084 | v_loss 0.1444 | ent 0.692 | clip 0.08 | 2.9s
-iter  90 | games 16 (W/L/D 10/6/0) | decisions 2828 | samples 2309 | pi_loss -0.0150 | v_loss 0.0971 | ent 0.709 | clip 0.07 | 2.6s
+iter  41 | games 16 (W/L/D 4/12/0) | decisions 1974 | samples 1151 | pi_loss -0.0088 | v_loss 0.2007 | ent 0.649 | clip 0.05 | 1.5s
+iter  42 | games 16 (W/L/D 5/11/0) | decisions 1884 | samples 1052 | pi_loss -0.0433 | v_loss 0.2508 | ent 0.573 | clip 0.04 | 1.4s
+iter  43 | games 16 (W/L/D 5/11/0) | decisions 1971 | samples 1119 | pi_loss -0.0006 | v_loss 0.2719 | ent 0.592 | clip 0.04 | 1.6s
+iter  44 | games 16 (W/L/D 6/10/0) | decisions 1948 | samples 1115 | pi_loss -0.0150 | v_loss 0.2708 | ent 0.630 | clip 0.06 | 1.7s
+iter  45 | games 16 (W/L/D 2/14/0) | decisions 1985 | samples 1211 | pi_loss -0.0096 | v_loss 0.1815 | ent 0.627 | clip 0.06 | 1.7s
+iter  46 | games 16 (W/L/D 5/11/0) | decisions 1822 | samples 1050 | pi_loss -0.0176 | v_loss 0.2645 | ent 0.615 | clip 0.06 | 1.4s
+iter  47 | games 16 (W/L/D 4/12/0) | decisions 1776 | samples 1006 | pi_loss -0.0048 | v_loss 0.2965 | ent 0.608 | clip 0.03 | 1.4s
+iter  48 | games 16 (W/L/D 1/15/0) | decisions 1831 | samples 1025 | pi_loss -0.0942 | v_loss 0.1431 | ent 0.526 | clip 0.04 | 1.5s
+iter  49 | games 16 (W/L/D 4/12/0) | decisions 1926 | samples 1146 | pi_loss -0.0126 | v_loss 0.2414 | ent 0.598 | clip 0.04 | 1.6s
+iter  50 | games 16 (W/L/D 2/14/0) | decisions 2045 | samples 1190 | pi_loss -0.0048 | v_loss 0.1475 | ent 0.620 | clip 0.05 | 1.8s
+iter  50 | eval vs random: 95.0% (20 games)
+iter  51 | games 16 (W/L/D 4/12/0) | decisions 1954 | samples 1129 | pi_loss -0.0108 | v_loss 0.2147 | ent 0.626 | clip 0.06 | 1.6s
+iter  52 | games 16 (W/L/D 5/11/0) | decisions 1968 | samples 1186 | pi_loss -0.0017 | v_loss 0.2859 | ent 0.601 | clip 0.05 | 1.6s
+iter  53 | games 16 (W/L/D 6/10/0) | decisions 1959 | samples 1158 | pi_loss -0.0070 | v_loss 0.2678 | ent 0.594 | clip 0.05 | 1.6s
+iter  54 | games 16 (W/L/D 6/10/0) | decisions 2196 | samples 1261 | pi_loss -0.0046 | v_loss 0.2423 | ent 0.640 | clip 0.04 | 1.8s
+iter  55 | games 16 (W/L/D 5/11/0) | decisions 1766 | samples 955 | pi_loss -0.0056 | v_loss 0.2861 | ent 0.602 | clip 0.03 | 1.4s
+iter  56 | games 16 (W/L/D 5/11/0) | decisions 1909 | samples 1151 | pi_loss -0.0018 | v_loss 0.2461 | ent 0.647 | clip 0.05 | 1.6s
+iter  57 | games 16 (W/L/D 3/13/0) | decisions 1849 | samples 1136 | pi_loss -0.0098 | v_loss 0.1811 | ent 0.607 | clip 0.05 | 1.5s
+iter  58 | games 16 (W/L/D 2/14/0) | decisions 1832 | samples 1046 | pi_loss -0.0190 | v_loss 0.2306 | ent 0.582 | clip 0.04 | 1.5s
+iter  59 | games 16 (W/L/D 6/10/0) | decisions 1880 | samples 1069 | pi_loss -0.0246 | v_loss 0.3281 | ent 0.614 | clip 0.05 | 1.6s
+iter  60 | games 16 (W/L/D 4/12/0) | decisions 2276 | samples 1267 | pi_loss -0.0051 | v_loss 0.2090 | ent 0.587 | clip 0.05 | 1.8s
+iter  60 | eval vs random: 90.0% (20 games)
+iter  61 | games 16 (W/L/D 6/10/0) | decisions 1896 | samples 1094 | pi_loss -0.0115 | v_loss 0.2342 | ent 0.624 | clip 0.07 | 1.7s
+iter  62 | games 16 (W/L/D 5/11/0) | decisions 1825 | samples 1087 | pi_loss -0.0057 | v_loss 0.1779 | ent 0.604 | clip 0.07 | 1.6s
+iter  63 | games 16 (W/L/D 7/9/0) | decisions 2085 | samples 1235 | pi_loss -0.0050 | v_loss 0.4006 | ent 0.616 | clip 0.04 | 1.7s
+iter  64 | games 16 (W/L/D 4/12/0) | decisions 1800 | samples 1054 | pi_loss -0.0020 | v_loss 0.2633 | ent 0.609 | clip 0.04 | 1.4s
+iter  65 | games 16 (W/L/D 0/16/0) | decisions 2230 | samples 1325 | pi_loss -0.0003 | v_loss 0.0736 | ent 0.617 | clip 0.05 | 1.8s
+iter  66 | games 16 (W/L/D 5/11/0) | decisions 1989 | samples 1175 | pi_loss -0.0066 | v_loss 0.2592 | ent 0.622 | clip 0.03 | 1.6s
+iter  67 | games 16 (W/L/D 4/12/0) | decisions 2123 | samples 1246 | pi_loss -0.0058 | v_loss 0.1612 | ent 0.589 | clip 0.05 | 1.8s
+iter  68 | games 16 (W/L/D 3/13/0) | decisions 2007 | samples 1159 | pi_loss 0.0034 | v_loss 0.1813 | ent 0.593 | clip 0.05 | 1.6s
+iter  69 | games 16 (W/L/D 4/12/0) | decisions 1879 | samples 1098 | pi_loss -0.0112 | v_loss 0.2209 | ent 0.613 | clip 0.05 | 1.5s
+iter  70 | games 16 (W/L/D 6/10/0) | decisions 2026 | samples 1174 | pi_loss -0.0038 | v_loss 0.3153 | ent 0.639 | clip 0.04 | 1.7s
+iter  70 | eval vs random: 80.0% (20 games)
+iter  71 | games 16 (W/L/D 8/8/0) | decisions 2145 | samples 1308 | pi_loss -0.0221 | v_loss 0.2325 | ent 0.590 | clip 0.05 | 1.7s
+iter  72 | games 16 (W/L/D 5/11/0) | decisions 1933 | samples 1140 | pi_loss -0.0176 | v_loss 0.2752 | ent 0.609 | clip 0.05 | 1.5s
+iter  73 | games 16 (W/L/D 5/11/0) | decisions 1912 | samples 1128 | pi_loss -0.0013 | v_loss 0.2134 | ent 0.554 | clip 0.05 | 1.5s
+iter  74 | games 16 (W/L/D 6/10/0) | decisions 2097 | samples 1222 | pi_loss -0.0008 | v_loss 0.2290 | ent 0.627 | clip 0.06 | 1.6s
+iter  75 | games 16 (W/L/D 5/11/0) | decisions 2034 | samples 1231 | pi_loss -0.0086 | v_loss 0.2571 | ent 0.634 | clip 0.05 | 1.7s
+iter  76 | games 16 (W/L/D 2/14/0) | decisions 1726 | samples 959 | pi_loss -0.0092 | v_loss 0.2848 | ent 0.610 | clip 0.05 | 1.3s
+iter  77 | games 16 (W/L/D 3/13/0) | decisions 1828 | samples 1030 | pi_loss -0.0264 | v_loss 0.2838 | ent 0.615 | clip 0.06 | 1.5s
+iter  78 | games 16 (W/L/D 3/13/0) | decisions 1956 | samples 1094 | pi_loss -0.0044 | v_loss 0.2543 | ent 0.596 | clip 0.03 | 1.7s
+iter  79 | games 16 (W/L/D 3/13/0) | decisions 2007 | samples 1228 | pi_loss -0.0042 | v_loss 0.1952 | ent 0.563 | clip 0.03 | 1.8s
+iter  80 | games 16 (W/L/D 3/13/0) | decisions 1872 | samples 1063 | pi_loss -0.0290 | v_loss 0.2639 | ent 0.570 | clip 0.03 | 1.5s
+iter  80 | eval vs random: 90.0% (20 games)
+iter  81 | games 16 (W/L/D 6/10/0) | decisions 2115 | samples 1249 | pi_loss -0.0089 | v_loss 0.2599 | ent 0.644 | clip 0.05 | 1.7s
+iter  82 | games 16 (W/L/D 5/11/0) | decisions 1824 | samples 1045 | pi_loss -0.0161 | v_loss 0.2445 | ent 0.565 | clip 0.05 | 1.4s
+iter  83 | games 16 (W/L/D 4/12/0) | decisions 1850 | samples 1127 | pi_loss -0.0177 | v_loss 0.2725 | ent 0.622 | clip 0.03 | 1.6s
+iter  84 | games 16 (W/L/D 5/11/0) | decisions 2026 | samples 1196 | pi_loss -0.0011 | v_loss 0.2628 | ent 0.607 | clip 0.04 | 1.6s
+iter  85 | games 16 (W/L/D 3/13/0) | decisions 1717 | samples 975 | pi_loss -0.0025 | v_loss 0.2260 | ent 0.577 | clip 0.04 | 1.3s
+iter  86 | games 16 (W/L/D 9/7/0) | decisions 1890 | samples 1131 | pi_loss 0.0013 | v_loss 0.3402 | ent 0.596 | clip 0.03 | 1.5s
+iter  87 | games 16 (W/L/D 5/11/0) | decisions 2153 | samples 1272 | pi_loss -0.0035 | v_loss 0.2294 | ent 0.591 | clip 0.06 | 1.8s
+iter  88 | games 16 (W/L/D 8/8/0) | decisions 1994 | samples 1163 | pi_loss -0.0153 | v_loss 0.2991 | ent 0.590 | clip 0.06 | 1.6s
+iter  89 | games 16 (W/L/D 6/10/0) | decisions 1863 | samples 1093 | pi_loss -0.0108 | v_loss 0.3121 | ent 0.560 | clip 0.05 | 1.5s
+iter  90 | games 16 (W/L/D 2/14/0) | decisions 1907 | samples 1096 | pi_loss -0.0168 | v_loss 0.2437 | ent 0.589 | clip 0.04 | 1.4s
 iter  90 | eval vs random: 95.0% (20 games)
-iter  91 | games 16 (W/L/D 9/7/0) | decisions 3012 | samples 2094 | pi_loss -0.0180 | v_loss 0.1015 | ent 0.714 | clip 0.08 | 2.8s
-iter  92 | games 16 (W/L/D 9/7/0) | decisions 3110 | samples 2602 | pi_loss -0.0096 | v_loss 0.1192 | ent 0.681 | clip 0.08 | 2.8s
-iter  93 | games 16 (W/L/D 6/10/0) | decisions 2639 | samples 1633 | pi_loss 0.0009 | v_loss 0.1279 | ent 0.685 | clip 0.07 | 2.2s
-iter  94 | games 16 (W/L/D 6/10/0) | decisions 2657 | samples 1955 | pi_loss -0.0046 | v_loss 0.0943 | ent 0.693 | clip 0.09 | 2.4s
-iter  95 | games 16 (W/L/D 11/5/0) | decisions 2721 | samples 2265 | pi_loss -0.0092 | v_loss 0.1546 | ent 0.671 | clip 0.07 | 2.5s
-iter  96 | games 16 (W/L/D 11/5/0) | decisions 2800 | samples 2162 | pi_loss -0.0036 | v_loss 0.1209 | ent 0.654 | clip 0.07 | 2.6s
-iter  97 | games 16 (W/L/D 13/3/0) | decisions 2910 | samples 2135 | pi_loss 0.0022 | v_loss 0.1288 | ent 0.685 | clip 0.06 | 2.6s
-iter  98 | games 16 (W/L/D 6/10/0) | decisions 2853 | samples 1876 | pi_loss -0.0039 | v_loss 0.1496 | ent 0.661 | clip 0.07 | 2.5s
-iter  99 | games 16 (W/L/D 8/8/0) | decisions 2898 | samples 2223 | pi_loss -0.0095 | v_loss 0.1536 | ent 0.695 | clip 0.07 | 2.7s
-iter 100 | games 16 (W/L/D 8/8/0) | decisions 2511 | samples 1807 | pi_loss 0.0019 | v_loss 0.1348 | ent 0.633 | clip 0.04 | 2.2s
+iter  91 | games 16 (W/L/D 3/13/0) | decisions 2159 | samples 1208 | pi_loss -0.0035 | v_loss 0.2165 | ent 0.637 | clip 0.06 | 1.8s
+iter  92 | games 16 (W/L/D 6/10/0) | decisions 1863 | samples 1055 | pi_loss -0.0195 | v_loss 0.2882 | ent 0.653 | clip 0.05 | 1.4s
+iter  93 | games 16 (W/L/D 6/10/0) | decisions 1872 | samples 1051 | pi_loss -0.0038 | v_loss 0.2556 | ent 0.601 | clip 0.05 | 1.4s
+iter  94 | games 16 (W/L/D 5/11/0) | decisions 1942 | samples 1161 | pi_loss 0.0008 | v_loss 0.1977 | ent 0.565 | clip 0.05 | 1.5s
+iter  95 | games 16 (W/L/D 3/13/0) | decisions 1883 | samples 1129 | pi_loss 0.0025 | v_loss 0.2035 | ent 0.545 | clip 0.06 | 1.5s
+iter  96 | games 16 (W/L/D 4/12/0) | decisions 2002 | samples 1176 | pi_loss -0.0092 | v_loss 0.2313 | ent 0.564 | clip 0.04 | 1.6s
+iter  97 | games 16 (W/L/D 2/14/0) | decisions 2182 | samples 1223 | pi_loss -0.0061 | v_loss 0.1301 | ent 0.599 | clip 0.04 | 1.7s
+iter  98 | games 16 (W/L/D 5/11/0) | decisions 1984 | samples 1225 | pi_loss -0.0094 | v_loss 0.2244 | ent 0.591 | clip 0.06 | 1.6s
+iter  99 | games 16 (W/L/D 5/11/0) | decisions 1992 | samples 1195 | pi_loss -0.0066 | v_loss 0.1912 | ent 0.581 | clip 0.05 | 1.6s
+iter 100 | games 16 (W/L/D 1/15/0) | decisions 1751 | samples 1044 | pi_loss 0.0296 | v_loss 0.1398 | ent 0.587 | clip 0.02 | 1.3s
 iter 100 | eval vs random: 95.0% (20 games)
-iter 101 | games 16 (W/L/D 8/8/0) | decisions 2873 | samples 2235 | pi_loss -0.0064 | v_loss 0.1475 | ent 0.662 | clip 0.07 | 2.6s
-iter 102 | games 16 (W/L/D 6/10/0) | decisions 2832 | samples 2186 | pi_loss -0.0060 | v_loss 0.1469 | ent 0.668 | clip 0.06 | 2.5s
-iter 103 | games 16 (W/L/D 8/8/0) | decisions 2696 | samples 2250 | pi_loss -0.0073 | v_loss 0.1234 | ent 0.699 | clip 0.06 | 2.5s
-iter 104 | games 16 (W/L/D 7/9/0) | decisions 2905 | samples 1925 | pi_loss -0.0039 | v_loss 0.1548 | ent 0.677 | clip 0.06 | 2.6s
-iter 105 | games 16 (W/L/D 10/6/0) | decisions 2501 | samples 1956 | pi_loss -0.0077 | v_loss 0.1144 | ent 0.670 | clip 0.06 | 2.2s
-iter 106 | games 16 (W/L/D 6/10/0) | decisions 2875 | samples 1697 | pi_loss -0.0066 | v_loss 0.1635 | ent 0.686 | clip 0.05 | 2.5s
-iter 107 | games 16 (W/L/D 6/10/0) | decisions 2471 | samples 1902 | pi_loss -0.0106 | v_loss 0.1244 | ent 0.699 | clip 0.07 | 2.3s
-iter 108 | games 16 (W/L/D 10/6/0) | decisions 3069 | samples 2228 | pi_loss -0.0086 | v_loss 0.1235 | ent 0.716 | clip 0.07 | 2.8s
-iter 109 | games 16 (W/L/D 9/7/0) | decisions 2525 | samples 1980 | pi_loss -0.0092 | v_loss 0.1281 | ent 0.724 | clip 0.08 | 2.4s
-iter 110 | games 16 (W/L/D 10/6/0) | decisions 2959 | samples 2072 | pi_loss 0.0131 | v_loss 0.1534 | ent 0.744 | clip 0.08 | 2.6s
+iter 101 | games 16 (W/L/D 5/11/0) | decisions 2149 | samples 1242 | pi_loss -0.0064 | v_loss 0.2722 | ent 0.627 | clip 0.04 | 1.7s
+iter 102 | games 16 (W/L/D 4/12/0) | decisions 1962 | samples 1135 | pi_loss -0.0071 | v_loss 0.2511 | ent 0.524 | clip 0.04 | 1.5s
+iter 103 | games 16 (W/L/D 4/12/0) | decisions 2307 | samples 1328 | pi_loss -0.0202 | v_loss 0.2155 | ent 0.658 | clip 0.05 | 1.9s
+iter 104 | games 16 (W/L/D 4/12/0) | decisions 1688 | samples 999 | pi_loss -0.0050 | v_loss 0.3004 | ent 0.596 | clip 0.04 | 1.3s
+iter 105 | games 16 (W/L/D 4/12/0) | decisions 2150 | samples 1300 | pi_loss -0.0215 | v_loss 0.1995 | ent 0.668 | clip 0.08 | 1.8s
+iter 106 | games 16 (W/L/D 4/12/0) | decisions 2109 | samples 1246 | pi_loss -0.0066 | v_loss 0.1893 | ent 0.595 | clip 0.04 | 1.6s
+iter 107 | games 16 (W/L/D 4/12/0) | decisions 1953 | samples 1127 | pi_loss -0.0034 | v_loss 0.2120 | ent 0.591 | clip 0.05 | 1.6s
+iter 108 | games 16 (W/L/D 7/9/0) | decisions 1946 | samples 1200 | pi_loss -0.0046 | v_loss 0.3170 | ent 0.615 | clip 0.03 | 1.6s
+iter 109 | games 16 (W/L/D 4/12/0) | decisions 1900 | samples 1145 | pi_loss -0.0075 | v_loss 0.2186 | ent 0.584 | clip 0.05 | 1.6s
+iter 110 | games 16 (W/L/D 4/12/0) | decisions 1697 | samples 948 | pi_loss -0.0046 | v_loss 0.2752 | ent 0.621 | clip 0.04 | 1.4s
 iter 110 | eval vs random: 100.0% (20 games)
-iter 111 | games 16 (W/L/D 8/8/0) | decisions 2744 | samples 2248 | pi_loss -0.0082 | v_loss 0.1487 | ent 0.750 | clip 0.08 | 2.8s
-iter 112 | games 16 (W/L/D 9/7/0) | decisions 3074 | samples 2165 | pi_loss -0.0110 | v_loss 0.0970 | ent 0.704 | clip 0.08 | 2.7s
-iter 113 | games 16 (W/L/D 7/9/0) | decisions 2920 | samples 2136 | pi_loss -0.0198 | v_loss 0.1470 | ent 0.750 | clip 0.10 | 2.7s
-iter 114 | games 16 (W/L/D 8/8/0) | decisions 2526 | samples 2275 | pi_loss -0.0072 | v_loss 0.1131 | ent 0.742 | clip 0.10 | 2.4s
-iter 115 | games 16 (W/L/D 9/7/0) | decisions 2613 | samples 1820 | pi_loss -0.0097 | v_loss 0.1175 | ent 0.750 | clip 0.06 | 2.5s
-iter 116 | games 16 (W/L/D 5/11/0) | decisions 2879 | samples 2242 | pi_loss -0.0089 | v_loss 0.1232 | ent 0.774 | clip 0.07 | 2.7s
-iter 117 | games 16 (W/L/D 3/13/0) | decisions 2790 | samples 1837 | pi_loss -0.0130 | v_loss 0.1441 | ent 0.722 | clip 0.06 | 2.5s
-iter 118 | games 16 (W/L/D 8/8/0) | decisions 2945 | samples 2261 | pi_loss -0.0111 | v_loss 0.1325 | ent 0.758 | clip 0.07 | 3.0s
-iter 119 | games 16 (W/L/D 5/11/0) | decisions 2766 | samples 2241 | pi_loss -0.0099 | v_loss 0.1569 | ent 0.730 | clip 0.07 | 2.6s
-iter 120 | games 16 (W/L/D 6/10/0) | decisions 2618 | samples 1934 | pi_loss -0.0126 | v_loss 0.1300 | ent 0.726 | clip 0.07 | 2.5s
-iter 120 | eval vs random: 100.0% (20 games)
-iter 121 | games 16 (W/L/D 14/2/0) | decisions 2486 | samples 1899 | pi_loss -0.0120 | v_loss 0.1526 | ent 0.664 | clip 0.07 | 2.2s
-iter 122 | games 16 (W/L/D 8/8/0) | decisions 2540 | samples 2076 | pi_loss -0.0077 | v_loss 0.1610 | ent 0.723 | clip 0.06 | 2.4s
-iter 123 | games 16 (W/L/D 6/10/0) | decisions 2696 | samples 2130 | pi_loss -0.0034 | v_loss 0.1193 | ent 0.686 | clip 0.07 | 2.4s
-iter 124 | games 16 (W/L/D 6/10/0) | decisions 2773 | samples 2074 | pi_loss -0.0093 | v_loss 0.1103 | ent 0.715 | clip 0.08 | 2.6s
-iter 125 | games 16 (W/L/D 12/4/0) | decisions 2881 | samples 1957 | pi_loss -0.0067 | v_loss 0.1384 | ent 0.757 | clip 0.07 | 2.7s
-iter 126 | games 16 (W/L/D 6/10/0) | decisions 2853 | samples 2165 | pi_loss -0.0149 | v_loss 0.1070 | ent 0.716 | clip 0.08 | 2.7s
-iter 127 | games 16 (W/L/D 6/10/0) | decisions 2811 | samples 2293 | pi_loss -0.0096 | v_loss 0.1349 | ent 0.749 | clip 0.08 | 2.7s
-iter 128 | games 16 (W/L/D 10/6/0) | decisions 3004 | samples 2431 | pi_loss -0.0089 | v_loss 0.1022 | ent 0.757 | clip 0.07 | 2.8s
-iter 129 | games 16 (W/L/D 7/9/0) | decisions 2781 | samples 1962 | pi_loss -0.0100 | v_loss 0.1261 | ent 0.717 | clip 0.08 | 2.5s
-iter 130 | games 16 (W/L/D 10/6/0) | decisions 2889 | samples 2280 | pi_loss -0.0087 | v_loss 0.1120 | ent 0.717 | clip 0.08 | 2.7s
+iter 111 | games 16 (W/L/D 6/10/0) | decisions 2029 | samples 1180 | pi_loss -0.0092 | v_loss 0.2320 | ent 0.583 | clip 0.05 | 1.6s
+iter 112 | games 16 (W/L/D 3/13/0) | decisions 1956 | samples 1133 | pi_loss -0.0178 | v_loss 0.2607 | ent 0.621 | clip 0.06 | 1.6s
+iter 113 | games 16 (W/L/D 5/11/0) | decisions 1769 | samples 1022 | pi_loss -0.0047 | v_loss 0.2688 | ent 0.619 | clip 0.05 | 1.4s
+iter 114 | games 16 (W/L/D 5/11/0) | decisions 2053 | samples 1230 | pi_loss -0.0032 | v_loss 0.2225 | ent 0.604 | clip 0.07 | 1.7s
+iter 115 | games 16 (W/L/D 6/10/0) | decisions 1805 | samples 1087 | pi_loss -0.0112 | v_loss 0.2876 | ent 0.603 | clip 0.06 | 1.5s
+iter 116 | games 16 (W/L/D 4/12/0) | decisions 1996 | samples 1080 | pi_loss -0.0118 | v_loss 0.2518 | ent 0.557 | clip 0.03 | 1.5s
+iter 117 | games 16 (W/L/D 2/14/0) | decisions 1852 | samples 1029 | pi_loss -0.1442 | v_loss 0.2945 | ent 0.523 | clip 0.08 | 1.5s
+iter 118 | games 16 (W/L/D 3/13/0) | decisions 1878 | samples 1084 | pi_loss -0.0271 | v_loss 0.1923 | ent 0.589 | clip 0.06 | 1.5s
+iter 119 | games 16 (W/L/D 5/11/0) | decisions 2089 | samples 1230 | pi_loss -0.0070 | v_loss 0.2589 | ent 0.596 | clip 0.04 | 1.7s
+iter 120 | games 16 (W/L/D 5/11/0) | decisions 1900 | samples 1108 | pi_loss -0.0052 | v_loss 0.2931 | ent 0.559 | clip 0.04 | 1.5s
+iter 120 | eval vs random: 90.0% (20 games)
+iter 121 | games 16 (W/L/D 6/10/0) | decisions 1762 | samples 1018 | pi_loss -0.0043 | v_loss 0.3301 | ent 0.618 | clip 0.03 | 1.4s
+iter 122 | games 16 (W/L/D 3/13/0) | decisions 1836 | samples 1018 | pi_loss -0.0058 | v_loss 0.2351 | ent 0.642 | clip 0.03 | 1.4s
+iter 123 | games 16 (W/L/D 7/9/0) | decisions 1738 | samples 1061 | pi_loss -0.0041 | v_loss 0.3481 | ent 0.541 | clip 0.02 | 1.3s
+iter 124 | games 16 (W/L/D 5/11/0) | decisions 2082 | samples 1191 | pi_loss -0.0072 | v_loss 0.1994 | ent 0.629 | clip 0.04 | 1.6s
+iter 125 | games 16 (W/L/D 4/12/0) | decisions 2104 | samples 1191 | pi_loss -0.0043 | v_loss 0.2396 | ent 0.557 | clip 0.03 | 1.6s
+iter 126 | games 16 (W/L/D 5/11/0) | decisions 1948 | samples 1110 | pi_loss 0.0015 | v_loss 0.2323 | ent 0.558 | clip 0.05 | 1.4s
+iter 127 | games 16 (W/L/D 4/12/0) | decisions 1973 | samples 1142 | pi_loss -0.0050 | v_loss 0.1821 | ent 0.557 | clip 0.05 | 1.5s
+iter 128 | games 16 (W/L/D 4/12/0) | decisions 1989 | samples 1179 | pi_loss -0.0109 | v_loss 0.2595 | ent 0.615 | clip 0.06 | 1.7s
+iter 129 | games 16 (W/L/D 4/12/0) | decisions 2128 | samples 1215 | pi_loss -0.0031 | v_loss 0.2413 | ent 0.585 | clip 0.04 | 1.8s
+iter 130 | games 16 (W/L/D 6/10/0) | decisions 1962 | samples 1125 | pi_loss -0.0046 | v_loss 0.2928 | ent 0.626 | clip 0.05 | 1.5s
 iter 130 | eval vs random: 100.0% (20 games)
-iter 131 | games 16 (W/L/D 8/8/0) | decisions 2911 | samples 2119 | pi_loss -0.0177 | v_loss 0.1284 | ent 0.752 | clip 0.08 | 2.6s
-iter 132 | games 16 (W/L/D 7/9/0) | decisions 2587 | samples 2088 | pi_loss -0.0051 | v_loss 0.1003 | ent 0.718 | clip 0.08 | 2.3s
-iter 133 | games 16 (W/L/D 7/9/0) | decisions 2814 | samples 2228 | pi_loss -0.0080 | v_loss 0.1551 | ent 0.733 | clip 0.05 | 2.6s
-iter 134 | games 16 (W/L/D 7/9/0) | decisions 2891 | samples 2233 | pi_loss -0.0082 | v_loss 0.1263 | ent 0.801 | clip 0.09 | 2.7s
-iter 135 | games 16 (W/L/D 9/7/0) | decisions 2771 | samples 1870 | pi_loss -0.0071 | v_loss 0.1417 | ent 0.705 | clip 0.08 | 2.5s
-iter 136 | games 16 (W/L/D 10/6/0) | decisions 2757 | samples 1956 | pi_loss -0.0120 | v_loss 0.0963 | ent 0.686 | clip 0.08 | 2.4s
-iter 137 | games 16 (W/L/D 8/8/0) | decisions 2792 | samples 2081 | pi_loss -0.0118 | v_loss 0.1260 | ent 0.752 | clip 0.10 | 2.7s
-iter 138 | games 16 (W/L/D 8/8/0) | decisions 2697 | samples 2186 | pi_loss -0.0089 | v_loss 0.1182 | ent 0.745 | clip 0.10 | 2.5s
-iter 139 | games 16 (W/L/D 10/6/0) | decisions 2662 | samples 2054 | pi_loss 0.0201 | v_loss 0.1011 | ent 0.732 | clip 0.07 | 2.5s
-iter 140 | games 16 (W/L/D 7/9/0) | decisions 2630 | samples 2047 | pi_loss -0.0082 | v_loss 0.1243 | ent 0.729 | clip 0.06 | 2.4s
-iter 140 | eval vs random: 100.0% (20 games)
-iter 141 | games 16 (W/L/D 9/7/0) | decisions 2771 | samples 2118 | pi_loss -0.0086 | v_loss 0.1620 | ent 0.730 | clip 0.07 | 2.5s
-iter 142 | games 16 (W/L/D 9/7/0) | decisions 2695 | samples 2105 | pi_loss -0.0113 | v_loss 0.1530 | ent 0.740 | clip 0.08 | 2.6s
-iter 143 | games 16 (W/L/D 7/9/0) | decisions 3102 | samples 2516 | pi_loss -0.0065 | v_loss 0.1012 | ent 0.751 | clip 0.07 | 3.1s
-iter 144 | games 16 (W/L/D 11/5/0) | decisions 2728 | samples 2348 | pi_loss -0.0214 | v_loss 0.1506 | ent 0.728 | clip 0.08 | 2.6s
-iter 145 | games 16 (W/L/D 10/6/0) | decisions 2803 | samples 2069 | pi_loss -0.0262 | v_loss 0.1119 | ent 0.744 | clip 0.09 | 2.7s
-iter 146 | games 16 (W/L/D 8/8/0) | decisions 2744 | samples 1983 | pi_loss -0.0098 | v_loss 0.0950 | ent 0.733 | clip 0.09 | 2.5s
-iter 147 | games 16 (W/L/D 9/7/0) | decisions 2581 | samples 1926 | pi_loss -0.0099 | v_loss 0.1341 | ent 0.720 | clip 0.07 | 2.4s
-iter 148 | games 16 (W/L/D 11/5/0) | decisions 2741 | samples 2048 | pi_loss -0.0091 | v_loss 0.1127 | ent 0.746 | clip 0.09 | 2.6s
-iter 149 | games 16 (W/L/D 7/9/0) | decisions 2633 | samples 2193 | pi_loss -0.0018 | v_loss 0.1626 | ent 0.689 | clip 0.08 | 2.4s
-iter 150 | games 16 (W/L/D 7/9/0) | decisions 2556 | samples 1807 | pi_loss -0.0285 | v_loss 0.1651 | ent 0.756 | clip 0.07 | 2.3s
-iter 150 | eval vs random: 100.0% (20 games)
-iter 151 | games 16 (W/L/D 7/9/0) | decisions 2874 | samples 2017 | pi_loss -0.0060 | v_loss 0.1496 | ent 0.705 | clip 0.07 | 2.6s
-iter 152 | games 16 (W/L/D 8/8/0) | decisions 2738 | samples 2389 | pi_loss -0.0101 | v_loss 0.1077 | ent 0.699 | clip 0.08 | 2.6s
-iter 153 | games 16 (W/L/D 10/6/0) | decisions 2612 | samples 1657 | pi_loss -0.0031 | v_loss 0.1599 | ent 0.745 | clip 0.07 | 2.3s
-iter 154 | games 16 (W/L/D 10/6/0) | decisions 2653 | samples 1958 | pi_loss -0.0093 | v_loss 0.1316 | ent 0.679 | clip 0.06 | 2.4s
-iter 155 | games 16 (W/L/D 7/9/0) | decisions 2776 | samples 2294 | pi_loss -0.0084 | v_loss 0.1472 | ent 0.694 | clip 0.08 | 2.5s
-iter 156 | games 16 (W/L/D 7/9/0) | decisions 2769 | samples 2340 | pi_loss -0.0081 | v_loss 0.1182 | ent 0.708 | clip 0.10 | 2.6s
-iter 157 | games 16 (W/L/D 10/6/0) | decisions 2961 | samples 2220 | pi_loss -0.0072 | v_loss 0.1066 | ent 0.694 | clip 0.06 | 2.6s
-iter 158 | games 16 (W/L/D 11/5/0) | decisions 2467 | samples 1788 | pi_loss -0.0078 | v_loss 0.1194 | ent 0.677 | clip 0.06 | 2.2s
-iter 159 | games 16 (W/L/D 9/7/0) | decisions 2606 | samples 1796 | pi_loss -0.0196 | v_loss 0.1524 | ent 0.656 | clip 0.07 | 2.4s
-iter 160 | games 16 (W/L/D 12/4/0) | decisions 2578 | samples 1893 | pi_loss 0.0007 | v_loss 0.1002 | ent 0.693 | clip 0.08 | 2.3s
-iter 160 | eval vs random: 100.0% (20 games)
-iter 161 | games 16 (W/L/D 7/9/0) | decisions 2527 | samples 1873 | pi_loss -0.0050 | v_loss 0.1372 | ent 0.689 | clip 0.07 | 2.3s
-iter 162 | games 16 (W/L/D 9/7/0) | decisions 2641 | samples 1976 | pi_loss -0.0118 | v_loss 0.1220 | ent 0.696 | clip 0.09 | 2.4s
-iter 163 | games 16 (W/L/D 10/6/0) | decisions 2884 | samples 1969 | pi_loss -0.0075 | v_loss 0.0880 | ent 0.675 | clip 0.08 | 2.6s
-iter 164 | games 16 (W/L/D 10/6/0) | decisions 2589 | samples 1833 | pi_loss -0.0133 | v_loss 0.1273 | ent 0.723 | clip 0.07 | 2.3s
-iter 165 | games 16 (W/L/D 6/10/0) | decisions 2901 | samples 1966 | pi_loss -0.0101 | v_loss 0.1189 | ent 0.716 | clip 0.09 | 2.6s
-iter 166 | games 16 (W/L/D 7/9/0) | decisions 2953 | samples 2597 | pi_loss 0.0008 | v_loss 0.1290 | ent 0.726 | clip 0.08 | 2.9s
-iter 167 | games 16 (W/L/D 10/6/0) | decisions 2562 | samples 2111 | pi_loss -0.0046 | v_loss 0.1184 | ent 0.714 | clip 0.09 | 2.3s
-iter 168 | games 16 (W/L/D 12/4/0) | decisions 2700 | samples 2020 | pi_loss -0.0081 | v_loss 0.1432 | ent 0.705 | clip 0.07 | 2.4s
-iter 169 | games 16 (W/L/D 4/12/0) | decisions 2694 | samples 2202 | pi_loss -0.0081 | v_loss 0.1641 | ent 0.719 | clip 0.08 | 2.5s
-iter 170 | games 16 (W/L/D 8/8/0) | decisions 2995 | samples 2265 | pi_loss -0.0073 | v_loss 0.1543 | ent 0.708 | clip 0.08 | 2.7s
-iter 170 | eval vs random: 100.0% (20 games)
-iter 171 | games 16 (W/L/D 7/9/0) | decisions 2928 | samples 2473 | pi_loss -0.0081 | v_loss 0.1163 | ent 0.686 | clip 0.08 | 2.8s
-iter 172 | games 16 (W/L/D 7/9/0) | decisions 2854 | samples 2177 | pi_loss -0.0089 | v_loss 0.1247 | ent 0.688 | clip 0.07 | 2.7s
-iter 173 | games 16 (W/L/D 8/8/0) | decisions 2756 | samples 2225 | pi_loss -0.0113 | v_loss 0.1284 | ent 0.700 | clip 0.09 | 2.6s
-iter 174 | games 16 (W/L/D 6/10/0) | decisions 2632 | samples 2056 | pi_loss -0.0406 | v_loss 0.1399 | ent 0.718 | clip 0.08 | 2.4s
-iter 175 | games 16 (W/L/D 8/8/0) | decisions 2741 | samples 2039 | pi_loss -0.0089 | v_loss 0.1369 | ent 0.705 | clip 0.07 | 2.5s
-iter 176 | games 16 (W/L/D 7/9/0) | decisions 2570 | samples 1999 | pi_loss -0.0104 | v_loss 0.1136 | ent 0.691 | clip 0.07 | 2.4s
-iter 177 | games 16 (W/L/D 9/7/0) | decisions 2500 | samples 1985 | pi_loss -0.0070 | v_loss 0.1207 | ent 0.698 | clip 0.07 | 2.3s
-iter 178 | games 16 (W/L/D 9/7/0) | decisions 2782 | samples 2350 | pi_loss -0.0123 | v_loss 0.1394 | ent 0.722 | clip 0.06 | 2.6s
-iter 179 | games 16 (W/L/D 9/7/0) | decisions 2829 | samples 2010 | pi_loss -0.0117 | v_loss 0.1384 | ent 0.714 | clip 0.07 | 2.5s
-iter 180 | games 16 (W/L/D 8/8/0) | decisions 2697 | samples 2015 | pi_loss -0.0106 | v_loss 0.1622 | ent 0.730 | clip 0.08 | 2.4s
+iter 131 | games 16 (W/L/D 4/12/0) | decisions 1917 | samples 1118 | pi_loss -0.0026 | v_loss 0.2441 | ent 0.599 | clip 0.04 | 1.5s
+iter 132 | games 16 (W/L/D 4/12/0) | decisions 1826 | samples 1066 | pi_loss -0.0349 | v_loss 0.2355 | ent 0.579 | clip 0.08 | 1.4s
+iter 133 | games 16 (W/L/D 6/10/0) | decisions 2301 | samples 1330 | pi_loss 0.0035 | v_loss 0.2784 | ent 0.606 | clip 0.04 | 1.8s
+iter 134 | games 16 (W/L/D 6/10/0) | decisions 2250 | samples 1302 | pi_loss -0.0113 | v_loss 0.2068 | ent 0.644 | clip 0.06 | 1.8s
+iter 135 | games 16 (W/L/D 3/13/0) | decisions 2082 | samples 1117 | pi_loss -0.0024 | v_loss 0.1915 | ent 0.571 | clip 0.04 | 1.6s
+iter 136 | games 16 (W/L/D 4/12/0) | decisions 2074 | samples 1229 | pi_loss -0.0079 | v_loss 0.2258 | ent 0.630 | clip 0.07 | 1.8s
+iter 137 | games 16 (W/L/D 5/11/0) | decisions 2059 | samples 1179 | pi_loss -0.0017 | v_loss 0.2245 | ent 0.592 | clip 0.04 | 1.6s
+iter 138 | games 16 (W/L/D 5/11/0) | decisions 2174 | samples 1310 | pi_loss 0.0195 | v_loss 0.1665 | ent 0.615 | clip 0.05 | 1.7s
+iter 139 | games 16 (W/L/D 6/10/0) | decisions 2047 | samples 1178 | pi_loss -0.0066 | v_loss 0.2358 | ent 0.636 | clip 0.04 | 1.7s
+iter 140 | games 16 (W/L/D 4/12/0) | decisions 2180 | samples 1266 | pi_loss -0.0035 | v_loss 0.2562 | ent 0.593 | clip 0.04 | 1.7s
+iter 140 | eval vs random: 90.0% (20 games)
+iter 141 | games 16 (W/L/D 5/11/0) | decisions 1984 | samples 1160 | pi_loss -0.0160 | v_loss 0.2478 | ent 0.568 | clip 0.06 | 1.7s
+iter 142 | games 16 (W/L/D 5/11/0) | decisions 1985 | samples 1201 | pi_loss -0.0002 | v_loss 0.2155 | ent 0.580 | clip 0.04 | 1.5s
+iter 143 | games 16 (W/L/D 4/12/0) | decisions 1930 | samples 1093 | pi_loss -0.0159 | v_loss 0.2195 | ent 0.633 | clip 0.06 | 1.4s
+iter 144 | games 16 (W/L/D 4/12/0) | decisions 1849 | samples 1057 | pi_loss -0.0018 | v_loss 0.2193 | ent 0.605 | clip 0.08 | 1.4s
+iter 145 | games 16 (W/L/D 6/10/0) | decisions 2172 | samples 1224 | pi_loss -0.0044 | v_loss 0.3007 | ent 0.624 | clip 0.03 | 1.6s
+iter 146 | games 16 (W/L/D 6/10/0) | decisions 2032 | samples 1194 | pi_loss -0.0009 | v_loss 0.2814 | ent 0.520 | clip 0.05 | 1.5s
+iter 147 | games 16 (W/L/D 6/10/0) | decisions 1931 | samples 1112 | pi_loss -0.0147 | v_loss 0.2664 | ent 0.576 | clip 0.05 | 1.5s
+iter 148 | games 16 (W/L/D 4/12/0) | decisions 2004 | samples 1244 | pi_loss -0.0045 | v_loss 0.2275 | ent 0.581 | clip 0.05 | 1.6s
+iter 149 | games 16 (W/L/D 3/13/0) | decisions 1954 | samples 1167 | pi_loss -0.0116 | v_loss 0.2210 | ent 0.607 | clip 0.05 | 1.5s
+iter 150 | games 16 (W/L/D 3/13/0) | decisions 1938 | samples 1176 | pi_loss -0.0026 | v_loss 0.1790 | ent 0.595 | clip 0.04 | 1.5s
+iter 150 | eval vs random: 90.0% (20 games)
+iter 151 | games 16 (W/L/D 6/10/0) | decisions 1788 | samples 1028 | pi_loss -0.0525 | v_loss 0.3368 | ent 0.535 | clip 0.06 | 1.4s
+iter 152 | games 16 (W/L/D 7/9/0) | decisions 2011 | samples 1139 | pi_loss -0.0070 | v_loss 0.2438 | ent 0.581 | clip 0.05 | 1.5s
+iter 153 | games 16 (W/L/D 6/10/0) | decisions 1810 | samples 1018 | pi_loss -0.0091 | v_loss 0.2837 | ent 0.619 | clip 0.06 | 1.4s
+iter 154 | games 16 (W/L/D 6/10/0) | decisions 1983 | samples 1208 | pi_loss -0.0087 | v_loss 0.2423 | ent 0.582 | clip 0.04 | 1.5s
+iter 155 | games 16 (W/L/D 5/11/0) | decisions 2049 | samples 1185 | pi_loss -0.0043 | v_loss 0.2966 | ent 0.603 | clip 0.06 | 1.6s
+iter 156 | games 16 (W/L/D 2/14/0) | decisions 1847 | samples 1089 | pi_loss -0.0156 | v_loss 0.1850 | ent 0.588 | clip 0.04 | 1.4s
+iter 157 | games 16 (W/L/D 6/10/0) | decisions 1922 | samples 1139 | pi_loss 0.0019 | v_loss 0.3526 | ent 0.577 | clip 0.05 | 1.5s
+iter 158 | games 16 (W/L/D 7/9/0) | decisions 1873 | samples 1145 | pi_loss -0.0001 | v_loss 0.2749 | ent 0.606 | clip 0.05 | 1.4s
+iter 159 | games 16 (W/L/D 6/10/0) | decisions 2066 | samples 1222 | pi_loss -0.0028 | v_loss 0.2741 | ent 0.594 | clip 0.03 | 1.6s
+iter 160 | games 16 (W/L/D 7/9/0) | decisions 1877 | samples 1144 | pi_loss -0.0064 | v_loss 0.2387 | ent 0.589 | clip 0.05 | 1.5s
+iter 160 | eval vs random: 90.0% (20 games)
+iter 161 | games 16 (W/L/D 4/12/0) | decisions 1797 | samples 982 | pi_loss -0.0091 | v_loss 0.2683 | ent 0.637 | clip 0.04 | 1.4s
+iter 162 | games 16 (W/L/D 6/10/0) | decisions 1737 | samples 1001 | pi_loss -0.0075 | v_loss 0.3196 | ent 0.578 | clip 0.04 | 1.3s
+iter 163 | games 16 (W/L/D 5/11/0) | decisions 1627 | samples 953 | pi_loss 0.0024 | v_loss 0.3553 | ent 0.570 | clip 0.04 | 1.3s
+iter 164 | games 16 (W/L/D 7/9/0) | decisions 1787 | samples 1013 | pi_loss -0.0061 | v_loss 0.3924 | ent 0.606 | clip 0.03 | 1.3s
+iter 165 | games 16 (W/L/D 5/11/0) | decisions 1818 | samples 1055 | pi_loss -0.0223 | v_loss 0.2299 | ent 0.572 | clip 0.04 | 1.4s
+iter 166 | games 16 (W/L/D 5/11/0) | decisions 1946 | samples 1113 | pi_loss -0.0028 | v_loss 0.2876 | ent 0.530 | clip 0.05 | 1.5s
+iter 167 | games 16 (W/L/D 2/14/0) | decisions 1791 | samples 1051 | pi_loss -0.0374 | v_loss 0.1775 | ent 0.575 | clip 0.06 | 1.4s
+iter 168 | games 16 (W/L/D 2/14/0) | decisions 1878 | samples 1110 | pi_loss -0.0179 | v_loss 0.1414 | ent 0.605 | clip 0.05 | 1.4s
+iter 169 | games 16 (W/L/D 4/12/0) | decisions 1823 | samples 1065 | pi_loss -0.0075 | v_loss 0.3023 | ent 0.565 | clip 0.04 | 1.4s
+iter 170 | games 16 (W/L/D 5/11/0) | decisions 1814 | samples 1063 | pi_loss -0.0208 | v_loss 0.2330 | ent 0.561 | clip 0.04 | 1.4s
+iter 170 | eval vs random: 90.0% (20 games)
+iter 171 | games 16 (W/L/D 4/12/0) | decisions 2030 | samples 1173 | pi_loss -0.0093 | v_loss 0.2188 | ent 0.597 | clip 0.04 | 1.6s
+iter 172 | games 16 (W/L/D 6/10/0) | decisions 2097 | samples 1243 | pi_loss -0.0035 | v_loss 0.3046 | ent 0.597 | clip 0.03 | 1.6s
+iter 173 | games 16 (W/L/D 3/13/0) | decisions 1796 | samples 995 | pi_loss -0.0023 | v_loss 0.2067 | ent 0.545 | clip 0.02 | 1.3s
+iter 174 | games 16 (W/L/D 5/11/0) | decisions 1928 | samples 1065 | pi_loss 0.0114 | v_loss 0.2124 | ent 0.595 | clip 0.03 | 1.4s
+iter 175 | games 16 (W/L/D 7/9/0) | decisions 1883 | samples 1074 | pi_loss -0.0044 | v_loss 0.3431 | ent 0.566 | clip 0.04 | 1.5s
+iter 176 | games 16 (W/L/D 5/11/0) | decisions 1687 | samples 997 | pi_loss -0.0068 | v_loss 0.2838 | ent 0.580 | clip 0.03 | 1.3s
+iter 177 | games 16 (W/L/D 2/14/0) | decisions 1784 | samples 1019 | pi_loss -0.0056 | v_loss 0.2802 | ent 0.554 | clip 0.03 | 1.4s
+iter 178 | games 16 (W/L/D 4/12/0) | decisions 1886 | samples 1098 | pi_loss -0.0002 | v_loss 0.2902 | ent 0.593 | clip 0.04 | 1.5s
+iter 179 | games 16 (W/L/D 3/13/0) | decisions 1780 | samples 974 | pi_loss -0.0016 | v_loss 0.2317 | ent 0.590 | clip 0.02 | 1.3s
+iter 180 | games 16 (W/L/D 3/13/0) | decisions 1877 | samples 1068 | pi_loss -0.0036 | v_loss 0.2291 | ent 0.615 | clip 0.04 | 1.4s
 iter 180 | eval vs random: 95.0% (20 games)
-iter 181 | games 16 (W/L/D 6/10/0) | decisions 3173 | samples 2574 | pi_loss 0.0116 | v_loss 0.1161 | ent 0.748 | clip 0.09 | 3.1s
-iter 182 | games 16 (W/L/D 9/7/0) | decisions 2919 | samples 1894 | pi_loss -0.0036 | v_loss 0.1318 | ent 0.706 | clip 0.10 | 2.6s
-iter 183 | games 16 (W/L/D 7/9/0) | decisions 2628 | samples 1831 | pi_loss -0.0198 | v_loss 0.1076 | ent 0.693 | clip 0.09 | 2.4s
-iter 184 | games 16 (W/L/D 9/7/0) | decisions 2766 | samples 2264 | pi_loss -0.0096 | v_loss 0.1228 | ent 0.678 | clip 0.08 | 2.5s
-iter 185 | games 16 (W/L/D 9/7/0) | decisions 2630 | samples 2146 | pi_loss -0.0002 | v_loss 0.1366 | ent 0.686 | clip 0.08 | 2.5s
-iter 186 | games 16 (W/L/D 6/10/0) | decisions 2872 | samples 2503 | pi_loss -0.0107 | v_loss 0.1328 | ent 0.693 | clip 0.07 | 2.6s
-iter 187 | games 16 (W/L/D 7/9/0) | decisions 2749 | samples 2017 | pi_loss -0.0082 | v_loss 0.1214 | ent 0.680 | clip 0.06 | 2.8s
-iter 188 | games 16 (W/L/D 6/10/0) | decisions 2598 | samples 1778 | pi_loss -0.0081 | v_loss 0.1487 | ent 0.697 | clip 0.06 | 2.4s
-iter 189 | games 16 (W/L/D 6/10/0) | decisions 2464 | samples 1745 | pi_loss -0.0128 | v_loss 0.1613 | ent 0.667 | clip 0.07 | 2.2s
-iter 190 | games 16 (W/L/D 13/3/0) | decisions 3108 | samples 2473 | pi_loss -0.0086 | v_loss 0.1189 | ent 0.686 | clip 0.08 | 2.8s
+iter 181 | games 16 (W/L/D 4/12/0) | decisions 1920 | samples 1146 | pi_loss -0.0061 | v_loss 0.2880 | ent 0.560 | clip 0.04 | 1.5s
+iter 182 | games 16 (W/L/D 4/12/0) | decisions 1963 | samples 1180 | pi_loss -0.0062 | v_loss 0.2032 | ent 0.643 | clip 0.05 | 1.5s
+iter 183 | games 16 (W/L/D 4/12/0) | decisions 2036 | samples 1171 | pi_loss -0.0131 | v_loss 0.2625 | ent 0.564 | clip 0.05 | 1.6s
+iter 184 | games 16 (W/L/D 4/12/0) | decisions 1774 | samples 976 | pi_loss -0.0060 | v_loss 0.3152 | ent 0.554 | clip 0.04 | 1.3s
+iter 185 | games 16 (W/L/D 5/11/0) | decisions 1892 | samples 1055 | pi_loss -0.0034 | v_loss 0.2726 | ent 0.589 | clip 0.04 | 1.5s
+iter 186 | games 16 (W/L/D 7/9/0) | decisions 1694 | samples 972 | pi_loss -0.0049 | v_loss 0.3561 | ent 0.601 | clip 0.04 | 1.3s
+iter 187 | games 16 (W/L/D 3/13/0) | decisions 2046 | samples 1196 | pi_loss -0.0044 | v_loss 0.2033 | ent 0.572 | clip 0.03 | 1.6s
+iter 188 | games 16 (W/L/D 6/10/0) | decisions 1865 | samples 1093 | pi_loss -0.0397 | v_loss 0.2564 | ent 0.574 | clip 0.06 | 1.4s
+iter 189 | games 16 (W/L/D 7/9/0) | decisions 2059 | samples 1123 | pi_loss -0.0122 | v_loss 0.2947 | ent 0.564 | clip 0.05 | 1.6s
+iter 190 | games 16 (W/L/D 5/11/0) | decisions 1886 | samples 1143 | pi_loss -0.0028 | v_loss 0.3310 | ent 0.547 | clip 0.02 | 1.5s
 iter 190 | eval vs random: 100.0% (20 games)
-iter 191 | games 16 (W/L/D 7/9/0) | decisions 2923 | samples 2285 | pi_loss -0.0098 | v_loss 0.0994 | ent 0.696 | clip 0.08 | 2.8s
-iter 192 | games 16 (W/L/D 7/9/0) | decisions 2951 | samples 2108 | pi_loss -0.0210 | v_loss 0.1172 | ent 0.661 | clip 0.09 | 2.7s
-iter 193 | games 16 (W/L/D 6/10/0) | decisions 3011 | samples 2550 | pi_loss -0.0046 | v_loss 0.1300 | ent 0.716 | clip 0.07 | 2.9s
-iter 194 | games 16 (W/L/D 8/8/0) | decisions 2967 | samples 2159 | pi_loss -0.0089 | v_loss 0.1133 | ent 0.703 | clip 0.07 | 2.7s
-iter 195 | games 16 (W/L/D 6/10/0) | decisions 2741 | samples 2203 | pi_loss -0.0115 | v_loss 0.1834 | ent 0.654 | clip 0.06 | 2.5s
-iter 196 | games 16 (W/L/D 6/10/0) | decisions 3254 | samples 2562 | pi_loss 0.0278 | v_loss 0.1422 | ent 0.701 | clip 0.10 | 3.2s
-iter 197 | games 16 (W/L/D 9/7/0) | decisions 2993 | samples 1959 | pi_loss -0.0061 | v_loss 0.1172 | ent 0.698 | clip 0.09 | 2.6s
-iter 198 | games 16 (W/L/D 7/9/0) | decisions 2721 | samples 1978 | pi_loss -0.0079 | v_loss 0.1337 | ent 0.682 | clip 0.07 | 2.5s
-iter 199 | games 16 (W/L/D 7/9/0) | decisions 2611 | samples 1980 | pi_loss -0.0083 | v_loss 0.1351 | ent 0.656 | clip 0.08 | 2.4s
-iter 200 | games 16 (W/L/D 4/12/0) | decisions 2799 | samples 2130 | pi_loss -0.0041 | v_loss 0.1317 | ent 0.690 | clip 0.07 | 2.6s
-iter 200 | eval vs random: 100.0% (20 games)
-iter 201 | games 16 (W/L/D 7/9/0) | decisions 2745 | samples 2453 | pi_loss -0.0111 | v_loss 0.1182 | ent 0.719 | clip 0.08 | 2.6s
-iter 202 | games 16 (W/L/D 7/9/0) | decisions 3010 | samples 2576 | pi_loss 0.0038 | v_loss 0.1347 | ent 0.679 | clip 0.07 | 3.0s
-iter 203 | games 16 (W/L/D 10/6/0) | decisions 3078 | samples 2714 | pi_loss -0.0075 | v_loss 0.0993 | ent 0.727 | clip 0.08 | 2.9s
-iter 204 | games 16 (W/L/D 7/9/0) | decisions 2847 | samples 2163 | pi_loss -0.0074 | v_loss 0.1145 | ent 0.673 | clip 0.07 | 2.7s
-iter 205 | games 16 (W/L/D 9/7/0) | decisions 2904 | samples 2318 | pi_loss -0.0043 | v_loss 0.1268 | ent 0.705 | clip 0.08 | 2.6s
-iter 206 | games 16 (W/L/D 11/5/0) | decisions 3100 | samples 2519 | pi_loss -0.0072 | v_loss 0.1178 | ent 0.716 | clip 0.07 | 2.9s
-iter 207 | games 16 (W/L/D 12/4/0) | decisions 2635 | samples 1905 | pi_loss -0.0146 | v_loss 0.1096 | ent 0.684 | clip 0.08 | 2.3s
-iter 208 | games 16 (W/L/D 5/11/0) | decisions 2961 | samples 2464 | pi_loss -0.0067 | v_loss 0.1337 | ent 0.698 | clip 0.09 | 2.9s
-iter 209 | games 16 (W/L/D 10/6/0) | decisions 2831 | samples 2066 | pi_loss -0.0080 | v_loss 0.0965 | ent 0.667 | clip 0.10 | 2.6s
-iter 210 | games 16 (W/L/D 7/9/0) | decisions 3208 | samples 2281 | pi_loss -0.0073 | v_loss 0.1234 | ent 0.678 | clip 0.07 | 3.6s
-iter 210 | eval vs random: 100.0% (20 games)
-iter 211 | games 16 (W/L/D 3/13/0) | decisions 2798 | samples 2312 | pi_loss -0.0024 | v_loss 0.1449 | ent 0.658 | clip 0.08 | 2.9s
-iter 212 | games 16 (W/L/D 8/8/0) | decisions 3174 | samples 2422 | pi_loss -0.0015 | v_loss 0.1107 | ent 0.697 | clip 0.09 | 2.8s
-iter 213 | games 16 (W/L/D 10/6/0) | decisions 2763 | samples 2090 | pi_loss 0.0173 | v_loss 0.1284 | ent 0.658 | clip 0.07 | 2.5s
-iter 214 | games 16 (W/L/D 10/6/0) | decisions 3113 | samples 2145 | pi_loss -0.0034 | v_loss 0.0969 | ent 0.722 | clip 0.08 | 2.7s
-iter 215 | games 16 (W/L/D 12/4/0) | decisions 3072 | samples 2399 | pi_loss -0.0022 | v_loss 0.1036 | ent 0.712 | clip 0.10 | 2.9s
-iter 216 | games 16 (W/L/D 8/8/0) | decisions 2798 | samples 1805 | pi_loss 0.0069 | v_loss 0.1250 | ent 0.705 | clip 0.10 | 2.4s
-iter 217 | games 16 (W/L/D 9/7/0) | decisions 2757 | samples 2116 | pi_loss -0.0116 | v_loss 0.1529 | ent 0.660 | clip 0.08 | 2.5s
-iter 218 | games 16 (W/L/D 5/11/0) | decisions 2535 | samples 2199 | pi_loss -0.0060 | v_loss 0.1118 | ent 0.659 | clip 0.06 | 2.3s
-iter 219 | games 16 (W/L/D 11/5/0) | decisions 2502 | samples 1870 | pi_loss -0.0103 | v_loss 0.1191 | ent 0.619 | clip 0.07 | 2.1s
-iter 220 | games 16 (W/L/D 8/8/0) | decisions 3207 | samples 2758 | pi_loss -0.0035 | v_loss 0.1503 | ent 0.711 | clip 0.07 | 3.0s
-iter 220 | eval vs random: 100.0% (20 games)
-iter 221 | games 16 (W/L/D 7/9/0) | decisions 2806 | samples 1859 | pi_loss -0.0083 | v_loss 0.1211 | ent 0.669 | clip 0.07 | 2.4s
-iter 222 | games 16 (W/L/D 7/9/0) | decisions 2973 | samples 2245 | pi_loss -0.0089 | v_loss 0.1378 | ent 0.715 | clip 0.07 | 2.6s
-iter 223 | games 16 (W/L/D 11/5/0) | decisions 2804 | samples 2290 | pi_loss -0.0095 | v_loss 0.1280 | ent 0.674 | clip 0.05 | 2.4s
-iter 224 | games 16 (W/L/D 9/7/0) | decisions 2909 | samples 1855 | pi_loss -0.0217 | v_loss 0.1011 | ent 0.724 | clip 0.07 | 2.5s
-iter 225 | games 16 (W/L/D 9/7/0) | decisions 2502 | samples 1912 | pi_loss -0.0041 | v_loss 0.1200 | ent 0.702 | clip 0.09 | 2.3s
-iter 226 | games 16 (W/L/D 10/6/0) | decisions 2966 | samples 2018 | pi_loss -0.0113 | v_loss 0.0828 | ent 0.708 | clip 0.08 | 2.6s
-iter 227 | games 16 (W/L/D 8/8/0) | decisions 2941 | samples 2417 | pi_loss -0.0066 | v_loss 0.1187 | ent 0.699 | clip 0.06 | 2.9s
-iter 228 | games 16 (W/L/D 7/9/0) | decisions 2621 | samples 2260 | pi_loss -0.0091 | v_loss 0.1615 | ent 0.690 | clip 0.07 | 2.4s
-iter 229 | games 16 (W/L/D 5/11/0) | decisions 3025 | samples 1958 | pi_loss -0.0114 | v_loss 0.0993 | ent 0.682 | clip 0.07 | 2.8s
-iter 230 | games 16 (W/L/D 8/8/0) | decisions 2819 | samples 2261 | pi_loss -0.0117 | v_loss 0.1393 | ent 0.694 | clip 0.07 | 2.7s
-iter 230 | eval vs random: 100.0% (20 games)
-iter 231 | games 16 (W/L/D 6/10/0) | decisions 3036 | samples 2191 | pi_loss -0.0115 | v_loss 0.0864 | ent 0.713 | clip 0.07 | 2.8s
-iter 232 | games 16 (W/L/D 7/9/0) | decisions 2983 | samples 2484 | pi_loss -0.0076 | v_loss 0.1371 | ent 0.701 | clip 0.07 | 2.8s
-iter 233 | games 16 (W/L/D 9/7/0) | decisions 2830 | samples 2339 | pi_loss -0.0065 | v_loss 0.1392 | ent 0.712 | clip 0.07 | 2.6s
-iter 234 | games 16 (W/L/D 11/5/0) | decisions 2697 | samples 2064 | pi_loss -0.0206 | v_loss 0.0864 | ent 0.715 | clip 0.08 | 2.5s
-iter 235 | games 16 (W/L/D 8/8/0) | decisions 2478 | samples 1694 | pi_loss -0.0146 | v_loss 0.1576 | ent 0.711 | clip 0.07 | 2.3s
-iter 236 | games 16 (W/L/D 10/6/0) | decisions 2955 | samples 2078 | pi_loss -0.0092 | v_loss 0.1227 | ent 0.667 | clip 0.07 | 2.9s
-iter 237 | games 16 (W/L/D 6/10/0) | decisions 2637 | samples 2026 | pi_loss -0.0095 | v_loss 0.1210 | ent 0.679 | clip 0.07 | 2.3s
-iter 238 | games 16 (W/L/D 9/7/0) | decisions 2739 | samples 2247 | pi_loss -0.0085 | v_loss 0.1280 | ent 0.676 | clip 0.07 | 2.5s
-iter 239 | games 16 (W/L/D 10/6/0) | decisions 2825 | samples 2016 | pi_loss -0.0072 | v_loss 0.1327 | ent 0.649 | clip 0.06 | 2.5s
-iter 240 | games 16 (W/L/D 10/6/0) | decisions 3100 | samples 2368 | pi_loss -0.0061 | v_loss 0.1070 | ent 0.714 | clip 0.07 | 2.7s
+iter 191 | games 16 (W/L/D 1/15/0) | decisions 1879 | samples 1099 | pi_loss -0.0124 | v_loss 0.1713 | ent 0.545 | clip 0.03 | 1.5s
+iter 192 | games 16 (W/L/D 7/9/0) | decisions 1913 | samples 1116 | pi_loss -0.0037 | v_loss 0.3603 | ent 0.535 | clip 0.03 | 1.4s
+iter 193 | games 16 (W/L/D 4/12/0) | decisions 1945 | samples 1094 | pi_loss -0.0019 | v_loss 0.2320 | ent 0.595 | clip 0.03 | 1.5s
+iter 194 | games 16 (W/L/D 1/15/0) | decisions 2068 | samples 1257 | pi_loss -0.0044 | v_loss 0.1086 | ent 0.564 | clip 0.03 | 1.6s
+iter 195 | games 16 (W/L/D 6/10/0) | decisions 1967 | samples 1151 | pi_loss 0.0042 | v_loss 0.2955 | ent 0.605 | clip 0.02 | 1.5s
+iter 196 | games 16 (W/L/D 6/10/0) | decisions 2215 | samples 1307 | pi_loss -0.0134 | v_loss 0.1913 | ent 0.597 | clip 0.05 | 1.7s
+iter 197 | games 16 (W/L/D 5/11/0) | decisions 1830 | samples 1044 | pi_loss -0.0241 | v_loss 0.2585 | ent 0.586 | clip 0.05 | 1.4s
+iter 198 | games 16 (W/L/D 3/13/0) | decisions 1703 | samples 978 | pi_loss -0.0044 | v_loss 0.2639 | ent 0.564 | clip 0.04 | 1.4s
+iter 199 | games 16 (W/L/D 5/11/0) | decisions 1831 | samples 1042 | pi_loss 0.0134 | v_loss 0.2551 | ent 0.580 | clip 0.05 | 1.4s
+iter 200 | games 16 (W/L/D 5/11/0) | decisions 1807 | samples 1024 | pi_loss -0.0054 | v_loss 0.2744 | ent 0.587 | clip 0.04 | 1.3s
+iter 200 | eval vs random: 90.0% (20 games)
+iter 201 | games 16 (W/L/D 2/14/0) | decisions 1920 | samples 1138 | pi_loss 0.0043 | v_loss 0.1686 | ent 0.565 | clip 0.04 | 1.5s
+iter 202 | games 16 (W/L/D 2/14/0) | decisions 1999 | samples 1155 | pi_loss -0.0117 | v_loss 0.1841 | ent 0.620 | clip 0.04 | 1.5s
+iter 203 | games 16 (W/L/D 5/11/0) | decisions 1889 | samples 1103 | pi_loss -0.0017 | v_loss 0.2905 | ent 0.559 | clip 0.04 | 1.5s
+iter 204 | games 16 (W/L/D 2/14/0) | decisions 1986 | samples 1154 | pi_loss 0.0032 | v_loss 0.1809 | ent 0.635 | clip 0.04 | 1.6s
+iter 205 | games 16 (W/L/D 6/10/0) | decisions 1738 | samples 1014 | pi_loss -0.0040 | v_loss 0.3233 | ent 0.597 | clip 0.04 | 1.3s
+iter 206 | games 16 (W/L/D 4/12/0) | decisions 1975 | samples 1178 | pi_loss -0.0098 | v_loss 0.2418 | ent 0.618 | clip 0.04 | 1.5s
+iter 207 | games 16 (W/L/D 7/9/0) | decisions 1939 | samples 1126 | pi_loss -0.0051 | v_loss 0.3286 | ent 0.593 | clip 0.05 | 1.5s
+iter 208 | games 16 (W/L/D 8/8/0) | decisions 1999 | samples 1166 | pi_loss -0.0004 | v_loss 0.2727 | ent 0.615 | clip 0.03 | 1.5s
+iter 209 | games 16 (W/L/D 3/13/0) | decisions 1868 | samples 1079 | pi_loss -0.0066 | v_loss 0.2327 | ent 0.634 | clip 0.05 | 1.4s
+iter 210 | games 16 (W/L/D 4/12/0) | decisions 2030 | samples 1189 | pi_loss -0.0018 | v_loss 0.2048 | ent 0.626 | clip 0.04 | 1.5s
+iter 210 | eval vs random: 85.0% (20 games)
+iter 211 | games 16 (W/L/D 7/9/0) | decisions 1874 | samples 1081 | pi_loss -0.0218 | v_loss 0.2923 | ent 0.605 | clip 0.05 | 1.6s
+iter 212 | games 16 (W/L/D 6/10/0) | decisions 1879 | samples 1084 | pi_loss 0.0101 | v_loss 0.3445 | ent 0.603 | clip 0.05 | 1.8s
+iter 213 | games 16 (W/L/D 4/12/0) | decisions 1738 | samples 979 | pi_loss -0.0027 | v_loss 0.2751 | ent 0.624 | clip 0.02 | 1.5s
+iter 214 | games 16 (W/L/D 4/12/0) | decisions 1952 | samples 1130 | pi_loss -0.0067 | v_loss 0.3110 | ent 0.636 | clip 0.03 | 1.6s
+iter 215 | games 16 (W/L/D 3/13/0) | decisions 2120 | samples 1235 | pi_loss -0.0081 | v_loss 0.2024 | ent 0.616 | clip 0.05 | 1.8s
+iter 216 | games 16 (W/L/D 7/9/0) | decisions 1994 | samples 1147 | pi_loss -0.0023 | v_loss 0.3085 | ent 0.611 | clip 0.04 | 1.7s
+iter 217 | games 16 (W/L/D 3/13/0) | decisions 2054 | samples 1187 | pi_loss -0.0031 | v_loss 0.2543 | ent 0.615 | clip 0.05 | 1.7s
+iter 218 | games 16 (W/L/D 6/10/0) | decisions 2082 | samples 1224 | pi_loss -0.0052 | v_loss 0.2586 | ent 0.608 | clip 0.05 | 1.7s
+iter 219 | games 16 (W/L/D 6/10/0) | decisions 2069 | samples 1137 | pi_loss -0.0038 | v_loss 0.2519 | ent 0.606 | clip 0.04 | 1.7s
+iter 220 | games 16 (W/L/D 7/9/0) | decisions 1976 | samples 1145 | pi_loss -0.0133 | v_loss 0.2621 | ent 0.594 | clip 0.06 | 1.6s
+iter 220 | eval vs random: 90.0% (20 games)
+iter 221 | games 16 (W/L/D 5/11/0) | decisions 1759 | samples 983 | pi_loss -0.0051 | v_loss 0.2759 | ent 0.638 | clip 0.05 | 1.4s
+iter 222 | games 16 (W/L/D 5/11/0) | decisions 1836 | samples 1131 | pi_loss -0.0062 | v_loss 0.2786 | ent 0.612 | clip 0.07 | 1.5s
+iter 223 | games 16 (W/L/D 6/10/0) | decisions 2108 | samples 1252 | pi_loss -0.0027 | v_loss 0.2727 | ent 0.597 | clip 0.06 | 1.7s
+iter 224 | games 16 (W/L/D 6/10/0) | decisions 1794 | samples 998 | pi_loss -0.0033 | v_loss 0.3061 | ent 0.570 | clip 0.03 | 1.3s
+iter 225 | games 16 (W/L/D 2/14/0) | decisions 1891 | samples 1109 | pi_loss 0.0060 | v_loss 0.2347 | ent 0.584 | clip 0.04 | 1.6s
+iter 226 | games 16 (W/L/D 6/10/0) | decisions 1847 | samples 1038 | pi_loss -0.0066 | v_loss 0.2857 | ent 0.525 | clip 0.05 | 1.4s
+iter 227 | games 16 (W/L/D 2/14/0) | decisions 2003 | samples 1190 | pi_loss -0.0105 | v_loss 0.1941 | ent 0.605 | clip 0.04 | 1.6s
+iter 228 | games 16 (W/L/D 4/12/0) | decisions 2037 | samples 1119 | pi_loss -0.0055 | v_loss 0.2143 | ent 0.579 | clip 0.05 | 1.6s
+iter 229 | games 16 (W/L/D 5/11/0) | decisions 1791 | samples 1065 | pi_loss -0.0140 | v_loss 0.2431 | ent 0.615 | clip 0.04 | 1.6s
+iter 230 | games 16 (W/L/D 5/11/0) | decisions 1964 | samples 1125 | pi_loss -0.0045 | v_loss 0.2847 | ent 0.588 | clip 0.05 | 1.6s
+iter 230 | eval vs random: 75.0% (20 games)
+iter 231 | games 16 (W/L/D 2/14/0) | decisions 2027 | samples 1171 | pi_loss -0.0048 | v_loss 0.1231 | ent 0.562 | clip 0.04 | 1.6s
+iter 232 | games 16 (W/L/D 6/10/0) | decisions 1801 | samples 984 | pi_loss -0.0028 | v_loss 0.3463 | ent 0.557 | clip 0.02 | 1.5s
+iter 233 | games 16 (W/L/D 4/12/0) | decisions 2140 | samples 1162 | pi_loss -0.0024 | v_loss 0.2479 | ent 0.613 | clip 0.05 | 1.7s
+iter 234 | games 16 (W/L/D 3/13/0) | decisions 1557 | samples 901 | pi_loss -0.0094 | v_loss 0.2405 | ent 0.531 | clip 0.04 | 1.3s
+iter 235 | games 16 (W/L/D 4/12/0) | decisions 1885 | samples 1149 | pi_loss -0.0074 | v_loss 0.2360 | ent 0.578 | clip 0.05 | 1.6s
+iter 236 | games 16 (W/L/D 4/12/0) | decisions 1616 | samples 901 | pi_loss -0.0014 | v_loss 0.2618 | ent 0.605 | clip 0.05 | 1.2s
+iter 237 | games 16 (W/L/D 3/13/0) | decisions 2199 | samples 1286 | pi_loss -0.0143 | v_loss 0.2126 | ent 0.625 | clip 0.05 | 1.8s
+iter 238 | games 16 (W/L/D 5/11/0) | decisions 1730 | samples 1023 | pi_loss -0.0046 | v_loss 0.2750 | ent 0.595 | clip 0.04 | 1.4s
+iter 239 | games 16 (W/L/D 8/8/0) | decisions 1923 | samples 1199 | pi_loss -0.0038 | v_loss 0.2689 | ent 0.611 | clip 0.03 | 1.6s
+iter 240 | games 16 (W/L/D 4/12/0) | decisions 1819 | samples 1047 | pi_loss 0.0067 | v_loss 0.2490 | ent 0.580 | clip 0.05 | 1.4s
 iter 240 | eval vs random: 100.0% (20 games)
-iter 241 | games 16 (W/L/D 6/10/0) | decisions 2875 | samples 2018 | pi_loss -0.0091 | v_loss 0.1338 | ent 0.670 | clip 0.05 | 2.5s
-iter 242 | games 16 (W/L/D 7/9/0) | decisions 3011 | samples 2367 | pi_loss -0.0078 | v_loss 0.1463 | ent 0.673 | clip 0.06 | 2.7s
-iter 243 | games 16 (W/L/D 10/6/0) | decisions 2930 | samples 2031 | pi_loss -0.0069 | v_loss 0.1241 | ent 0.693 | clip 0.07 | 2.6s
-iter 244 | games 16 (W/L/D 5/11/0) | decisions 2697 | samples 1971 | pi_loss -0.0066 | v_loss 0.1295 | ent 0.668 | clip 0.07 | 2.3s
-iter 245 | games 16 (W/L/D 9/7/0) | decisions 2616 | samples 2054 | pi_loss -0.0327 | v_loss 0.1012 | ent 0.663 | clip 0.08 | 2.3s
-iter 246 | games 16 (W/L/D 7/9/0) | decisions 2992 | samples 2059 | pi_loss -0.0227 | v_loss 0.1621 | ent 0.700 | clip 0.06 | 2.6s
-iter 247 | games 16 (W/L/D 11/5/0) | decisions 2651 | samples 2058 | pi_loss 0.0043 | v_loss 0.1186 | ent 0.697 | clip 0.07 | 2.4s
-iter 248 | games 16 (W/L/D 7/9/0) | decisions 2545 | samples 1770 | pi_loss -0.0059 | v_loss 0.1361 | ent 0.681 | clip 0.06 | 2.2s
-iter 249 | games 16 (W/L/D 8/8/0) | decisions 2839 | samples 1978 | pi_loss -0.0111 | v_loss 0.1022 | ent 0.697 | clip 0.08 | 2.4s
-iter 250 | games 16 (W/L/D 7/9/0) | decisions 2802 | samples 2086 | pi_loss 0.0032 | v_loss 0.1526 | ent 0.684 | clip 0.06 | 2.5s
-iter 250 | eval vs random: 100.0% (20 games)
-iter 251 | games 16 (W/L/D 12/4/0) | decisions 2664 | samples 2095 | pi_loss -0.0001 | v_loss 0.1010 | ent 0.656 | clip 0.06 | 2.4s
-iter 252 | games 16 (W/L/D 7/9/0) | decisions 2987 | samples 2573 | pi_loss -0.0032 | v_loss 0.1383 | ent 0.677 | clip 0.08 | 2.7s
-iter 253 | games 16 (W/L/D 13/3/0) | decisions 2866 | samples 2075 | pi_loss -0.0099 | v_loss 0.1545 | ent 0.692 | clip 0.08 | 2.6s
-iter 254 | games 16 (W/L/D 12/4/0) | decisions 2573 | samples 2168 | pi_loss -0.0049 | v_loss 0.1334 | ent 0.646 | clip 0.06 | 2.3s
-iter 255 | games 16 (W/L/D 11/5/0) | decisions 2946 | samples 2213 | pi_loss -0.0095 | v_loss 0.1041 | ent 0.702 | clip 0.09 | 2.7s
-iter 256 | games 16 (W/L/D 8/8/0) | decisions 2877 | samples 2548 | pi_loss -0.0103 | v_loss 0.1363 | ent 0.681 | clip 0.08 | 2.6s
-iter 257 | games 16 (W/L/D 5/11/0) | decisions 2500 | samples 2008 | pi_loss -0.0093 | v_loss 0.1250 | ent 0.686 | clip 0.06 | 2.3s
-iter 258 | games 16 (W/L/D 9/7/0) | decisions 2820 | samples 2011 | pi_loss -0.0085 | v_loss 0.1149 | ent 0.661 | clip 0.08 | 2.4s
-iter 259 | games 16 (W/L/D 13/3/0) | decisions 2785 | samples 2099 | pi_loss -0.0066 | v_loss 0.1242 | ent 0.719 | clip 0.09 | 2.6s
-iter 260 | games 16 (W/L/D 9/7/0) | decisions 2684 | samples 1981 | pi_loss -0.0080 | v_loss 0.1260 | ent 0.659 | clip 0.08 | 2.4s
-iter 260 | eval vs random: 100.0% (20 games)
-iter 261 | games 16 (W/L/D 9/7/0) | decisions 2788 | samples 1547 | pi_loss -0.0071 | v_loss 0.1395 | ent 0.690 | clip 0.05 | 2.4s
-iter 262 | games 16 (W/L/D 4/12/0) | decisions 2827 | samples 1986 | pi_loss -0.0074 | v_loss 0.1321 | ent 0.692 | clip 0.07 | 2.6s
-iter 263 | games 16 (W/L/D 13/3/0) | decisions 2739 | samples 2149 | pi_loss -0.0063 | v_loss 0.1145 | ent 0.665 | clip 0.07 | 2.5s
-iter 264 | games 16 (W/L/D 10/6/0) | decisions 2951 | samples 2375 | pi_loss 0.0012 | v_loss 0.1209 | ent 0.721 | clip 0.08 | 2.6s
-iter 265 | games 16 (W/L/D 8/8/0) | decisions 2892 | samples 1854 | pi_loss 0.0013 | v_loss 0.1236 | ent 0.668 | clip 0.09 | 2.5s
-iter 266 | games 16 (W/L/D 6/10/0) | decisions 3034 | samples 2317 | pi_loss -0.0067 | v_loss 0.1356 | ent 0.690 | clip 0.08 | 2.7s
-iter 267 | games 16 (W/L/D 10/6/0) | decisions 2765 | samples 1929 | pi_loss -0.0103 | v_loss 0.1436 | ent 0.687 | clip 0.06 | 2.4s
-iter 268 | games 16 (W/L/D 4/12/0) | decisions 2811 | samples 2107 | pi_loss 0.0062 | v_loss 0.1374 | ent 0.654 | clip 0.07 | 2.4s
-iter 269 | games 16 (W/L/D 4/12/0) | decisions 2831 | samples 2072 | pi_loss -0.0146 | v_loss 0.1349 | ent 0.705 | clip 0.07 | 2.4s
-iter 270 | games 16 (W/L/D 9/7/0) | decisions 2501 | samples 1979 | pi_loss -0.0086 | v_loss 0.1109 | ent 0.702 | clip 0.05 | 2.1s
-iter 270 | eval vs random: 100.0% (20 games)
-iter 271 | games 16 (W/L/D 7/9/0) | decisions 2757 | samples 2340 | pi_loss -0.0068 | v_loss 0.1183 | ent 0.710 | clip 0.09 | 2.5s
-iter 272 | games 16 (W/L/D 6/10/0) | decisions 2792 | samples 1920 | pi_loss -0.0067 | v_loss 0.1029 | ent 0.709 | clip 0.07 | 2.4s
-iter 273 | games 16 (W/L/D 6/10/0) | decisions 2453 | samples 1873 | pi_loss -0.0182 | v_loss 0.1335 | ent 0.673 | clip 0.07 | 2.2s
-iter 274 | games 16 (W/L/D 11/5/0) | decisions 2687 | samples 2248 | pi_loss -0.0095 | v_loss 0.1355 | ent 0.698 | clip 0.08 | 2.4s
-iter 275 | games 16 (W/L/D 5/11/0) | decisions 3166 | samples 2367 | pi_loss -0.0151 | v_loss 0.1196 | ent 0.693 | clip 0.08 | 2.8s
-iter 276 | games 16 (W/L/D 10/6/0) | decisions 2542 | samples 1874 | pi_loss -0.0026 | v_loss 0.1428 | ent 0.680 | clip 0.08 | 2.2s
-iter 277 | games 16 (W/L/D 10/6/0) | decisions 3205 | samples 2599 | pi_loss -0.0103 | v_loss 0.0958 | ent 0.706 | clip 0.09 | 2.9s
-iter 278 | games 16 (W/L/D 8/8/0) | decisions 2999 | samples 2125 | pi_loss -0.0108 | v_loss 0.1091 | ent 0.706 | clip 0.09 | 2.7s
-iter 279 | games 16 (W/L/D 9/7/0) | decisions 3261 | samples 2900 | pi_loss -0.0137 | v_loss 0.1180 | ent 0.708 | clip 0.09 | 2.9s
-iter 280 | games 16 (W/L/D 6/10/0) | decisions 3299 | samples 2552 | pi_loss -0.0032 | v_loss 0.1051 | ent 0.712 | clip 0.08 | 2.9s
-iter 280 | eval vs random: 100.0% (20 games)
-iter 281 | games 16 (W/L/D 6/10/0) | decisions 2843 | samples 2105 | pi_loss -0.0066 | v_loss 0.0954 | ent 0.692 | clip 0.10 | 2.5s
-iter 282 | games 16 (W/L/D 10/6/0) | decisions 2918 | samples 2050 | pi_loss -0.0160 | v_loss 0.0830 | ent 0.711 | clip 0.08 | 2.6s
-iter 283 | games 16 (W/L/D 8/8/0) | decisions 2762 | samples 2211 | pi_loss -0.0094 | v_loss 0.1260 | ent 0.677 | clip 0.07 | 2.4s
-iter 284 | games 16 (W/L/D 9/7/0) | decisions 2990 | samples 2118 | pi_loss -0.0016 | v_loss 0.1397 | ent 0.672 | clip 0.06 | 2.6s
-iter 285 | games 16 (W/L/D 8/8/0) | decisions 3100 | samples 2491 | pi_loss -0.0054 | v_loss 0.1004 | ent 0.696 | clip 0.09 | 2.9s
-iter 286 | games 16 (W/L/D 11/5/0) | decisions 2804 | samples 1921 | pi_loss -0.0071 | v_loss 0.1189 | ent 0.697 | clip 0.08 | 2.4s
-iter 287 | games 16 (W/L/D 5/11/0) | decisions 2732 | samples 1949 | pi_loss -0.0108 | v_loss 0.1391 | ent 0.711 | clip 0.09 | 2.4s
-iter 288 | games 16 (W/L/D 8/8/0) | decisions 3129 | samples 2419 | pi_loss -0.0078 | v_loss 0.1037 | ent 0.679 | clip 0.08 | 2.8s
-iter 289 | games 16 (W/L/D 9/7/0) | decisions 3066 | samples 2293 | pi_loss -0.0088 | v_loss 0.1181 | ent 0.717 | clip 0.07 | 2.8s
-iter 290 | games 16 (W/L/D 9/7/0) | decisions 3253 | samples 2251 | pi_loss -0.0100 | v_loss 0.1198 | ent 0.681 | clip 0.06 | 2.9s
-iter 290 | eval vs random: 100.0% (20 games)
-iter 291 | games 16 (W/L/D 11/5/0) | decisions 2822 | samples 2055 | pi_loss 0.0090 | v_loss 0.0978 | ent 0.709 | clip 0.10 | 2.4s
-iter 292 | games 16 (W/L/D 9/7/0) | decisions 2481 | samples 1469 | pi_loss -0.0057 | v_loss 0.1250 | ent 0.682 | clip 0.06 | 2.1s
-iter 293 | games 16 (W/L/D 9/7/0) | decisions 2844 | samples 1972 | pi_loss -0.0061 | v_loss 0.1070 | ent 0.695 | clip 0.06 | 2.5s
-iter 294 | games 16 (W/L/D 8/8/0) | decisions 2877 | samples 2019 | pi_loss -0.0083 | v_loss 0.1253 | ent 0.697 | clip 0.06 | 2.5s
-iter 295 | games 16 (W/L/D 7/9/0) | decisions 2807 | samples 2193 | pi_loss -0.0076 | v_loss 0.1405 | ent 0.677 | clip 0.06 | 2.4s
-iter 296 | games 16 (W/L/D 7/9/0) | decisions 3020 | samples 2261 | pi_loss -0.0094 | v_loss 0.1194 | ent 0.702 | clip 0.07 | 2.6s
-iter 297 | games 16 (W/L/D 8/8/0) | decisions 2352 | samples 1630 | pi_loss -0.0096 | v_loss 0.1584 | ent 0.697 | clip 0.05 | 2.0s
-iter 298 | games 16 (W/L/D 11/5/0) | decisions 3018 | samples 2563 | pi_loss -0.0408 | v_loss 0.0957 | ent 0.672 | clip 0.07 | 2.8s
-iter 299 | games 16 (W/L/D 8/8/0) | decisions 2972 | samples 2229 | pi_loss -0.0094 | v_loss 0.1392 | ent 0.678 | clip 0.08 | 2.6s
-iter 300 | games 16 (W/L/D 8/8/0) | decisions 2837 | samples 2465 | pi_loss -0.0069 | v_loss 0.1242 | ent 0.686 | clip 0.07 | 2.7s
-iter 300 | eval vs random: 100.0% (20 games)
-iter 301 | games 16 (W/L/D 7/9/0) | decisions 2755 | samples 1990 | pi_loss -0.0092 | v_loss 0.1195 | ent 0.693 | clip 0.07 | 2.4s
-iter 302 | games 16 (W/L/D 8/8/0) | decisions 2850 | samples 2014 | pi_loss -0.0077 | v_loss 0.1418 | ent 0.719 | clip 0.06 | 2.5s
-iter 303 | games 16 (W/L/D 9/7/0) | decisions 3119 | samples 2203 | pi_loss -0.0060 | v_loss 0.1548 | ent 0.744 | clip 0.07 | 2.7s
-iter 304 | games 16 (W/L/D 9/7/0) | decisions 3175 | samples 2621 | pi_loss -0.0128 | v_loss 0.1179 | ent 0.726 | clip 0.08 | 2.9s
-iter 305 | games 16 (W/L/D 7/9/0) | decisions 2592 | samples 1837 | pi_loss 0.0041 | v_loss 0.1566 | ent 0.709 | clip 0.06 | 2.3s
-iter 306 | games 16 (W/L/D 9/7/0) | decisions 3161 | samples 2670 | pi_loss -0.0101 | v_loss 0.1130 | ent 0.708 | clip 0.08 | 2.8s
-iter 307 | games 16 (W/L/D 7/9/0) | decisions 2793 | samples 2246 | pi_loss -0.0092 | v_loss 0.1010 | ent 0.681 | clip 0.08 | 2.4s
-iter 308 | games 16 (W/L/D 5/11/0) | decisions 2956 | samples 2088 | pi_loss 0.0078 | v_loss 0.1129 | ent 0.725 | clip 0.07 | 2.7s
-iter 309 | games 16 (W/L/D 6/10/0) | decisions 2934 | samples 2388 | pi_loss -0.0042 | v_loss 0.1298 | ent 0.711 | clip 0.09 | 2.6s
-iter 310 | games 16 (W/L/D 5/11/0) | decisions 3163 | samples 2555 | pi_loss -0.0075 | v_loss 0.1150 | ent 0.691 | clip 0.07 | 3.0s
-iter 310 | eval vs random: 100.0% (20 games)
-iter 311 | games 16 (W/L/D 8/8/0) | decisions 2846 | samples 1930 | pi_loss -0.0060 | v_loss 0.1180 | ent 0.706 | clip 0.07 | 2.5s
-iter 312 | games 16 (W/L/D 7/9/0) | decisions 2753 | samples 1942 | pi_loss -0.0083 | v_loss 0.1441 | ent 0.706 | clip 0.07 | 2.4s
-iter 313 | games 16 (W/L/D 7/9/0) | decisions 2849 | samples 2304 | pi_loss -0.0105 | v_loss 0.1233 | ent 0.709 | clip 0.09 | 2.5s
-iter 314 | games 16 (W/L/D 10/6/0) | decisions 2458 | samples 1765 | pi_loss -0.0097 | v_loss 0.1162 | ent 0.693 | clip 0.06 | 2.1s
-iter 315 | games 16 (W/L/D 7/9/0) | decisions 2934 | samples 2213 | pi_loss -0.0066 | v_loss 0.1577 | ent 0.704 | clip 0.07 | 2.7s
-iter 316 | games 16 (W/L/D 9/7/0) | decisions 2974 | samples 2525 | pi_loss -0.0057 | v_loss 0.1063 | ent 0.680 | clip 0.06 | 2.8s
-iter 317 | games 16 (W/L/D 10/6/0) | decisions 2654 | samples 1867 | pi_loss -0.0151 | v_loss 0.1666 | ent 0.658 | clip 0.05 | 2.5s
-iter 318 | games 16 (W/L/D 7/9/0) | decisions 3003 | samples 2131 | pi_loss -0.0225 | v_loss 0.1378 | ent 0.720 | clip 0.08 | 2.8s
-iter 319 | games 16 (W/L/D 8/8/0) | decisions 3077 | samples 2497 | pi_loss -0.0058 | v_loss 0.1308 | ent 0.679 | clip 0.07 | 2.9s
-iter 320 | games 16 (W/L/D 12/4/0) | decisions 2924 | samples 2439 | pi_loss -0.0105 | v_loss 0.0975 | ent 0.707 | clip 0.08 | 2.7s
-iter 320 | eval vs random: 100.0% (20 games)
-iter 321 | games 16 (W/L/D 8/8/0) | decisions 3032 | samples 2306 | pi_loss -0.0062 | v_loss 0.1125 | ent 0.712 | clip 0.10 | 2.7s
-iter 322 | games 16 (W/L/D 12/4/0) | decisions 3138 | samples 2320 | pi_loss -0.0122 | v_loss 0.1200 | ent 0.732 | clip 0.07 | 2.8s
-iter 323 | games 16 (W/L/D 7/9/0) | decisions 2888 | samples 2444 | pi_loss -0.0092 | v_loss 0.1169 | ent 0.670 | clip 0.09 | 2.6s
-iter 324 | games 16 (W/L/D 7/9/0) | decisions 2862 | samples 2261 | pi_loss -0.0090 | v_loss 0.1164 | ent 0.700 | clip 0.08 | 2.5s
-iter 325 | games 16 (W/L/D 10/6/0) | decisions 2789 | samples 2172 | pi_loss -0.0152 | v_loss 0.1308 | ent 0.694 | clip 0.08 | 2.6s
-iter 326 | games 16 (W/L/D 7/9/0) | decisions 2725 | samples 2148 | pi_loss -0.0087 | v_loss 0.1662 | ent 0.695 | clip 0.07 | 2.3s
-iter 327 | games 16 (W/L/D 8/8/0) | decisions 3092 | samples 2412 | pi_loss -0.0079 | v_loss 0.1443 | ent 0.701 | clip 0.09 | 3.0s
-iter 328 | games 16 (W/L/D 8/8/0) | decisions 3218 | samples 2262 | pi_loss -0.0096 | v_loss 0.1106 | ent 0.711 | clip 0.08 | 2.8s
-iter 329 | games 16 (W/L/D 6/10/0) | decisions 2934 | samples 2165 | pi_loss -0.0040 | v_loss 0.1147 | ent 0.687 | clip 0.08 | 2.6s
-iter 330 | games 16 (W/L/D 9/7/0) | decisions 2911 | samples 2321 | pi_loss -0.0210 | v_loss 0.0997 | ent 0.677 | clip 0.07 | 2.6s
-iter 330 | eval vs random: 100.0% (20 games)
-iter 331 | games 16 (W/L/D 9/7/0) | decisions 2981 | samples 2082 | pi_loss -0.0031 | v_loss 0.1165 | ent 0.723 | clip 0.07 | 2.7s
-iter 332 | games 16 (W/L/D 9/7/0) | decisions 2903 | samples 2020 | pi_loss -0.0095 | v_loss 0.1019 | ent 0.721 | clip 0.07 | 2.5s
-iter 333 | games 16 (W/L/D 7/9/0) | decisions 2950 | samples 1956 | pi_loss -0.0011 | v_loss 0.1593 | ent 0.697 | clip 0.06 | 2.7s
-iter 334 | games 16 (W/L/D 7/9/0) | decisions 2976 | samples 2182 | pi_loss -0.0074 | v_loss 0.0998 | ent 0.687 | clip 0.07 | 2.8s
-iter 335 | games 16 (W/L/D 8/8/0) | decisions 2819 | samples 2051 | pi_loss 0.0042 | v_loss 0.1142 | ent 0.709 | clip 0.07 | 2.6s
-iter 336 | games 16 (W/L/D 8/8/0) | decisions 2799 | samples 2110 | pi_loss -0.0113 | v_loss 0.1147 | ent 0.691 | clip 0.07 | 2.5s
-iter 337 | games 16 (W/L/D 8/8/0) | decisions 3129 | samples 2409 | pi_loss -0.0114 | v_loss 0.1318 | ent 0.697 | clip 0.06 | 2.9s
-iter 338 | games 16 (W/L/D 9/7/0) | decisions 2964 | samples 2034 | pi_loss -0.0082 | v_loss 0.1163 | ent 0.705 | clip 0.06 | 2.5s
-iter 339 | games 16 (W/L/D 8/8/0) | decisions 3040 | samples 1915 | pi_loss -0.0148 | v_loss 0.1127 | ent 0.716 | clip 0.08 | 2.6s
-iter 340 | games 16 (W/L/D 10/6/0) | decisions 2889 | samples 2142 | pi_loss 0.0016 | v_loss 0.1500 | ent 0.711 | clip 0.05 | 2.5s
-iter 340 | eval vs random: 100.0% (20 games)
-iter 341 | games 16 (W/L/D 10/6/0) | decisions 3076 | samples 2378 | pi_loss -0.0100 | v_loss 0.1127 | ent 0.699 | clip 0.08 | 2.8s
-iter 342 | games 16 (W/L/D 8/8/0) | decisions 2660 | samples 2075 | pi_loss -0.0176 | v_loss 0.1221 | ent 0.673 | clip 0.09 | 2.4s
-iter 343 | games 16 (W/L/D 9/7/0) | decisions 2499 | samples 1830 | pi_loss 0.0045 | v_loss 0.1149 | ent 0.715 | clip 0.07 | 2.1s
-iter 344 | games 16 (W/L/D 9/7/0) | decisions 2935 | samples 2190 | pi_loss -0.0047 | v_loss 0.1511 | ent 0.725 | clip 0.07 | 2.6s
-iter 345 | games 16 (W/L/D 9/7/0) | decisions 2871 | samples 2118 | pi_loss -0.0163 | v_loss 0.1263 | ent 0.690 | clip 0.07 | 2.5s
-iter 346 | games 16 (W/L/D 10/6/0) | decisions 2921 | samples 2395 | pi_loss -0.0128 | v_loss 0.0867 | ent 0.718 | clip 0.07 | 2.6s
-iter 347 | games 16 (W/L/D 9/7/0) | decisions 2943 | samples 2024 | pi_loss -0.0093 | v_loss 0.1149 | ent 0.680 | clip 0.09 | 2.5s
-iter 348 | games 16 (W/L/D 5/11/0) | decisions 2807 | samples 2182 | pi_loss -0.0087 | v_loss 0.1452 | ent 0.694 | clip 0.07 | 2.5s
-iter 349 | games 16 (W/L/D 8/8/0) | decisions 2735 | samples 1951 | pi_loss -0.0021 | v_loss 0.1324 | ent 0.699 | clip 0.08 | 2.4s
-iter 350 | games 16 (W/L/D 6/10/0) | decisions 2750 | samples 1576 | pi_loss -0.0141 | v_loss 0.1511 | ent 0.671 | clip 0.07 | 2.3s
-iter 350 | eval vs random: 100.0% (20 games)
-iter 351 | games 16 (W/L/D 9/7/0) | decisions 2704 | samples 2074 | pi_loss 0.0073 | v_loss 0.1015 | ent 0.644 | clip 0.08 | 2.3s
-iter 352 | games 16 (W/L/D 7/9/0) | decisions 2487 | samples 1642 | pi_loss -0.0154 | v_loss 0.1259 | ent 0.655 | clip 0.05 | 2.1s
-iter 353 | games 16 (W/L/D 11/5/0) | decisions 2436 | samples 1575 | pi_loss -0.0356 | v_loss 0.1291 | ent 0.610 | clip 0.07 | 2.1s
-iter 354 | games 16 (W/L/D 7/9/0) | decisions 2899 | samples 2128 | pi_loss -0.0147 | v_loss 0.1047 | ent 0.659 | clip 0.07 | 2.6s
-iter 355 | games 16 (W/L/D 10/6/0) | decisions 2815 | samples 2141 | pi_loss -0.0142 | v_loss 0.1355 | ent 0.691 | clip 0.06 | 2.5s
-iter 356 | games 16 (W/L/D 9/7/0) | decisions 2638 | samples 1606 | pi_loss 0.0027 | v_loss 0.1520 | ent 0.678 | clip 0.06 | 2.2s
-iter 357 | games 16 (W/L/D 9/7/0) | decisions 2568 | samples 1695 | pi_loss -0.0026 | v_loss 0.1280 | ent 0.643 | clip 0.06 | 2.1s
-iter 358 | games 16 (W/L/D 11/5/0) | decisions 2729 | samples 2079 | pi_loss -0.0032 | v_loss 0.1589 | ent 0.674 | clip 0.07 | 2.3s
-iter 359 | games 16 (W/L/D 5/11/0) | decisions 2995 | samples 2048 | pi_loss -0.0060 | v_loss 0.1238 | ent 0.686 | clip 0.05 | 2.7s
-iter 360 | games 16 (W/L/D 7/9/0) | decisions 2774 | samples 2123 | pi_loss 0.0005 | v_loss 0.1429 | ent 0.719 | clip 0.09 | 2.5s
-iter 360 | eval vs random: 95.0% (20 games)
-iter 361 | games 16 (W/L/D 3/13/0) | decisions 2860 | samples 2171 | pi_loss -0.0093 | v_loss 0.1624 | ent 0.666 | clip 0.05 | 2.7s
-iter 362 | games 16 (W/L/D 7/9/0) | decisions 2766 | samples 2140 | pi_loss -0.0093 | v_loss 0.1152 | ent 0.653 | clip 0.08 | 2.5s
-iter 363 | games 16 (W/L/D 9/7/0) | decisions 2739 | samples 1941 | pi_loss -0.0021 | v_loss 0.1461 | ent 0.655 | clip 0.07 | 2.4s
-iter 364 | games 16 (W/L/D 4/12/0) | decisions 2930 | samples 2303 | pi_loss -0.0097 | v_loss 0.1171 | ent 0.643 | clip 0.07 | 2.6s
-iter 365 | games 16 (W/L/D 8/8/0) | decisions 2714 | samples 2032 | pi_loss -0.0103 | v_loss 0.1522 | ent 0.696 | clip 0.08 | 2.5s
-iter 366 | games 16 (W/L/D 10/6/0) | decisions 2968 | samples 2065 | pi_loss 0.0164 | v_loss 0.1499 | ent 0.709 | clip 0.06 | 2.6s
-iter 367 | games 16 (W/L/D 8/8/0) | decisions 2561 | samples 1697 | pi_loss -0.0059 | v_loss 0.1251 | ent 0.653 | clip 0.06 | 2.2s
-iter 368 | games 16 (W/L/D 10/6/0) | decisions 2798 | samples 2119 | pi_loss -0.0066 | v_loss 0.1247 | ent 0.695 | clip 0.08 | 2.5s
-iter 369 | games 16 (W/L/D 10/6/0) | decisions 2653 | samples 2120 | pi_loss -0.0072 | v_loss 0.1249 | ent 0.657 | clip 0.08 | 2.4s
-iter 370 | games 16 (W/L/D 8/8/0) | decisions 2534 | samples 2020 | pi_loss -0.0093 | v_loss 0.1160 | ent 0.661 | clip 0.08 | 2.2s
+iter 241 | games 16 (W/L/D 8/8/0) | decisions 1976 | samples 1132 | pi_loss -0.0104 | v_loss 0.2529 | ent 0.625 | clip 0.06 | 1.6s
+iter 242 | games 16 (W/L/D 6/10/0) | decisions 2112 | samples 1310 | pi_loss -0.0264 | v_loss 0.2606 | ent 0.651 | clip 0.07 | 1.8s
+iter 243 | games 16 (W/L/D 4/12/0) | decisions 1814 | samples 1019 | pi_loss -0.0030 | v_loss 0.3623 | ent 0.652 | clip 0.03 | 1.5s
+iter 244 | games 16 (W/L/D 4/12/0) | decisions 1959 | samples 1149 | pi_loss -0.0040 | v_loss 0.2571 | ent 0.637 | clip 0.04 | 1.6s
+iter 245 | games 16 (W/L/D 7/9/0) | decisions 1903 | samples 1093 | pi_loss -0.0092 | v_loss 0.2692 | ent 0.592 | clip 0.07 | 1.5s
+iter 246 | games 16 (W/L/D 4/12/0) | decisions 1933 | samples 1092 | pi_loss 0.0040 | v_loss 0.1924 | ent 0.594 | clip 0.04 | 1.5s
+iter 247 | games 16 (W/L/D 7/9/0) | decisions 2080 | samples 1192 | pi_loss -0.0109 | v_loss 0.2790 | ent 0.653 | clip 0.08 | 1.7s
+iter 248 | games 16 (W/L/D 3/13/0) | decisions 1888 | samples 1038 | pi_loss -0.0021 | v_loss 0.2399 | ent 0.666 | clip 0.06 | 1.5s
+iter 249 | games 16 (W/L/D 6/10/0) | decisions 2015 | samples 1155 | pi_loss -0.0121 | v_loss 0.2579 | ent 0.637 | clip 0.05 | 1.6s
+iter 250 | games 16 (W/L/D 4/12/0) | decisions 2245 | samples 1209 | pi_loss -0.0089 | v_loss 0.2248 | ent 0.617 | clip 0.06 | 1.7s
+iter 250 | eval vs random: 85.0% (20 games)
+iter 251 | games 16 (W/L/D 3/13/0) | decisions 2079 | samples 1172 | pi_loss -0.0048 | v_loss 0.2721 | ent 0.661 | clip 0.06 | 1.7s
+iter 252 | games 16 (W/L/D 3/13/0) | decisions 1755 | samples 1010 | pi_loss -0.0064 | v_loss 0.2298 | ent 0.599 | clip 0.07 | 1.4s
+iter 253 | games 16 (W/L/D 5/11/0) | decisions 1918 | samples 1088 | pi_loss -0.0047 | v_loss 0.3061 | ent 0.686 | clip 0.07 | 1.6s
+iter 254 | games 16 (W/L/D 3/13/0) | decisions 2046 | samples 1206 | pi_loss -0.0080 | v_loss 0.1844 | ent 0.686 | clip 0.06 | 1.7s
+iter 255 | games 16 (W/L/D 2/14/0) | decisions 2015 | samples 1179 | pi_loss -0.0040 | v_loss 0.1533 | ent 0.655 | clip 0.08 | 1.7s
+iter 256 | games 16 (W/L/D 8/8/0) | decisions 1969 | samples 1161 | pi_loss -0.0107 | v_loss 0.2676 | ent 0.659 | clip 0.05 | 1.6s
+iter 257 | games 16 (W/L/D 5/11/0) | decisions 2071 | samples 1227 | pi_loss -0.0056 | v_loss 0.2357 | ent 0.642 | clip 0.04 | 1.7s
+iter 258 | games 16 (W/L/D 1/15/0) | decisions 1863 | samples 1079 | pi_loss -0.0003 | v_loss 0.1742 | ent 0.660 | clip 0.04 | 1.7s
+iter 259 | games 16 (W/L/D 3/13/0) | decisions 1640 | samples 910 | pi_loss -0.0152 | v_loss 0.2376 | ent 0.605 | clip 0.05 | 1.4s
+iter 260 | games 16 (W/L/D 7/9/0) | decisions 2070 | samples 1237 | pi_loss -0.0041 | v_loss 0.2744 | ent 0.701 | clip 0.04 | 1.7s
+iter 260 | eval vs random: 95.0% (20 games)
+iter 261 | games 16 (W/L/D 4/12/0) | decisions 1918 | samples 1107 | pi_loss -0.0169 | v_loss 0.2743 | ent 0.656 | clip 0.05 | 1.6s
+iter 262 | games 16 (W/L/D 6/10/0) | decisions 1810 | samples 1091 | pi_loss -0.0105 | v_loss 0.2889 | ent 0.618 | clip 0.03 | 1.5s
+iter 263 | games 16 (W/L/D 4/12/0) | decisions 2016 | samples 1181 | pi_loss -0.0029 | v_loss 0.1923 | ent 0.670 | clip 0.05 | 1.7s
+iter 264 | games 16 (W/L/D 5/11/0) | decisions 1873 | samples 1096 | pi_loss -0.0109 | v_loss 0.2403 | ent 0.604 | clip 0.04 | 1.5s
+iter 265 | games 16 (W/L/D 3/13/0) | decisions 1881 | samples 1103 | pi_loss -0.0033 | v_loss 0.1759 | ent 0.602 | clip 0.02 | 1.5s
+iter 266 | games 16 (W/L/D 4/12/0) | decisions 1706 | samples 971 | pi_loss -0.0054 | v_loss 0.2180 | ent 0.599 | clip 0.05 | 1.4s
+iter 267 | games 16 (W/L/D 2/14/0) | decisions 1926 | samples 1122 | pi_loss -0.0185 | v_loss 0.1385 | ent 0.581 | clip 0.05 | 1.6s
+iter 268 | games 16 (W/L/D 5/11/0) | decisions 1988 | samples 1158 | pi_loss -0.0041 | v_loss 0.2141 | ent 0.629 | clip 0.03 | 1.6s
+iter 269 | games 16 (W/L/D 6/10/0) | decisions 1936 | samples 1112 | pi_loss 0.0026 | v_loss 0.3116 | ent 0.649 | clip 0.03 | 1.6s
+iter 270 | games 16 (W/L/D 1/15/0) | decisions 1931 | samples 1137 | pi_loss -0.0055 | v_loss 0.2003 | ent 0.614 | clip 0.02 | 1.6s
+iter 270 | eval vs random: 95.0% (20 games)
+iter 271 | games 16 (W/L/D 5/11/0) | decisions 1840 | samples 1044 | pi_loss -0.0262 | v_loss 0.2878 | ent 0.583 | clip 0.03 | 1.5s
+iter 272 | games 16 (W/L/D 2/14/0) | decisions 2243 | samples 1312 | pi_loss -0.0063 | v_loss 0.1962 | ent 0.622 | clip 0.05 | 1.9s
+iter 273 | games 16 (W/L/D 4/12/0) | decisions 1782 | samples 1014 | pi_loss -0.0038 | v_loss 0.2308 | ent 0.635 | clip 0.05 | 1.5s
+iter 274 | games 16 (W/L/D 2/14/0) | decisions 1756 | samples 999 | pi_loss -0.0064 | v_loss 0.1957 | ent 0.635 | clip 0.04 | 1.4s
+iter 275 | games 16 (W/L/D 5/11/0) | decisions 2103 | samples 1225 | pi_loss -0.0005 | v_loss 0.3020 | ent 0.592 | clip 0.03 | 1.7s
+iter 276 | games 16 (W/L/D 4/12/0) | decisions 1969 | samples 1140 | pi_loss -0.0109 | v_loss 0.2356 | ent 0.649 | clip 0.05 | 1.6s
+iter 277 | games 16 (W/L/D 4/12/0) | decisions 1856 | samples 1089 | pi_loss -0.0236 | v_loss 0.2188 | ent 0.674 | clip 0.07 | 1.6s
+iter 278 | games 16 (W/L/D 4/12/0) | decisions 1868 | samples 1060 | pi_loss -0.0182 | v_loss 0.2171 | ent 0.622 | clip 0.06 | 1.5s
+iter 279 | games 16 (W/L/D 2/14/0) | decisions 1730 | samples 1010 | pi_loss -0.0037 | v_loss 0.2390 | ent 0.650 | clip 0.04 | 1.4s
+iter 280 | games 16 (W/L/D 4/12/0) | decisions 2050 | samples 1219 | pi_loss -0.0069 | v_loss 0.1899 | ent 0.633 | clip 0.06 | 1.7s
+iter 280 | eval vs random: 95.0% (20 games)
+iter 281 | games 16 (W/L/D 4/12/0) | decisions 2117 | samples 1181 | pi_loss -0.0020 | v_loss 0.2512 | ent 0.690 | clip 0.04 | 1.7s
+iter 282 | games 16 (W/L/D 3/13/0) | decisions 2115 | samples 1166 | pi_loss 0.0011 | v_loss 0.2163 | ent 0.640 | clip 0.05 | 1.8s
+iter 283 | games 16 (W/L/D 4/12/0) | decisions 1915 | samples 1171 | pi_loss 0.0001 | v_loss 0.2693 | ent 0.648 | clip 0.04 | 1.6s
+iter 284 | games 16 (W/L/D 11/5/0) | decisions 2023 | samples 1150 | pi_loss -0.0012 | v_loss 0.3208 | ent 0.645 | clip 0.04 | 1.6s
+iter 285 | games 16 (W/L/D 3/13/0) | decisions 1931 | samples 1162 | pi_loss 0.0033 | v_loss 0.2334 | ent 0.632 | clip 0.03 | 1.7s
+iter 286 | games 16 (W/L/D 6/10/0) | decisions 2044 | samples 1149 | pi_loss -0.0039 | v_loss 0.2375 | ent 0.619 | clip 0.05 | 1.6s
+iter 287 | games 16 (W/L/D 5/11/0) | decisions 2021 | samples 1263 | pi_loss -0.0031 | v_loss 0.2599 | ent 0.658 | clip 0.03 | 1.7s
+iter 288 | games 16 (W/L/D 3/13/0) | decisions 2260 | samples 1325 | pi_loss 0.0034 | v_loss 0.1742 | ent 0.620 | clip 0.05 | 1.9s
+iter 289 | games 16 (W/L/D 9/7/0) | decisions 2020 | samples 1204 | pi_loss -0.0049 | v_loss 0.2809 | ent 0.608 | clip 0.05 | 1.8s
+iter 290 | games 16 (W/L/D 4/12/0) | decisions 1768 | samples 1054 | pi_loss -0.0098 | v_loss 0.2227 | ent 0.597 | clip 0.05 | 1.5s
+iter 290 | eval vs random: 90.0% (20 games)
+iter 291 | games 16 (W/L/D 5/11/0) | decisions 1839 | samples 1088 | pi_loss -0.0330 | v_loss 0.2743 | ent 0.642 | clip 0.05 | 1.5s
+iter 292 | games 16 (W/L/D 5/11/0) | decisions 1956 | samples 1102 | pi_loss 0.0007 | v_loss 0.2912 | ent 0.635 | clip 0.05 | 1.5s
+iter 293 | games 16 (W/L/D 6/10/0) | decisions 2175 | samples 1336 | pi_loss -0.0062 | v_loss 0.2392 | ent 0.707 | clip 0.08 | 1.7s
+iter 294 | games 16 (W/L/D 4/12/0) | decisions 1927 | samples 1185 | pi_loss -0.0044 | v_loss 0.1692 | ent 0.691 | clip 0.04 | 1.6s
+iter 295 | games 16 (W/L/D 3/13/0) | decisions 2140 | samples 1228 | pi_loss -0.0070 | v_loss 0.1838 | ent 0.664 | clip 0.04 | 1.7s
+iter 296 | games 16 (W/L/D 4/12/0) | decisions 2027 | samples 1192 | pi_loss -0.0059 | v_loss 0.2529 | ent 0.646 | clip 0.05 | 1.6s
+iter 297 | games 16 (W/L/D 5/11/0) | decisions 2043 | samples 1146 | pi_loss -0.0093 | v_loss 0.2441 | ent 0.618 | clip 0.04 | 1.7s
+iter 298 | games 16 (W/L/D 7/9/0) | decisions 1716 | samples 956 | pi_loss -0.0046 | v_loss 0.3625 | ent 0.677 | clip 0.05 | 1.4s
+iter 299 | games 16 (W/L/D 7/9/0) | decisions 1998 | samples 1231 | pi_loss -0.0033 | v_loss 0.2625 | ent 0.678 | clip 0.05 | 1.8s
+iter 300 | games 16 (W/L/D 4/12/0) | decisions 1709 | samples 1005 | pi_loss -0.0070 | v_loss 0.1877 | ent 0.628 | clip 0.06 | 1.4s
+iter 300 | eval vs random: 95.0% (20 games)
+iter 301 | games 16 (W/L/D 5/11/0) | decisions 1904 | samples 1094 | pi_loss -0.0068 | v_loss 0.2353 | ent 0.616 | clip 0.06 | 1.5s
+iter 302 | games 16 (W/L/D 4/12/0) | decisions 2208 | samples 1378 | pi_loss -0.0074 | v_loss 0.2211 | ent 0.659 | clip 0.05 | 1.9s
+iter 303 | games 16 (W/L/D 1/15/0) | decisions 2134 | samples 1240 | pi_loss -0.0006 | v_loss 0.2191 | ent 0.633 | clip 0.04 | 1.8s
+iter 304 | games 16 (W/L/D 1/15/0) | decisions 1822 | samples 1126 | pi_loss 0.0071 | v_loss 0.1658 | ent 0.618 | clip 0.05 | 1.6s
+iter 305 | games 16 (W/L/D 6/10/0) | decisions 2032 | samples 1129 | pi_loss 0.0008 | v_loss 0.3552 | ent 0.576 | clip 0.03 | 1.7s
+iter 306 | games 16 (W/L/D 6/10/0) | decisions 2110 | samples 1264 | pi_loss -0.0032 | v_loss 0.2411 | ent 0.589 | clip 0.03 | 1.8s
+iter 307 | games 16 (W/L/D 3/13/0) | decisions 2099 | samples 1255 | pi_loss -0.0069 | v_loss 0.1747 | ent 0.629 | clip 0.03 | 1.7s
+iter 308 | games 16 (W/L/D 7/9/0) | decisions 2145 | samples 1261 | pi_loss -0.0021 | v_loss 0.3067 | ent 0.632 | clip 0.02 | 1.7s
+iter 309 | games 16 (W/L/D 6/10/0) | decisions 2059 | samples 1222 | pi_loss -0.0032 | v_loss 0.2665 | ent 0.615 | clip 0.04 | 1.6s
+iter 310 | games 16 (W/L/D 2/14/0) | decisions 2072 | samples 1259 | pi_loss -0.0039 | v_loss 0.1665 | ent 0.636 | clip 0.03 | 1.6s
+iter 310 | eval vs random: 85.0% (20 games)
+iter 311 | games 16 (W/L/D 5/11/0) | decisions 2177 | samples 1265 | pi_loss -0.0015 | v_loss 0.2497 | ent 0.589 | clip 0.04 | 1.7s
+iter 312 | games 16 (W/L/D 3/13/0) | decisions 1971 | samples 1105 | pi_loss -0.0098 | v_loss 0.1795 | ent 0.637 | clip 0.05 | 1.5s
+iter 313 | games 16 (W/L/D 6/10/0) | decisions 1872 | samples 1061 | pi_loss 0.0277 | v_loss 0.2993 | ent 0.632 | clip 0.05 | 1.5s
+iter 314 | games 16 (W/L/D 4/12/0) | decisions 1892 | samples 1089 | pi_loss 0.0040 | v_loss 0.2010 | ent 0.636 | clip 0.06 | 1.5s
+iter 315 | games 16 (W/L/D 9/7/0) | decisions 1904 | samples 1121 | pi_loss -0.0050 | v_loss 0.3056 | ent 0.612 | clip 0.05 | 1.5s
+iter 316 | games 16 (W/L/D 1/15/0) | decisions 1886 | samples 1110 | pi_loss -0.0109 | v_loss 0.2505 | ent 0.625 | clip 0.05 | 1.5s
+iter 317 | games 16 (W/L/D 4/12/0) | decisions 1949 | samples 1191 | pi_loss -0.0041 | v_loss 0.1747 | ent 0.625 | clip 0.06 | 1.7s
+iter 318 | games 16 (W/L/D 1/15/0) | decisions 1878 | samples 1186 | pi_loss -0.0011 | v_loss 0.1713 | ent 0.645 | clip 0.06 | 1.5s
+iter 319 | games 16 (W/L/D 5/11/0) | decisions 2054 | samples 1213 | pi_loss -0.0061 | v_loss 0.2757 | ent 0.607 | clip 0.03 | 1.6s
+iter 320 | games 16 (W/L/D 3/13/0) | decisions 1988 | samples 1067 | pi_loss -0.0051 | v_loss 0.2416 | ent 0.584 | clip 0.04 | 1.5s
+iter 320 | eval vs random: 90.0% (20 games)
+iter 321 | games 16 (W/L/D 6/10/0) | decisions 1845 | samples 1067 | pi_loss 0.0062 | v_loss 0.3476 | ent 0.630 | clip 0.04 | 1.5s
+iter 322 | games 16 (W/L/D 4/12/0) | decisions 2049 | samples 1265 | pi_loss -0.0048 | v_loss 0.1815 | ent 0.632 | clip 0.05 | 1.7s
+iter 323 | games 16 (W/L/D 5/11/0) | decisions 2120 | samples 1267 | pi_loss -0.0053 | v_loss 0.2440 | ent 0.662 | clip 0.04 | 1.7s
+iter 324 | games 16 (W/L/D 3/13/0) | decisions 2191 | samples 1347 | pi_loss 0.0070 | v_loss 0.2270 | ent 0.633 | clip 0.06 | 1.8s
+iter 325 | games 16 (W/L/D 1/15/0) | decisions 2051 | samples 1229 | pi_loss -0.0047 | v_loss 0.1381 | ent 0.613 | clip 0.02 | 1.7s
+iter 326 | games 16 (W/L/D 4/12/0) | decisions 2072 | samples 1194 | pi_loss -0.0053 | v_loss 0.2021 | ent 0.614 | clip 0.05 | 1.7s
+iter 327 | games 16 (W/L/D 3/13/0) | decisions 1783 | samples 1012 | pi_loss -0.0046 | v_loss 0.2110 | ent 0.625 | clip 0.03 | 1.5s
+iter 328 | games 16 (W/L/D 7/9/0) | decisions 2116 | samples 1304 | pi_loss 0.0007 | v_loss 0.3067 | ent 0.719 | clip 0.03 | 1.8s
+iter 329 | games 16 (W/L/D 4/12/0) | decisions 1715 | samples 1029 | pi_loss -0.0074 | v_loss 0.2497 | ent 0.626 | clip 0.04 | 1.5s
+iter 330 | games 16 (W/L/D 5/11/0) | decisions 2225 | samples 1348 | pi_loss -0.0054 | v_loss 0.2259 | ent 0.669 | clip 0.06 | 1.9s
+iter 330 | eval vs random: 95.0% (20 games)
+iter 331 | games 16 (W/L/D 3/13/0) | decisions 1926 | samples 1177 | pi_loss -0.0091 | v_loss 0.1813 | ent 0.621 | clip 0.07 | 1.5s
+iter 332 | games 16 (W/L/D 4/12/0) | decisions 2189 | samples 1299 | pi_loss -0.0025 | v_loss 0.1746 | ent 0.638 | clip 0.07 | 1.7s
+iter 333 | games 16 (W/L/D 2/14/0) | decisions 1973 | samples 1160 | pi_loss -0.0032 | v_loss 0.2472 | ent 0.660 | clip 0.05 | 1.6s
+iter 334 | games 16 (W/L/D 5/11/0) | decisions 2128 | samples 1236 | pi_loss -0.0062 | v_loss 0.2839 | ent 0.663 | clip 0.04 | 1.7s
+iter 335 | games 16 (W/L/D 3/13/0) | decisions 1584 | samples 849 | pi_loss 0.0053 | v_loss 0.2349 | ent 0.569 | clip 0.03 | 1.2s
+iter 336 | games 16 (W/L/D 2/14/0) | decisions 1916 | samples 1101 | pi_loss -0.0018 | v_loss 0.1976 | ent 0.580 | clip 0.05 | 1.5s
+iter 337 | games 16 (W/L/D 5/11/0) | decisions 2117 | samples 1243 | pi_loss -0.0034 | v_loss 0.2808 | ent 0.642 | clip 0.04 | 1.8s
+iter 338 | games 16 (W/L/D 5/11/0) | decisions 2237 | samples 1234 | pi_loss -0.0057 | v_loss 0.2642 | ent 0.621 | clip 0.04 | 1.9s
+iter 339 | games 16 (W/L/D 5/11/0) | decisions 1796 | samples 1101 | pi_loss 0.0024 | v_loss 0.2294 | ent 0.626 | clip 0.03 | 1.6s
+iter 340 | games 16 (W/L/D 6/10/0) | decisions 1835 | samples 1063 | pi_loss 0.0008 | v_loss 0.2774 | ent 0.614 | clip 0.04 | 1.5s
+iter 340 | eval vs random: 80.0% (20 games)
+iter 341 | games 16 (W/L/D 2/14/0) | decisions 1958 | samples 1125 | pi_loss -0.0025 | v_loss 0.2259 | ent 0.640 | clip 0.06 | 1.5s
+iter 342 | games 16 (W/L/D 8/8/0) | decisions 1600 | samples 903 | pi_loss -0.0127 | v_loss 0.4256 | ent 0.573 | clip 0.03 | 1.3s
+iter 343 | games 16 (W/L/D 2/14/0) | decisions 2047 | samples 1176 | pi_loss -0.0053 | v_loss 0.1950 | ent 0.668 | clip 0.02 | 1.6s
+iter 344 | games 16 (W/L/D 5/11/0) | decisions 1944 | samples 1066 | pi_loss -0.0263 | v_loss 0.2853 | ent 0.586 | clip 0.03 | 1.7s
+iter 345 | games 16 (W/L/D 6/10/0) | decisions 1997 | samples 1151 | pi_loss -0.0070 | v_loss 0.2651 | ent 0.595 | clip 0.04 | 1.8s
+iter 346 | games 16 (W/L/D 4/12/0) | decisions 1776 | samples 1021 | pi_loss -0.0057 | v_loss 0.2186 | ent 0.640 | clip 0.04 | 1.5s
+iter 347 | games 16 (W/L/D 6/10/0) | decisions 1714 | samples 1033 | pi_loss 0.0073 | v_loss 0.4002 | ent 0.565 | clip 0.04 | 1.5s
+iter 348 | games 16 (W/L/D 6/10/0) | decisions 1975 | samples 1135 | pi_loss 0.0081 | v_loss 0.3046 | ent 0.600 | clip 0.03 | 1.6s
+iter 349 | games 16 (W/L/D 4/12/0) | decisions 2063 | samples 1288 | pi_loss 0.0044 | v_loss 0.1970 | ent 0.627 | clip 0.05 | 1.8s
+iter 350 | games 16 (W/L/D 3/13/0) | decisions 1653 | samples 978 | pi_loss -0.0033 | v_loss 0.2835 | ent 0.608 | clip 0.03 | 1.3s
+iter 350 | eval vs random: 90.0% (20 games)
+iter 351 | games 16 (W/L/D 7/9/0) | decisions 2054 | samples 1245 | pi_loss -0.0040 | v_loss 0.2111 | ent 0.594 | clip 0.03 | 1.8s
+iter 352 | games 16 (W/L/D 5/11/0) | decisions 2145 | samples 1231 | pi_loss -0.0095 | v_loss 0.2327 | ent 0.593 | clip 0.06 | 2.0s
+iter 353 | games 16 (W/L/D 4/12/0) | decisions 1571 | samples 915 | pi_loss -0.0052 | v_loss 0.2285 | ent 0.532 | clip 0.05 | 1.3s
+iter 354 | games 16 (W/L/D 5/11/0) | decisions 1968 | samples 1196 | pi_loss -0.0069 | v_loss 0.2446 | ent 0.588 | clip 0.04 | 1.6s
+iter 355 | games 16 (W/L/D 4/12/0) | decisions 1963 | samples 1133 | pi_loss -0.0150 | v_loss 0.2682 | ent 0.593 | clip 0.04 | 1.6s
+iter 356 | games 16 (W/L/D 3/13/0) | decisions 1957 | samples 1176 | pi_loss -0.0069 | v_loss 0.1933 | ent 0.606 | clip 0.05 | 1.6s
+iter 357 | games 16 (W/L/D 5/11/0) | decisions 1825 | samples 1099 | pi_loss 0.0091 | v_loss 0.2734 | ent 0.592 | clip 0.06 | 1.5s
+iter 358 | games 16 (W/L/D 4/12/0) | decisions 2074 | samples 1257 | pi_loss -0.0053 | v_loss 0.2255 | ent 0.567 | clip 0.05 | 1.9s
+iter 359 | games 16 (W/L/D 4/12/0) | decisions 1778 | samples 1002 | pi_loss -0.0047 | v_loss 0.2546 | ent 0.557 | clip 0.04 | 1.5s
+iter 360 | games 16 (W/L/D 4/12/0) | decisions 1803 | samples 1023 | pi_loss -0.0029 | v_loss 0.3562 | ent 0.603 | clip 0.03 | 1.4s
+iter 360 | eval vs random: 85.0% (20 games)
+iter 361 | games 16 (W/L/D 3/13/0) | decisions 1828 | samples 1119 | pi_loss -0.0042 | v_loss 0.2145 | ent 0.614 | clip 0.04 | 1.5s
+iter 362 | games 16 (W/L/D 3/13/0) | decisions 1889 | samples 1152 | pi_loss -0.0071 | v_loss 0.1691 | ent 0.554 | clip 0.04 | 1.5s
+iter 363 | games 16 (W/L/D 7/9/0) | decisions 1901 | samples 1150 | pi_loss -0.0103 | v_loss 0.3691 | ent 0.539 | clip 0.03 | 1.5s
+iter 364 | games 16 (W/L/D 4/12/0) | decisions 1926 | samples 1116 | pi_loss -0.0132 | v_loss 0.2942 | ent 0.615 | clip 0.02 | 1.6s
+iter 365 | games 16 (W/L/D 6/10/0) | decisions 2101 | samples 1243 | pi_loss -0.0012 | v_loss 0.3049 | ent 0.580 | clip 0.03 | 1.7s
+iter 366 | games 16 (W/L/D 5/11/0) | decisions 2070 | samples 1270 | pi_loss -0.0043 | v_loss 0.2277 | ent 0.582 | clip 0.04 | 1.7s
+iter 367 | games 16 (W/L/D 3/13/0) | decisions 2022 | samples 1237 | pi_loss -0.0047 | v_loss 0.1875 | ent 0.594 | clip 0.03 | 1.7s
+iter 368 | games 16 (W/L/D 2/14/0) | decisions 1984 | samples 1138 | pi_loss -0.0021 | v_loss 0.1579 | ent 0.581 | clip 0.04 | 1.6s
+iter 369 | games 16 (W/L/D 5/11/0) | decisions 2112 | samples 1276 | pi_loss -0.0045 | v_loss 0.2175 | ent 0.588 | clip 0.03 | 1.7s
+iter 370 | games 16 (W/L/D 2/14/0) | decisions 1843 | samples 1103 | pi_loss -0.0087 | v_loss 0.2003 | ent 0.601 | clip 0.05 | 1.5s
 iter 370 | eval vs random: 100.0% (20 games)
-iter 371 | games 16 (W/L/D 11/5/0) | decisions 2838 | samples 2170 | pi_loss -0.0067 | v_loss 0.1354 | ent 0.703 | clip 0.07 | 2.5s
-iter 372 | games 16 (W/L/D 6/10/0) | decisions 2648 | samples 1901 | pi_loss -0.0166 | v_loss 0.1305 | ent 0.684 | clip 0.06 | 2.3s
-iter 373 | games 16 (W/L/D 8/8/0) | decisions 2568 | samples 1809 | pi_loss -0.0329 | v_loss 0.1327 | ent 0.689 | clip 0.06 | 2.3s
-iter 374 | games 16 (W/L/D 6/10/0) | decisions 2811 | samples 2178 | pi_loss -0.0081 | v_loss 0.1234 | ent 0.662 | clip 0.06 | 2.5s
-iter 375 | games 16 (W/L/D 5/11/0) | decisions 2978 | samples 2137 | pi_loss -0.0042 | v_loss 0.1244 | ent 0.648 | clip 0.07 | 2.7s
-iter 376 | games 16 (W/L/D 8/8/0) | decisions 3193 | samples 2674 | pi_loss -0.0035 | v_loss 0.1086 | ent 0.685 | clip 0.06 | 3.3s
-iter 377 | games 16 (W/L/D 9/7/0) | decisions 2940 | samples 2158 | pi_loss -0.0095 | v_loss 0.1201 | ent 0.657 | clip 0.07 | 2.5s
-iter 378 | games 16 (W/L/D 9/7/0) | decisions 2757 | samples 2014 | pi_loss -0.0103 | v_loss 0.1521 | ent 0.700 | clip 0.06 | 2.5s
-iter 379 | games 16 (W/L/D 10/6/0) | decisions 2641 | samples 1929 | pi_loss -0.0084 | v_loss 0.1367 | ent 0.679 | clip 0.06 | 2.3s
-iter 380 | games 16 (W/L/D 10/6/0) | decisions 3022 | samples 2381 | pi_loss -0.0118 | v_loss 0.1193 | ent 0.708 | clip 0.08 | 2.8s
-iter 380 | eval vs random: 100.0% (20 games)
-iter 381 | games 16 (W/L/D 6/10/0) | decisions 2943 | samples 2180 | pi_loss -0.0086 | v_loss 0.1166 | ent 0.687 | clip 0.08 | 2.5s
-iter 382 | games 16 (W/L/D 8/8/0) | decisions 2681 | samples 1934 | pi_loss -0.0054 | v_loss 0.1477 | ent 0.641 | clip 0.07 | 2.5s
-iter 383 | games 16 (W/L/D 12/4/0) | decisions 2874 | samples 2317 | pi_loss 0.0033 | v_loss 0.0975 | ent 0.736 | clip 0.09 | 2.5s
-iter 384 | games 16 (W/L/D 6/10/0) | decisions 2910 | samples 2240 | pi_loss -0.0063 | v_loss 0.1254 | ent 0.661 | clip 0.07 | 2.6s
-iter 385 | games 16 (W/L/D 11/5/0) | decisions 2896 | samples 2343 | pi_loss -0.0195 | v_loss 0.1436 | ent 0.668 | clip 0.07 | 2.6s
-iter 386 | games 16 (W/L/D 12/4/0) | decisions 2884 | samples 2505 | pi_loss -0.0066 | v_loss 0.1455 | ent 0.703 | clip 0.07 | 2.9s
-iter 387 | games 16 (W/L/D 6/10/0) | decisions 3134 | samples 2530 | pi_loss -0.0060 | v_loss 0.1150 | ent 0.684 | clip 0.07 | 2.8s
-iter 388 | games 16 (W/L/D 7/9/0) | decisions 2712 | samples 2217 | pi_loss -0.0091 | v_loss 0.1288 | ent 0.731 | clip 0.07 | 2.4s
-iter 389 | games 16 (W/L/D 6/10/0) | decisions 2844 | samples 2165 | pi_loss -0.0168 | v_loss 0.1054 | ent 0.707 | clip 0.09 | 2.5s
-iter 390 | games 16 (W/L/D 9/7/0) | decisions 2659 | samples 2232 | pi_loss -0.0072 | v_loss 0.1393 | ent 0.705 | clip 0.06 | 2.4s
-iter 390 | eval vs random: 85.0% (20 games)
-iter 391 | games 16 (W/L/D 11/5/0) | decisions 3037 | samples 2092 | pi_loss -0.0107 | v_loss 0.1161 | ent 0.702 | clip 0.06 | 2.7s
-iter 392 | games 16 (W/L/D 9/7/0) | decisions 2909 | samples 2342 | pi_loss -0.0075 | v_loss 0.1241 | ent 0.674 | clip 0.06 | 2.9s
-iter 393 | games 16 (W/L/D 8/8/0) | decisions 2666 | samples 2221 | pi_loss -0.0104 | v_loss 0.1435 | ent 0.677 | clip 0.08 | 2.5s
-iter 394 | games 16 (W/L/D 12/4/0) | decisions 2957 | samples 2281 | pi_loss -0.0088 | v_loss 0.1351 | ent 0.692 | clip 0.06 | 2.7s
-iter 395 | games 16 (W/L/D 9/7/0) | decisions 2666 | samples 2350 | pi_loss -0.0131 | v_loss 0.1271 | ent 0.697 | clip 0.07 | 2.4s
-iter 396 | games 16 (W/L/D 6/10/0) | decisions 2637 | samples 2126 | pi_loss -0.0117 | v_loss 0.1086 | ent 0.696 | clip 0.06 | 2.3s
-iter 397 | games 16 (W/L/D 8/8/0) | decisions 2760 | samples 2109 | pi_loss -0.0156 | v_loss 0.1323 | ent 0.712 | clip 0.07 | 2.5s
-iter 398 | games 16 (W/L/D 8/8/0) | decisions 2637 | samples 1863 | pi_loss -0.0173 | v_loss 0.1367 | ent 0.665 | clip 0.07 | 2.3s
-iter 399 | games 16 (W/L/D 16/0/0) | decisions 3095 | samples 2245 | pi_loss -0.0087 | v_loss 0.1371 | ent 0.691 | clip 0.07 | 2.8s
-iter 400 | games 16 (W/L/D 8/8/0) | decisions 2249 | samples 1998 | pi_loss -0.0082 | v_loss 0.1623 | ent 0.677 | clip 0.05 | 2.0s
-iter 400 | eval vs random: 100.0% (20 games)
-iter 401 | games 16 (W/L/D 9/7/0) | decisions 2724 | samples 2127 | pi_loss -0.0100 | v_loss 0.1078 | ent 0.652 | clip 0.05 | 2.4s
-iter 402 | games 16 (W/L/D 9/7/0) | decisions 2953 | samples 2348 | pi_loss -0.0125 | v_loss 0.1049 | ent 0.688 | clip 0.08 | 2.6s
-iter 403 | games 16 (W/L/D 8/8/0) | decisions 2885 | samples 1847 | pi_loss -0.0052 | v_loss 0.1169 | ent 0.720 | clip 0.10 | 2.5s
-iter 404 | games 16 (W/L/D 7/9/0) | decisions 3027 | samples 2250 | pi_loss -0.0060 | v_loss 0.1043 | ent 0.683 | clip 0.07 | 2.7s
-iter 405 | games 16 (W/L/D 10/6/0) | decisions 2954 | samples 2200 | pi_loss -0.0061 | v_loss 0.1295 | ent 0.699 | clip 0.08 | 2.6s
-iter 406 | games 16 (W/L/D 7/9/0) | decisions 2801 | samples 2359 | pi_loss -0.0017 | v_loss 0.1234 | ent 0.691 | clip 0.07 | 2.6s
-iter 407 | games 16 (W/L/D 4/12/0) | decisions 3185 | samples 2305 | pi_loss -0.0447 | v_loss 0.1171 | ent 0.647 | clip 0.07 | 2.9s
-iter 408 | games 16 (W/L/D 10/6/0) | decisions 2976 | samples 2074 | pi_loss -0.0184 | v_loss 0.1270 | ent 0.722 | clip 0.08 | 2.7s
-iter 409 | games 16 (W/L/D 9/7/0) | decisions 3065 | samples 2214 | pi_loss -0.0089 | v_loss 0.0993 | ent 0.695 | clip 0.07 | 2.7s
-iter 410 | games 16 (W/L/D 5/11/0) | decisions 2610 | samples 2068 | pi_loss -0.0420 | v_loss 0.1413 | ent 0.659 | clip 0.06 | 2.3s
+iter 371 | games 16 (W/L/D 4/12/0) | decisions 1917 | samples 1197 | pi_loss -0.0039 | v_loss 0.1880 | ent 0.605 | clip 0.04 | 1.6s
+iter 372 | games 16 (W/L/D 2/14/0) | decisions 1977 | samples 1175 | pi_loss -0.0003 | v_loss 0.1601 | ent 0.608 | clip 0.07 | 1.6s
+iter 373 | games 16 (W/L/D 5/11/0) | decisions 1953 | samples 1179 | pi_loss -0.0072 | v_loss 0.2549 | ent 0.566 | clip 0.04 | 1.6s
+iter 374 | games 16 (W/L/D 0/16/0) | decisions 1880 | samples 1140 | pi_loss -0.0037 | v_loss 0.0530 | ent 0.558 | clip 0.03 | 1.7s
+iter 375 | games 16 (W/L/D 4/12/0) | decisions 1827 | samples 1115 | pi_loss -0.0020 | v_loss 0.2249 | ent 0.588 | clip 0.04 | 1.5s
+iter 376 | games 16 (W/L/D 6/10/0) | decisions 1883 | samples 1174 | pi_loss -0.0035 | v_loss 0.2489 | ent 0.579 | clip 0.04 | 1.5s
+iter 377 | games 16 (W/L/D 1/15/0) | decisions 1961 | samples 1197 | pi_loss -0.0032 | v_loss 0.1743 | ent 0.624 | clip 0.02 | 1.6s
+iter 378 | games 16 (W/L/D 4/12/0) | decisions 2036 | samples 1137 | pi_loss -0.0202 | v_loss 0.2431 | ent 0.612 | clip 0.04 | 1.6s
+iter 379 | games 16 (W/L/D 3/13/0) | decisions 1835 | samples 1079 | pi_loss 0.0033 | v_loss 0.2668 | ent 0.638 | clip 0.05 | 1.6s
+iter 380 | games 16 (W/L/D 5/11/0) | decisions 1795 | samples 1069 | pi_loss -0.0281 | v_loss 0.2653 | ent 0.604 | clip 0.06 | 1.5s
+iter 380 | eval vs random: 85.0% (20 games)
+iter 381 | games 16 (W/L/D 5/11/0) | decisions 1901 | samples 1118 | pi_loss -0.0061 | v_loss 0.2520 | ent 0.600 | clip 0.06 | 1.6s
+iter 382 | games 16 (W/L/D 5/11/0) | decisions 1863 | samples 1145 | pi_loss 0.0079 | v_loss 0.2866 | ent 0.634 | clip 0.06 | 1.5s
+iter 383 | games 16 (W/L/D 3/13/0) | decisions 2108 | samples 1286 | pi_loss -0.0543 | v_loss 0.1790 | ent 0.614 | clip 0.06 | 1.8s
+iter 384 | games 16 (W/L/D 6/10/0) | decisions 2026 | samples 1225 | pi_loss -0.0022 | v_loss 0.2514 | ent 0.591 | clip 0.05 | 1.7s
+iter 385 | games 16 (W/L/D 4/12/0) | decisions 1815 | samples 1073 | pi_loss -0.0010 | v_loss 0.2258 | ent 0.584 | clip 0.04 | 1.5s
+iter 386 | games 16 (W/L/D 7/9/0) | decisions 2198 | samples 1300 | pi_loss 0.0009 | v_loss 0.2447 | ent 0.600 | clip 0.04 | 1.8s
+iter 387 | games 16 (W/L/D 6/10/0) | decisions 2007 | samples 1262 | pi_loss -0.0072 | v_loss 0.2656 | ent 0.573 | clip 0.04 | 1.6s
+iter 388 | games 16 (W/L/D 5/11/0) | decisions 2059 | samples 1271 | pi_loss -0.0045 | v_loss 0.2017 | ent 0.609 | clip 0.05 | 1.7s
+iter 389 | games 16 (W/L/D 5/11/0) | decisions 1755 | samples 1029 | pi_loss 0.0265 | v_loss 0.2986 | ent 0.601 | clip 0.04 | 1.5s
+iter 390 | games 16 (W/L/D 6/10/0) | decisions 1820 | samples 1094 | pi_loss 0.0094 | v_loss 0.2574 | ent 0.567 | clip 0.04 | 1.5s
+iter 390 | eval vs random: 95.0% (20 games)
+iter 391 | games 16 (W/L/D 6/10/0) | decisions 2005 | samples 1180 | pi_loss -0.0152 | v_loss 0.3005 | ent 0.627 | clip 0.05 | 1.7s
+iter 392 | games 16 (W/L/D 5/11/0) | decisions 2128 | samples 1276 | pi_loss -0.0049 | v_loss 0.1995 | ent 0.556 | clip 0.04 | 1.8s
+iter 393 | games 16 (W/L/D 5/11/0) | decisions 2034 | samples 1234 | pi_loss -0.0053 | v_loss 0.2089 | ent 0.612 | clip 0.05 | 1.7s
+iter 394 | games 16 (W/L/D 4/12/0) | decisions 1991 | samples 1204 | pi_loss 0.0018 | v_loss 0.2057 | ent 0.579 | clip 0.06 | 1.6s
+iter 395 | games 16 (W/L/D 6/10/0) | decisions 1820 | samples 1055 | pi_loss -0.0110 | v_loss 0.2563 | ent 0.614 | clip 0.05 | 1.5s
+iter 396 | games 16 (W/L/D 7/9/0) | decisions 2081 | samples 1249 | pi_loss -0.0084 | v_loss 0.2049 | ent 0.576 | clip 0.05 | 1.7s
+iter 397 | games 16 (W/L/D 5/11/0) | decisions 2113 | samples 1296 | pi_loss -0.0259 | v_loss 0.2549 | ent 0.659 | clip 0.06 | 1.7s
+iter 398 | games 16 (W/L/D 4/12/0) | decisions 2038 | samples 1255 | pi_loss -0.0082 | v_loss 0.2159 | ent 0.611 | clip 0.07 | 1.6s
+iter 399 | games 16 (W/L/D 3/13/0) | decisions 1875 | samples 1036 | pi_loss 0.0087 | v_loss 0.1842 | ent 0.610 | clip 0.07 | 1.5s
+iter 400 | games 16 (W/L/D 3/13/0) | decisions 2040 | samples 1176 | pi_loss -0.0045 | v_loss 0.1932 | ent 0.632 | clip 0.07 | 1.6s
+iter 400 | eval vs random: 95.0% (20 games)
+iter 401 | games 16 (W/L/D 3/13/0) | decisions 2162 | samples 1343 | pi_loss 0.0028 | v_loss 0.1838 | ent 0.624 | clip 0.06 | 1.7s
+iter 402 | games 16 (W/L/D 5/11/0) | decisions 1907 | samples 1058 | pi_loss -0.0166 | v_loss 0.2504 | ent 0.567 | clip 0.03 | 1.6s
+iter 403 | games 16 (W/L/D 5/11/0) | decisions 1868 | samples 1039 | pi_loss 0.0154 | v_loss 0.2797 | ent 0.606 | clip 0.04 | 1.5s
+iter 404 | games 16 (W/L/D 4/12/0) | decisions 1804 | samples 1004 | pi_loss -0.0060 | v_loss 0.2294 | ent 0.601 | clip 0.04 | 1.4s
+iter 405 | games 16 (W/L/D 6/10/0) | decisions 1865 | samples 1114 | pi_loss -0.0112 | v_loss 0.2950 | ent 0.620 | clip 0.03 | 1.5s
+iter 406 | games 16 (W/L/D 7/9/0) | decisions 2042 | samples 1213 | pi_loss -0.0009 | v_loss 0.2589 | ent 0.644 | clip 0.05 | 1.6s
+iter 407 | games 16 (W/L/D 4/12/0) | decisions 2130 | samples 1202 | pi_loss -0.0037 | v_loss 0.1665 | ent 0.585 | clip 0.02 | 1.7s
+iter 408 | games 16 (W/L/D 3/13/0) | decisions 2113 | samples 1290 | pi_loss -0.0570 | v_loss 0.1716 | ent 0.593 | clip 0.06 | 1.7s
+iter 409 | games 16 (W/L/D 1/15/0) | decisions 1918 | samples 1080 | pi_loss -0.0003 | v_loss 0.1843 | ent 0.555 | clip 0.05 | 1.5s
+iter 410 | games 16 (W/L/D 4/12/0) | decisions 1765 | samples 1058 | pi_loss -0.0044 | v_loss 0.2196 | ent 0.628 | clip 0.04 | 1.4s
 iter 410 | eval vs random: 95.0% (20 games)
-iter 411 | games 16 (W/L/D 8/8/0) | decisions 2830 | samples 2205 | pi_loss -0.0092 | v_loss 0.0993 | ent 0.680 | clip 0.09 | 2.8s
-iter 412 | games 16 (W/L/D 6/10/0) | decisions 2898 | samples 2269 | pi_loss -0.0087 | v_loss 0.1447 | ent 0.701 | clip 0.06 | 2.6s
-iter 413 | games 16 (W/L/D 7/9/0) | decisions 2753 | samples 1681 | pi_loss -0.0036 | v_loss 0.1533 | ent 0.707 | clip 0.09 | 2.3s
-iter 414 | games 16 (W/L/D 10/6/0) | decisions 2962 | samples 2087 | pi_loss -0.0082 | v_loss 0.1345 | ent 0.710 | clip 0.07 | 2.6s
-iter 415 | games 16 (W/L/D 10/6/0) | decisions 2621 | samples 2264 | pi_loss -0.0124 | v_loss 0.1100 | ent 0.676 | clip 0.09 | 2.3s
-iter 416 | games 16 (W/L/D 11/5/0) | decisions 2832 | samples 2178 | pi_loss -0.0101 | v_loss 0.1061 | ent 0.679 | clip 0.06 | 2.5s
-iter 417 | games 16 (W/L/D 8/8/0) | decisions 3015 | samples 2178 | pi_loss -0.0104 | v_loss 0.0972 | ent 0.697 | clip 0.07 | 2.7s
-iter 418 | games 16 (W/L/D 8/8/0) | decisions 3011 | samples 2347 | pi_loss -0.0058 | v_loss 0.1338 | ent 0.706 | clip 0.09 | 3.0s
-iter 419 | games 16 (W/L/D 10/6/0) | decisions 2808 | samples 1970 | pi_loss -0.0090 | v_loss 0.1055 | ent 0.661 | clip 0.06 | 2.5s
-iter 420 | games 16 (W/L/D 8/8/0) | decisions 3010 | samples 2475 | pi_loss -0.0077 | v_loss 0.0996 | ent 0.693 | clip 0.07 | 2.7s
+iter 411 | games 16 (W/L/D 8/8/0) | decisions 2038 | samples 1206 | pi_loss -0.0050 | v_loss 0.3543 | ent 0.609 | clip 0.03 | 1.7s
+iter 412 | games 16 (W/L/D 4/12/0) | decisions 1863 | samples 1134 | pi_loss -0.0110 | v_loss 0.2114 | ent 0.644 | clip 0.03 | 1.6s
+iter 413 | games 16 (W/L/D 3/13/0) | decisions 2025 | samples 1190 | pi_loss -0.0030 | v_loss 0.1874 | ent 0.655 | clip 0.04 | 1.6s
+iter 414 | games 16 (W/L/D 5/11/0) | decisions 1985 | samples 1151 | pi_loss -0.0089 | v_loss 0.2343 | ent 0.582 | clip 0.05 | 1.6s
+iter 415 | games 16 (W/L/D 2/14/0) | decisions 1972 | samples 1154 | pi_loss -0.0154 | v_loss 0.1427 | ent 0.613 | clip 0.04 | 1.6s
+iter 416 | games 16 (W/L/D 5/11/0) | decisions 1980 | samples 1078 | pi_loss 0.0019 | v_loss 0.2479 | ent 0.561 | clip 0.04 | 1.6s
+iter 417 | games 16 (W/L/D 4/12/0) | decisions 2054 | samples 1263 | pi_loss -0.0040 | v_loss 0.2020 | ent 0.622 | clip 0.04 | 1.7s
+iter 418 | games 16 (W/L/D 5/11/0) | decisions 2022 | samples 1193 | pi_loss -0.0048 | v_loss 0.2363 | ent 0.595 | clip 0.04 | 1.6s
+iter 419 | games 16 (W/L/D 3/13/0) | decisions 1806 | samples 1096 | pi_loss 0.0204 | v_loss 0.2282 | ent 0.608 | clip 0.03 | 1.5s
+iter 420 | games 16 (W/L/D 3/13/0) | decisions 1749 | samples 994 | pi_loss -0.0058 | v_loss 0.1977 | ent 0.640 | clip 0.04 | 1.3s
 iter 420 | eval vs random: 95.0% (20 games)
-iter 421 | games 16 (W/L/D 10/6/0) | decisions 3121 | samples 2295 | pi_loss -0.0076 | v_loss 0.1095 | ent 0.685 | clip 0.07 | 2.7s
-iter 422 | games 16 (W/L/D 8/8/0) | decisions 3041 | samples 2379 | pi_loss -0.0082 | v_loss 0.1342 | ent 0.664 | clip 0.09 | 2.7s
-iter 423 | games 16 (W/L/D 9/7/0) | decisions 2186 | samples 1800 | pi_loss -0.0070 | v_loss 0.1295 | ent 0.662 | clip 0.09 | 1.9s
-iter 424 | games 16 (W/L/D 9/7/0) | decisions 2729 | samples 2091 | pi_loss -0.0075 | v_loss 0.1249 | ent 0.738 | clip 0.07 | 2.6s
+iter 421 | games 16 (W/L/D 2/14/0) | decisions 1968 | samples 1178 | pi_loss -0.0100 | v_loss 0.1437 | ent 0.586 | clip 0.05 | 1.7s
+iter 422 | games 16 (W/L/D 2/14/0) | decisions 1842 | samples 1046 | pi_loss -0.0298 | v_loss 0.1720 | ent 0.592 | clip 0.04 | 1.4s
+iter 423 | games 16 (W/L/D 5/11/0) | decisions 1883 | samples 1145 | pi_loss -0.0023 | v_loss 0.2773 | ent 0.624 | clip 0.04 | 1.5s
+iter 424 | games 16 (W/L/D 5/11/0) | decisions 1910 | samples 1166 | pi_loss -0.0068 | v_loss 0.2990 | ent 0.646 | clip 0.05 | 1.5s
+iter 425 | games 16 (W/L/D 4/12/0) | decisions 2085 | samples 1207 | pi_loss -0.0063 | v_loss 0.2391 | ent 0.603 | clip 0.05 | 1.7s
+iter 426 | games 16 (W/L/D 11/5/0) | decisions 2073 | samples 1243 | pi_loss 0.0008 | v_loss 0.3755 | ent 0.654 | clip 0.05 | 1.7s
+iter 427 | games 16 (W/L/D 5/11/0) | decisions 2134 | samples 1265 | pi_loss -0.0074 | v_loss 0.2170 | ent 0.633 | clip 0.04 | 1.7s
+iter 428 | games 16 (W/L/D 9/7/0) | decisions 2168 | samples 1274 | pi_loss -0.0026 | v_loss 0.3068 | ent 0.618 | clip 0.03 | 1.8s
+iter 429 | games 16 (W/L/D 0/16/0) | decisions 1841 | samples 1096 | pi_loss 0.0109 | v_loss 0.2340 | ent 0.590 | clip 0.04 | 1.5s
+iter 430 | games 16 (W/L/D 4/12/0) | decisions 1891 | samples 1098 | pi_loss 0.0020 | v_loss 0.2689 | ent 0.639 | clip 0.06 | 1.5s
+iter 430 | eval vs random: 95.0% (20 games)
+iter 431 | games 16 (W/L/D 2/14/0) | decisions 1791 | samples 1007 | pi_loss -0.0057 | v_loss 0.2038 | ent 0.571 | clip 0.03 | 1.6s
+iter 432 | games 16 (W/L/D 5/11/0) | decisions 2186 | samples 1350 | pi_loss -0.0044 | v_loss 0.2518 | ent 0.629 | clip 0.05 | 1.8s
+iter 433 | games 16 (W/L/D 3/13/0) | decisions 1837 | samples 1043 | pi_loss 0.0048 | v_loss 0.2067 | ent 0.579 | clip 0.04 | 1.5s
+iter 434 | games 16 (W/L/D 3/13/0) | decisions 1966 | samples 1169 | pi_loss -0.0052 | v_loss 0.1792 | ent 0.593 | clip 0.05 | 1.6s
+iter 435 | games 16 (W/L/D 5/11/0) | decisions 1901 | samples 1134 | pi_loss -0.0051 | v_loss 0.2456 | ent 0.589 | clip 0.06 | 1.6s
+iter 436 | games 16 (W/L/D 3/13/0) | decisions 1788 | samples 1069 | pi_loss -0.0068 | v_loss 0.1972 | ent 0.564 | clip 0.06 | 1.4s
+iter 437 | games 16 (W/L/D 5/11/0) | decisions 2276 | samples 1333 | pi_loss 0.0037 | v_loss 0.1967 | ent 0.591 | clip 0.05 | 1.9s
+iter 438 | games 16 (W/L/D 5/11/0) | decisions 1876 | samples 1047 | pi_loss -0.0316 | v_loss 0.2823 | ent 0.614 | clip 0.05 | 1.6s
+iter 439 | games 16 (W/L/D 2/14/0) | decisions 1793 | samples 1019 | pi_loss -0.0044 | v_loss 0.2294 | ent 0.590 | clip 0.02 | 1.5s
+iter 440 | games 16 (W/L/D 3/13/0) | decisions 2106 | samples 1241 | pi_loss -0.0030 | v_loss 0.2165 | ent 0.571 | clip 0.07 | 1.7s
+iter 440 | eval vs random: 80.0% (20 games)
+iter 441 | games 16 (W/L/D 2/14/0) | decisions 2033 | samples 1176 | pi_loss -0.0068 | v_loss 0.1752 | ent 0.633 | clip 0.04 | 1.6s
+iter 442 | games 16 (W/L/D 5/11/0) | decisions 2005 | samples 1204 | pi_loss -0.0065 | v_loss 0.2084 | ent 0.618 | clip 0.05 | 1.8s
+iter 443 | games 16 (W/L/D 6/10/0) | decisions 1821 | samples 1023 | pi_loss -0.0042 | v_loss 0.2953 | ent 0.590 | clip 0.02 | 1.5s
+iter 444 | games 16 (W/L/D 5/11/0) | decisions 1770 | samples 1067 | pi_loss -0.0132 | v_loss 0.2648 | ent 0.628 | clip 0.06 | 1.5s
+iter 445 | games 16 (W/L/D 6/10/0) | decisions 1778 | samples 1087 | pi_loss -0.0099 | v_loss 0.2669 | ent 0.631 | clip 0.04 | 1.5s
+iter 446 | games 16 (W/L/D 4/12/0) | decisions 2147 | samples 1278 | pi_loss -0.0059 | v_loss 0.2546 | ent 0.628 | clip 0.06 | 1.8s
+iter 447 | games 16 (W/L/D 4/12/0) | decisions 1772 | samples 1080 | pi_loss -0.0298 | v_loss 0.2175 | ent 0.591 | clip 0.03 | 1.5s
+iter 448 | games 16 (W/L/D 3/13/0) | decisions 1986 | samples 1238 | pi_loss -0.0051 | v_loss 0.2761 | ent 0.611 | clip 0.05 | 1.7s
+iter 449 | games 16 (W/L/D 3/13/0) | decisions 1787 | samples 1006 | pi_loss -0.0088 | v_loss 0.2360 | ent 0.573 | clip 0.04 | 1.4s
+iter 450 | games 16 (W/L/D 2/14/0) | decisions 1919 | samples 1083 | pi_loss 0.0126 | v_loss 0.1948 | ent 0.708 | clip 0.06 | 1.5s
+iter 450 | eval vs random: 95.0% (20 games)
+iter 451 | games 16 (W/L/D 5/11/0) | decisions 1833 | samples 1025 | pi_loss 0.0054 | v_loss 0.2274 | ent 0.648 | clip 0.10 | 1.4s
+iter 452 | games 16 (W/L/D 3/13/0) | decisions 1907 | samples 1092 | pi_loss -0.0028 | v_loss 0.2374 | ent 0.592 | clip 0.04 | 1.5s
+iter 453 | games 16 (W/L/D 3/13/0) | decisions 1820 | samples 1103 | pi_loss -0.0029 | v_loss 0.2159 | ent 0.618 | clip 0.05 | 1.5s
+iter 454 | games 16 (W/L/D 6/10/0) | decisions 1880 | samples 1080 | pi_loss 0.0019 | v_loss 0.2253 | ent 0.627 | clip 0.07 | 1.5s
+iter 455 | games 16 (W/L/D 3/13/0) | decisions 1929 | samples 1135 | pi_loss 0.0048 | v_loss 0.1774 | ent 0.599 | clip 0.06 | 1.5s
+iter 456 | games 16 (W/L/D 4/12/0) | decisions 1885 | samples 1100 | pi_loss -0.0072 | v_loss 0.2364 | ent 0.626 | clip 0.06 | 1.5s
+iter 457 | games 16 (W/L/D 5/11/0) | decisions 1897 | samples 1194 | pi_loss -0.0001 | v_loss 0.2159 | ent 0.589 | clip 0.04 | 1.6s
+iter 458 | games 16 (W/L/D 4/12/0) | decisions 1965 | samples 1107 | pi_loss -0.0147 | v_loss 0.2294 | ent 0.636 | clip 0.04 | 1.6s
+iter 459 | games 16 (W/L/D 3/13/0) | decisions 2151 | samples 1258 | pi_loss -0.0044 | v_loss 0.1806 | ent 0.598 | clip 0.06 | 1.7s
+iter 460 | games 16 (W/L/D 4/12/0) | decisions 1825 | samples 1081 | pi_loss -0.0027 | v_loss 0.2266 | ent 0.627 | clip 0.04 | 1.4s
+iter 460 | eval vs random: 95.0% (20 games)
+iter 461 | games 16 (W/L/D 5/11/0) | decisions 1871 | samples 1064 | pi_loss -0.0003 | v_loss 0.2632 | ent 0.640 | clip 0.02 | 1.5s
+iter 462 | games 16 (W/L/D 4/12/0) | decisions 1948 | samples 1116 | pi_loss 0.0007 | v_loss 0.2308 | ent 0.644 | clip 0.06 | 1.6s
+iter 463 | games 16 (W/L/D 2/14/0) | decisions 2103 | samples 1217 | pi_loss -0.0050 | v_loss 0.1493 | ent 0.581 | clip 0.04 | 1.7s
+iter 464 | games 16 (W/L/D 3/13/0) | decisions 1734 | samples 1049 | pi_loss 0.0413 | v_loss 0.1600 | ent 0.585 | clip 0.03 | 1.4s
+iter 465 | games 16 (W/L/D 5/11/0) | decisions 1811 | samples 1091 | pi_loss -0.0105 | v_loss 0.2522 | ent 0.592 | clip 0.04 | 1.5s
+iter 466 | games 16 (W/L/D 2/14/0) | decisions 2078 | samples 1211 | pi_loss -0.0063 | v_loss 0.1671 | ent 0.615 | clip 0.05 | 1.6s
+iter 467 | games 16 (W/L/D 2/14/0) | decisions 1766 | samples 1015 | pi_loss -0.0066 | v_loss 0.1841 | ent 0.649 | clip 0.04 | 1.4s
+iter 468 | games 16 (W/L/D 4/12/0) | decisions 1637 | samples 980 | pi_loss -0.0021 | v_loss 0.2681 | ent 0.630 | clip 0.03 | 1.3s
+iter 469 | games 16 (W/L/D 6/10/0) | decisions 1731 | samples 996 | pi_loss -0.0045 | v_loss 0.2913 | ent 0.555 | clip 0.03 | 1.4s
+iter 470 | games 16 (W/L/D 7/9/0) | decisions 1869 | samples 1027 | pi_loss 0.0680 | v_loss 0.2602 | ent 0.670 | clip 0.03 | 1.4s
+iter 470 | eval vs random: 85.0% (20 games)
+iter 471 | games 16 (W/L/D 4/12/0) | decisions 2003 | samples 1167 | pi_loss -0.0064 | v_loss 0.1996 | ent 0.576 | clip 0.04 | 1.6s
+iter 472 | games 16 (W/L/D 5/11/0) | decisions 1832 | samples 1089 | pi_loss -0.0138 | v_loss 0.2540 | ent 0.581 | clip 0.04 | 1.5s
+iter 473 | games 16 (W/L/D 5/11/0) | decisions 2007 | samples 1180 | pi_loss -0.0033 | v_loss 0.2563 | ent 0.653 | clip 0.06 | 1.6s
+iter 474 | games 16 (W/L/D 5/11/0) | decisions 1639 | samples 932 | pi_loss -0.0064 | v_loss 0.3302 | ent 0.629 | clip 0.03 | 1.3s
+iter 475 | games 16 (W/L/D 4/12/0) | decisions 1711 | samples 926 | pi_loss -0.0089 | v_loss 0.2746 | ent 0.606 | clip 0.02 | 1.4s
+iter 476 | games 16 (W/L/D 4/12/0) | decisions 1958 | samples 1147 | pi_loss -0.0125 | v_loss 0.2112 | ent 0.609 | clip 0.04 | 1.5s
+iter 477 | games 16 (W/L/D 5/11/0) | decisions 1621 | samples 937 | pi_loss -0.0057 | v_loss 0.2994 | ent 0.554 | clip 0.04 | 1.3s
+iter 478 | games 16 (W/L/D 4/12/0) | decisions 2045 | samples 1191 | pi_loss -0.0103 | v_loss 0.2266 | ent 0.612 | clip 0.05 | 1.6s
+iter 479 | games 16 (W/L/D 5/11/0) | decisions 2068 | samples 1222 | pi_loss -0.0076 | v_loss 0.2336 | ent 0.609 | clip 0.06 | 1.7s
+iter 480 | games 16 (W/L/D 5/11/0) | decisions 1868 | samples 1122 | pi_loss -0.0134 | v_loss 0.2173 | ent 0.595 | clip 0.06 | 1.7s
+iter 480 | eval vs random: 90.0% (20 games)
+iter 481 | games 16 (W/L/D 4/12/0) | decisions 2047 | samples 1119 | pi_loss -0.0246 | v_loss 0.2956 | ent 0.617 | clip 0.07 | 1.7s
+iter 482 | games 16 (W/L/D 3/13/0) | decisions 1846 | samples 1069 | pi_loss 0.0000 | v_loss 0.1976 | ent 0.534 | clip 0.04 | 1.5s
+iter 483 | games 16 (W/L/D 5/11/0) | decisions 1760 | samples 1031 | pi_loss -0.0124 | v_loss 0.3512 | ent 0.611 | clip 0.02 | 1.6s
+iter 484 | games 16 (W/L/D 7/9/0) | decisions 1948 | samples 1074 | pi_loss -0.0021 | v_loss 0.3003 | ent 0.630 | clip 0.08 | 1.8s
+iter 485 | games 16 (W/L/D 4/12/0) | decisions 1959 | samples 1161 | pi_loss -0.0041 | v_loss 0.2577 | ent 0.605 | clip 0.04 | 1.7s
+iter 486 | games 16 (W/L/D 4/12/0) | decisions 1915 | samples 1138 | pi_loss 0.0015 | v_loss 0.2272 | ent 0.632 | clip 0.04 | 1.6s
+iter 487 | games 16 (W/L/D 3/13/0) | decisions 2034 | samples 1189 | pi_loss -0.0080 | v_loss 0.2210 | ent 0.654 | clip 0.04 | 1.6s
+iter 488 | games 16 (W/L/D 2/14/0) | decisions 1811 | samples 1132 | pi_loss -0.0074 | v_loss 0.1135 | ent 0.609 | clip 0.04 | 1.5s
+iter 489 | games 16 (W/L/D 3/13/0) | decisions 2046 | samples 1204 | pi_loss 0.0014 | v_loss 0.2244 | ent 0.616 | clip 0.04 | 1.9s
+iter 490 | games 16 (W/L/D 2/14/0) | decisions 1987 | samples 1180 | pi_loss -0.0033 | v_loss 0.1612 | ent 0.600 | clip 0.04 | 2.0s
+iter 490 | eval vs random: 90.0% (20 games)
+iter 491 | games 16 (W/L/D 2/14/0) | decisions 1849 | samples 1061 | pi_loss -0.0112 | v_loss 0.2067 | ent 0.609 | clip 0.05 | 1.5s
+iter 492 | games 16 (W/L/D 5/11/0) | decisions 2100 | samples 1186 | pi_loss -0.0072 | v_loss 0.2054 | ent 0.606 | clip 0.02 | 1.8s
+iter 493 | games 16 (W/L/D 7/9/0) | decisions 2038 | samples 1203 | pi_loss -0.0085 | v_loss 0.2641 | ent 0.631 | clip 0.05 | 1.6s
+iter 494 | games 16 (W/L/D 7/9/0) | decisions 1927 | samples 1052 | pi_loss 0.0122 | v_loss 0.3594 | ent 0.675 | clip 0.05 | 1.6s
+iter 495 | games 16 (W/L/D 5/11/0) | decisions 1981 | samples 1153 | pi_loss -0.0088 | v_loss 0.2686 | ent 0.627 | clip 0.06 | 1.6s
+iter 496 | games 16 (W/L/D 9/7/0) | decisions 2116 | samples 1236 | pi_loss -0.0028 | v_loss 0.2935 | ent 0.627 | clip 0.03 | 1.8s
+iter 497 | games 16 (W/L/D 7/9/0) | decisions 2192 | samples 1205 | pi_loss -0.0036 | v_loss 0.2527 | ent 0.652 | clip 0.04 | 1.8s
+iter 498 | games 16 (W/L/D 7/9/0) | decisions 1686 | samples 914 | pi_loss -0.0096 | v_loss 0.2389 | ent 0.616 | clip 0.02 | 1.3s
+iter 499 | games 16 (W/L/D 6/10/0) | decisions 1955 | samples 1150 | pi_loss -0.0074 | v_loss 0.2993 | ent 0.699 | clip 0.07 | 1.6s
+iter 500 | games 16 (W/L/D 2/14/0) | decisions 1868 | samples 1064 | pi_loss 0.0168 | v_loss 0.2477 | ent 0.598 | clip 0.04 | 1.5s
+iter 500 | eval vs random: 100.0% (20 games)
+iter 501 | games 16 (W/L/D 5/11/0) | decisions 1746 | samples 1012 | pi_loss -0.0054 | v_loss 0.2429 | ent 0.646 | clip 0.04 | 1.4s
+iter 502 | games 16 (W/L/D 4/12/0) | decisions 1825 | samples 1063 | pi_loss 0.0004 | v_loss 0.1980 | ent 0.630 | clip 0.08 | 1.5s
+iter 503 | games 16 (W/L/D 3/13/0) | decisions 1992 | samples 1142 | pi_loss -0.0122 | v_loss 0.1848 | ent 0.610 | clip 0.05 | 1.7s
+iter 504 | games 16 (W/L/D 5/11/0) | decisions 1681 | samples 876 | pi_loss -0.0090 | v_loss 0.4295 | ent 0.600 | clip 0.06 | 1.3s
+iter 505 | games 16 (W/L/D 1/15/0) | decisions 1561 | samples 946 | pi_loss -0.0081 | v_loss 0.1771 | ent 0.648 | clip 0.04 | 1.3s
+iter 506 | games 16 (W/L/D 2/14/0) | decisions 1640 | samples 915 | pi_loss 0.0006 | v_loss 0.2099 | ent 0.605 | clip 0.05 | 1.3s
+iter 507 | games 16 (W/L/D 4/12/0) | decisions 1893 | samples 1077 | pi_loss -0.0052 | v_loss 0.2273 | ent 0.628 | clip 0.05 | 1.5s
+iter 508 | games 16 (W/L/D 4/12/0) | decisions 1743 | samples 1060 | pi_loss 0.0004 | v_loss 0.2509 | ent 0.658 | clip 0.05 | 1.4s
+iter 509 | games 16 (W/L/D 4/12/0) | decisions 1790 | samples 1062 | pi_loss 0.0069 | v_loss 0.2110 | ent 0.612 | clip 0.06 | 1.5s
+iter 510 | games 16 (W/L/D 3/13/0) | decisions 1904 | samples 1165 | pi_loss 0.0025 | v_loss 0.2573 | ent 0.581 | clip 0.04 | 1.5s
+iter 510 | eval vs random: 95.0% (20 games)
+iter 511 | games 16 (W/L/D 7/9/0) | decisions 1711 | samples 989 | pi_loss -0.0046 | v_loss 0.3045 | ent 0.577 | clip 0.03 | 1.4s
+iter 512 | games 16 (W/L/D 5/11/0) | decisions 1639 | samples 927 | pi_loss -0.0047 | v_loss 0.2973 | ent 0.635 | clip 0.05 | 1.4s
+iter 513 | games 16 (W/L/D 4/12/0) | decisions 1770 | samples 1015 | pi_loss -0.0046 | v_loss 0.2266 | ent 0.646 | clip 0.04 | 1.5s
+iter 514 | games 16 (W/L/D 4/12/0) | decisions 1911 | samples 1153 | pi_loss -0.0065 | v_loss 0.2367 | ent 0.647 | clip 0.04 | 1.5s
+iter 515 | games 16 (W/L/D 3/13/0) | decisions 1871 | samples 1132 | pi_loss -0.0125 | v_loss 0.1938 | ent 0.642 | clip 0.07 | 1.5s
+iter 516 | games 16 (W/L/D 2/14/0) | decisions 2036 | samples 1239 | pi_loss -0.0044 | v_loss 0.1319 | ent 0.652 | clip 0.07 | 1.7s
+iter 517 | games 16 (W/L/D 4/12/0) | decisions 1759 | samples 970 | pi_loss -0.0059 | v_loss 0.2755 | ent 0.628 | clip 0.06 | 1.4s
+iter 518 | games 16 (W/L/D 2/14/0) | decisions 1686 | samples 968 | pi_loss -0.0058 | v_loss 0.2122 | ent 0.602 | clip 0.04 | 1.3s
+iter 519 | games 16 (W/L/D 5/11/0) | decisions 1868 | samples 1003 | pi_loss -0.0084 | v_loss 0.2837 | ent 0.600 | clip 0.03 | 1.5s
+iter 520 | games 16 (W/L/D 4/12/0) | decisions 2137 | samples 1195 | pi_loss -0.0054 | v_loss 0.2099 | ent 0.626 | clip 0.05 | 1.7s
+iter 520 | eval vs random: 95.0% (20 games)
+iter 521 | games 16 (W/L/D 6/10/0) | decisions 1883 | samples 1106 | pi_loss -0.0080 | v_loss 0.2556 | ent 0.650 | clip 0.05 | 1.5s
+iter 522 | games 16 (W/L/D 4/12/0) | decisions 1893 | samples 1101 | pi_loss 0.0016 | v_loss 0.2492 | ent 0.662 | clip 0.05 | 1.6s
+iter 523 | games 16 (W/L/D 4/12/0) | decisions 2107 | samples 1234 | pi_loss -0.0033 | v_loss 0.1872 | ent 0.674 | clip 0.05 | 1.8s
+iter 524 | games 16 (W/L/D 4/12/0) | decisions 1994 | samples 1120 | pi_loss -0.0183 | v_loss 0.2352 | ent 0.632 | clip 0.04 | 1.7s
+iter 525 | games 16 (W/L/D 4/12/0) | decisions 1841 | samples 1029 | pi_loss 0.0177 | v_loss 0.1902 | ent 0.604 | clip 0.04 | 1.5s
+iter 526 | games 16 (W/L/D 5/11/0) | decisions 1910 | samples 1103 | pi_loss -0.0010 | v_loss 0.2133 | ent 0.608 | clip 0.04 | 1.6s
+iter 527 | games 16 (W/L/D 2/14/0) | decisions 1895 | samples 1076 | pi_loss 0.0013 | v_loss 0.1921 | ent 0.624 | clip 0.04 | 1.9s
+iter 528 | games 16 (W/L/D 4/12/0) | decisions 1908 | samples 1097 | pi_loss -0.0245 | v_loss 0.2285 | ent 0.645 | clip 0.06 | 1.9s
+iter 529 | games 16 (W/L/D 3/13/0) | decisions 1899 | samples 1136 | pi_loss -0.0045 | v_loss 0.2474 | ent 0.631 | clip 0.06 | 1.7s
+iter 530 | games 16 (W/L/D 5/11/0) | decisions 1927 | samples 1116 | pi_loss -0.0036 | v_loss 0.2145 | ent 0.654 | clip 0.07 | 1.6s
+iter 530 | eval vs random: 95.0% (20 games)
+iter 531 | games 16 (W/L/D 5/11/0) | decisions 2038 | samples 1173 | pi_loss 0.0018 | v_loss 0.1924 | ent 0.590 | clip 0.06 | 1.7s
+iter 532 | games 16 (W/L/D 3/13/0) | decisions 1822 | samples 1062 | pi_loss 0.0166 | v_loss 0.2636 | ent 0.636 | clip 0.06 | 1.6s
+iter 533 | games 16 (W/L/D 3/13/0) | decisions 1977 | samples 1191 | pi_loss -0.0071 | v_loss 0.2392 | ent 0.688 | clip 0.05 | 1.8s
+iter 534 | games 16 (W/L/D 3/13/0) | decisions 1718 | samples 1049 | pi_loss 0.0089 | v_loss 0.2017 | ent 0.577 | clip 0.05 | 1.4s
+iter 535 | games 16 (W/L/D 4/12/0) | decisions 1862 | samples 1053 | pi_loss 0.0078 | v_loss 0.2474 | ent 0.628 | clip 0.05 | 1.5s
+iter 536 | games 16 (W/L/D 3/13/0) | decisions 1849 | samples 1016 | pi_loss -0.0051 | v_loss 0.2208 | ent 0.570 | clip 0.03 | 1.4s
+iter 537 | games 16 (W/L/D 3/13/0) | decisions 2020 | samples 1145 | pi_loss -0.0047 | v_loss 0.2362 | ent 0.611 | clip 0.06 | 1.6s
+iter 538 | games 16 (W/L/D 4/12/0) | decisions 2261 | samples 1292 | pi_loss -0.0075 | v_loss 0.2095 | ent 0.594 | clip 0.08 | 1.7s
+iter 539 | games 16 (W/L/D 5/11/0) | decisions 1802 | samples 1076 | pi_loss 0.0108 | v_loss 0.3070 | ent 0.545 | clip 0.03 | 1.4s
+iter 540 | games 16 (W/L/D 4/12/0) | decisions 1968 | samples 1136 | pi_loss -0.0039 | v_loss 0.1962 | ent 0.634 | clip 0.05 | 1.5s
+iter 540 | eval vs random: 100.0% (20 games)
+iter 541 | games 16 (W/L/D 3/13/0) | decisions 2086 | samples 1259 | pi_loss -0.0055 | v_loss 0.1428 | ent 0.625 | clip 0.07 | 2.0s
+iter 542 | games 16 (W/L/D 2/14/0) | decisions 1828 | samples 1047 | pi_loss 0.0076 | v_loss 0.3274 | ent 0.586 | clip 0.04 | 1.8s
+iter 543 | games 16 (W/L/D 3/13/0) | decisions 1728 | samples 1006 | pi_loss -0.0061 | v_loss 0.2352 | ent 0.609 | clip 0.04 | 1.6s
+iter 544 | games 16 (W/L/D 5/11/0) | decisions 1767 | samples 1004 | pi_loss -0.0010 | v_loss 0.2816 | ent 0.582 | clip 0.02 | 1.4s
+iter 545 | games 16 (W/L/D 5/11/0) | decisions 2066 | samples 1207 | pi_loss -0.0056 | v_loss 0.1779 | ent 0.616 | clip 0.06 | 1.8s
+iter 546 | games 16 (W/L/D 4/12/0) | decisions 1868 | samples 1076 | pi_loss -0.0107 | v_loss 0.2161 | ent 0.588 | clip 0.04 | 1.5s
+iter 547 | games 16 (W/L/D 4/12/0) | decisions 2102 | samples 1276 | pi_loss -0.0088 | v_loss 0.1608 | ent 0.643 | clip 0.06 | 1.7s
+iter 548 | games 16 (W/L/D 5/11/0) | decisions 2085 | samples 1184 | pi_loss -0.0116 | v_loss 0.1950 | ent 0.582 | clip 0.06 | 1.7s
+iter 549 | games 16 (W/L/D 7/9/0) | decisions 1909 | samples 1151 | pi_loss -0.0046 | v_loss 0.2291 | ent 0.577 | clip 0.06 | 1.7s
+iter 550 | games 16 (W/L/D 4/12/0) | decisions 2341 | samples 1368 | pi_loss -0.0021 | v_loss 0.1672 | ent 0.622 | clip 0.07 | 2.1s
+iter 550 | eval vs random: 100.0% (20 games)
+iter 551 | games 16 (W/L/D 5/11/0) | decisions 2110 | samples 1237 | pi_loss -0.0059 | v_loss 0.2469 | ent 0.632 | clip 0.05 | 1.7s
+iter 552 | games 16 (W/L/D 6/10/0) | decisions 1846 | samples 996 | pi_loss -0.0070 | v_loss 0.3159 | ent 0.605 | clip 0.03 | 1.5s
+iter 553 | games 16 (W/L/D 4/12/0) | decisions 2109 | samples 1247 | pi_loss -0.0046 | v_loss 0.2540 | ent 0.571 | clip 0.04 | 1.7s
+iter 554 | games 16 (W/L/D 5/11/0) | decisions 1999 | samples 1167 | pi_loss -0.0057 | v_loss 0.2318 | ent 0.589 | clip 0.07 | 1.8s
+iter 555 | games 16 (W/L/D 5/11/0) | decisions 2129 | samples 1201 | pi_loss -0.0051 | v_loss 0.2087 | ent 0.586 | clip 0.05 | 1.9s
+iter 556 | games 16 (W/L/D 6/10/0) | decisions 1921 | samples 1138 | pi_loss -0.0046 | v_loss 0.2690 | ent 0.557 | clip 0.03 | 1.7s
+iter 557 | games 16 (W/L/D 2/14/0) | decisions 2020 | samples 1164 | pi_loss -0.0109 | v_loss 0.1275 | ent 0.641 | clip 0.04 | 1.8s
+iter 558 | games 16 (W/L/D 4/12/0) | decisions 1906 | samples 1117 | pi_loss 0.0082 | v_loss 0.2448 | ent 0.588 | clip 0.06 | 1.6s
+iter 559 | games 16 (W/L/D 4/12/0) | decisions 2017 | samples 1222 | pi_loss -0.0072 | v_loss 0.2235 | ent 0.576 | clip 0.04 | 1.7s
+iter 560 | games 16 (W/L/D 4/12/0) | decisions 1950 | samples 1133 | pi_loss 0.0043 | v_loss 0.3028 | ent 0.589 | clip 0.04 | 1.6s
+iter 560 | eval vs random: 90.0% (20 games)
+iter 561 | games 16 (W/L/D 3/13/0) | decisions 2077 | samples 1255 | pi_loss -0.0056 | v_loss 0.1828 | ent 0.596 | clip 0.04 | 1.7s
+iter 562 | games 16 (W/L/D 2/14/0) | decisions 2213 | samples 1340 | pi_loss -0.0118 | v_loss 0.1594 | ent 0.608 | clip 0.04 | 1.8s
+iter 563 | games 16 (W/L/D 1/15/0) | decisions 1975 | samples 1181 | pi_loss -0.0045 | v_loss 0.0909 | ent 0.574 | clip 0.03 | 1.6s
+iter 564 | games 16 (W/L/D 6/10/0) | decisions 1801 | samples 1085 | pi_loss -0.0061 | v_loss 0.2491 | ent 0.595 | clip 0.03 | 1.4s
+iter 565 | games 16 (W/L/D 3/13/0) | decisions 2001 | samples 1211 | pi_loss -0.0062 | v_loss 0.1834 | ent 0.579 | clip 0.05 | 1.6s
+iter 566 | games 16 (W/L/D 5/11/0) | decisions 1768 | samples 1051 | pi_loss -0.0329 | v_loss 0.3004 | ent 0.591 | clip 0.06 | 1.4s
+iter 567 | games 16 (W/L/D 5/11/0) | decisions 1937 | samples 1178 | pi_loss -0.0052 | v_loss 0.2553 | ent 0.629 | clip 0.05 | 1.6s
+iter 568 | games 16 (W/L/D 5/11/0) | decisions 1972 | samples 1072 | pi_loss -0.0234 | v_loss 0.2545 | ent 0.550 | clip 0.04 | 1.5s
+iter 569 | games 16 (W/L/D 3/13/0) | decisions 1836 | samples 1105 | pi_loss -0.0093 | v_loss 0.2091 | ent 0.568 | clip 0.07 | 1.5s
+iter 570 | games 16 (W/L/D 6/10/0) | decisions 1874 | samples 1014 | pi_loss -0.0010 | v_loss 0.4186 | ent 0.517 | clip 0.04 | 1.5s
+iter 570 | eval vs random: 95.0% (20 games)
+iter 571 | games 16 (W/L/D 4/12/0) | decisions 1699 | samples 946 | pi_loss -0.0060 | v_loss 0.3524 | ent 0.598 | clip 0.04 | 1.4s
+iter 572 | games 16 (W/L/D 2/14/0) | decisions 2041 | samples 1251 | pi_loss -0.0055 | v_loss 0.1611 | ent 0.570 | clip 0.04 | 1.7s
+iter 573 | games 16 (W/L/D 3/13/0) | decisions 1889 | samples 1142 | pi_loss -0.0073 | v_loss 0.1488 | ent 0.604 | clip 0.05 | 1.5s
+iter 574 | games 16 (W/L/D 1/15/0) | decisions 1898 | samples 1121 | pi_loss -0.0132 | v_loss 0.1378 | ent 0.584 | clip 0.05 | 1.5s
+iter 575 | games 16 (W/L/D 6/10/0) | decisions 1914 | samples 1104 | pi_loss -0.0044 | v_loss 0.3233 | ent 0.598 | clip 0.03 | 1.5s
+iter 576 | games 16 (W/L/D 5/11/0) | decisions 1836 | samples 1087 | pi_loss 0.0003 | v_loss 0.2393 | ent 0.609 | clip 0.05 | 1.5s
+iter 577 | games 16 (W/L/D 6/10/0) | decisions 2078 | samples 1160 | pi_loss -0.0026 | v_loss 0.3000 | ent 0.603 | clip 0.04 | 1.6s
+iter 578 | games 16 (W/L/D 3/13/0) | decisions 2138 | samples 1222 | pi_loss -0.0030 | v_loss 0.1705 | ent 0.595 | clip 0.03 | 1.7s
+iter 579 | games 16 (W/L/D 3/13/0) | decisions 2179 | samples 1250 | pi_loss -0.0078 | v_loss 0.1419 | ent 0.583 | clip 0.04 | 1.7s
+iter 580 | games 16 (W/L/D 7/9/0) | decisions 2015 | samples 1245 | pi_loss -0.0042 | v_loss 0.2894 | ent 0.569 | clip 0.04 | 1.7s
+iter 580 | eval vs random: 100.0% (20 games)
+iter 581 | games 16 (W/L/D 9/7/0) | decisions 1836 | samples 1082 | pi_loss -0.0026 | v_loss 0.2983 | ent 0.593 | clip 0.04 | 1.5s
+iter 582 | games 16 (W/L/D 5/11/0) | decisions 1850 | samples 1092 | pi_loss -0.0068 | v_loss 0.2412 | ent 0.556 | clip 0.02 | 1.5s
+iter 583 | games 16 (W/L/D 3/13/0) | decisions 1850 | samples 1067 | pi_loss -0.0062 | v_loss 0.1765 | ent 0.574 | clip 0.03 | 1.5s
+iter 584 | games 16 (W/L/D 2/14/0) | decisions 1785 | samples 964 | pi_loss -0.0034 | v_loss 0.1544 | ent 0.579 | clip 0.03 | 1.4s
+iter 585 | games 16 (W/L/D 7/9/0) | decisions 1967 | samples 1118 | pi_loss 0.0027 | v_loss 0.3650 | ent 0.606 | clip 0.05 | 1.6s
+iter 586 | games 16 (W/L/D 5/11/0) | decisions 2111 | samples 1187 | pi_loss -0.0033 | v_loss 0.2436 | ent 0.568 | clip 0.06 | 1.6s
+iter 587 | games 16 (W/L/D 3/13/0) | decisions 2051 | samples 1247 | pi_loss -0.0049 | v_loss 0.2151 | ent 0.587 | clip 0.03 | 1.7s
+iter 588 | games 16 (W/L/D 2/14/0) | decisions 1655 | samples 928 | pi_loss -0.0049 | v_loss 0.2664 | ent 0.545 | clip 0.04 | 1.3s
+iter 589 | games 16 (W/L/D 6/10/0) | decisions 1962 | samples 1122 | pi_loss -0.0025 | v_loss 0.3219 | ent 0.576 | clip 0.04 | 1.5s
+iter 590 | games 16 (W/L/D 4/12/0) | decisions 1976 | samples 1194 | pi_loss 0.0007 | v_loss 0.1981 | ent 0.566 | clip 0.05 | 1.7s
+iter 590 | eval vs random: 100.0% (20 games)
+iter 591 | games 16 (W/L/D 1/15/0) | decisions 1929 | samples 1160 | pi_loss -0.0111 | v_loss 0.1574 | ent 0.613 | clip 0.03 | 1.6s
+iter 592 | games 16 (W/L/D 4/12/0) | decisions 1779 | samples 1030 | pi_loss -0.0322 | v_loss 0.2505 | ent 0.462 | clip 0.03 | 1.4s
+iter 593 | games 16 (W/L/D 6/10/0) | decisions 1718 | samples 1046 | pi_loss -0.0314 | v_loss 0.2559 | ent 0.513 | clip 0.04 | 1.3s
+iter 594 | games 16 (W/L/D 2/14/0) | decisions 1655 | samples 984 | pi_loss -0.0068 | v_loss 0.2056 | ent 0.598 | clip 0.05 | 1.3s
+iter 595 | games 16 (W/L/D 4/12/0) | decisions 1888 | samples 1169 | pi_loss 0.0010 | v_loss 0.2352 | ent 0.571 | clip 0.04 | 1.5s
+iter 596 | games 16 (W/L/D 4/12/0) | decisions 1944 | samples 1122 | pi_loss -0.0012 | v_loss 0.2213 | ent 0.560 | clip 0.04 | 1.5s
+iter 597 | games 16 (W/L/D 4/12/0) | decisions 2001 | samples 1183 | pi_loss 0.0035 | v_loss 0.1931 | ent 0.534 | clip 0.05 | 1.6s
+iter 598 | games 16 (W/L/D 2/14/0) | decisions 1818 | samples 1028 | pi_loss 0.0316 | v_loss 0.1766 | ent 0.544 | clip 0.04 | 1.4s
+iter 599 | games 16 (W/L/D 7/9/0) | decisions 1787 | samples 1040 | pi_loss -0.0059 | v_loss 0.3295 | ent 0.528 | clip 0.05 | 1.4s
+iter 600 | games 16 (W/L/D 2/14/0) | decisions 2077 | samples 1137 | pi_loss -0.0160 | v_loss 0.1546 | ent 0.587 | clip 0.03 | 1.6s
+iter 600 | eval vs random: 100.0% (20 games)
+iter 601 | games 16 (W/L/D 7/9/0) | decisions 1998 | samples 1136 | pi_loss 0.0062 | v_loss 0.2957 | ent 0.557 | clip 0.03 | 1.6s
+iter 602 | games 16 (W/L/D 4/12/0) | decisions 1831 | samples 1017 | pi_loss -0.0040 | v_loss 0.2493 | ent 0.562 | clip 0.04 | 1.4s
+iter 603 | games 16 (W/L/D 5/11/0) | decisions 1927 | samples 1153 | pi_loss -0.0059 | v_loss 0.2141 | ent 0.561 | clip 0.04 | 1.6s
+iter 604 | games 16 (W/L/D 6/10/0) | decisions 1878 | samples 1104 | pi_loss 0.0089 | v_loss 0.2983 | ent 0.586 | clip 0.04 | 1.5s
+iter 605 | games 16 (W/L/D 8/8/0) | decisions 2051 | samples 1238 | pi_loss -0.0027 | v_loss 0.2359 | ent 0.564 | clip 0.05 | 1.7s
+iter 606 | games 16 (W/L/D 8/8/0) | decisions 1705 | samples 949 | pi_loss -0.0064 | v_loss 0.3418 | ent 0.498 | clip 0.03 | 1.3s
+iter 607 | games 16 (W/L/D 4/12/0) | decisions 2007 | samples 1161 | pi_loss -0.0015 | v_loss 0.2204 | ent 0.569 | clip 0.04 | 1.6s
+iter 608 | games 16 (W/L/D 4/12/0) | decisions 2101 | samples 1230 | pi_loss -0.0030 | v_loss 0.1956 | ent 0.578 | clip 0.07 | 1.7s
+iter 609 | games 16 (W/L/D 2/14/0) | decisions 2067 | samples 1234 | pi_loss -0.0075 | v_loss 0.1765 | ent 0.551 | clip 0.05 | 1.7s
+iter 610 | games 16 (W/L/D 2/14/0) | decisions 1816 | samples 1001 | pi_loss -0.0065 | v_loss 0.1925 | ent 0.554 | clip 0.04 | 1.6s
+iter 610 | eval vs random: 95.0% (20 games)
+iter 611 | games 16 (W/L/D 5/11/0) | decisions 1748 | samples 988 | pi_loss -0.0088 | v_loss 0.2597 | ent 0.527 | clip 0.05 | 1.4s
+iter 612 | games 16 (W/L/D 3/13/0) | decisions 2128 | samples 1298 | pi_loss -0.0243 | v_loss 0.1459 | ent 0.604 | clip 0.06 | 1.7s
+iter 613 | games 16 (W/L/D 2/14/0) | decisions 1732 | samples 985 | pi_loss -0.0035 | v_loss 0.1824 | ent 0.611 | clip 0.05 | 1.3s
+iter 614 | games 16 (W/L/D 5/11/0) | decisions 2285 | samples 1343 | pi_loss -0.0029 | v_loss 0.2648 | ent 0.552 | clip 0.04 | 1.8s
+iter 615 | games 16 (W/L/D 3/13/0) | decisions 1708 | samples 966 | pi_loss -0.0007 | v_loss 0.2104 | ent 0.502 | clip 0.04 | 1.4s
+iter 616 | games 16 (W/L/D 4/12/0) | decisions 2035 | samples 1194 | pi_loss -0.0041 | v_loss 0.1749 | ent 0.591 | clip 0.05 | 1.6s
+iter 617 | games 16 (W/L/D 4/12/0) | decisions 1989 | samples 1113 | pi_loss -0.0058 | v_loss 0.2600 | ent 0.563 | clip 0.05 | 1.7s
+iter 618 | games 16 (W/L/D 5/11/0) | decisions 2002 | samples 1153 | pi_loss -0.0074 | v_loss 0.3038 | ent 0.604 | clip 0.06 | 1.7s
+iter 619 | games 16 (W/L/D 3/13/0) | decisions 1764 | samples 1075 | pi_loss -0.0127 | v_loss 0.1519 | ent 0.579 | clip 0.05 | 1.5s
+iter 620 | games 16 (W/L/D 4/12/0) | decisions 2013 | samples 1129 | pi_loss -0.0030 | v_loss 0.2056 | ent 0.552 | clip 0.04 | 1.6s
+iter 620 | eval vs random: 95.0% (20 games)
+iter 621 | games 16 (W/L/D 6/10/0) | decisions 2189 | samples 1224 | pi_loss -0.0072 | v_loss 0.3175 | ent 0.583 | clip 0.04 | 1.7s
+iter 622 | games 16 (W/L/D 3/13/0) | decisions 1578 | samples 891 | pi_loss -0.0158 | v_loss 0.2053 | ent 0.589 | clip 0.04 | 1.2s
+iter 623 | games 16 (W/L/D 5/11/0) | decisions 1982 | samples 1221 | pi_loss -0.0024 | v_loss 0.1959 | ent 0.615 | clip 0.02 | 1.6s
+iter 624 | games 16 (W/L/D 4/12/0) | decisions 1895 | samples 1120 | pi_loss -0.0101 | v_loss 0.2004 | ent 0.582 | clip 0.03 | 1.5s
+iter 625 | games 16 (W/L/D 5/11/0) | decisions 1553 | samples 908 | pi_loss 0.0002 | v_loss 0.2864 | ent 0.539 | clip 0.04 | 1.3s
+iter 626 | games 16 (W/L/D 5/11/0) | decisions 1979 | samples 1111 | pi_loss 0.0021 | v_loss 0.2292 | ent 0.529 | clip 0.05 | 1.5s
+iter 627 | games 16 (W/L/D 5/11/0) | decisions 2006 | samples 1124 | pi_loss -0.0049 | v_loss 0.2080 | ent 0.578 | clip 0.07 | 1.7s
+iter 628 | games 16 (W/L/D 4/12/0) | decisions 2015 | samples 1201 | pi_loss -0.0082 | v_loss 0.2107 | ent 0.621 | clip 0.05 | 1.6s
+iter 629 | games 16 (W/L/D 9/7/0) | decisions 2111 | samples 1241 | pi_loss -0.0031 | v_loss 0.3575 | ent 0.583 | clip 0.04 | 1.7s
+iter 630 | games 16 (W/L/D 5/11/0) | decisions 1913 | samples 1126 | pi_loss -0.0068 | v_loss 0.2631 | ent 0.608 | clip 0.05 | 1.6s
+iter 630 | eval vs random: 95.0% (20 games)
+iter 631 | games 16 (W/L/D 4/12/0) | decisions 1893 | samples 1067 | pi_loss -0.0037 | v_loss 0.2366 | ent 0.534 | clip 0.04 | 1.6s
+iter 632 | games 16 (W/L/D 7/9/0) | decisions 1951 | samples 1071 | pi_loss 0.0091 | v_loss 0.2912 | ent 0.553 | clip 0.04 | 1.5s
+iter 633 | games 16 (W/L/D 2/14/0) | decisions 1756 | samples 1037 | pi_loss -0.0424 | v_loss 0.1763 | ent 0.562 | clip 0.04 | 1.4s
+iter 634 | games 16 (W/L/D 4/12/0) | decisions 1814 | samples 1106 | pi_loss -0.0038 | v_loss 0.2099 | ent 0.545 | clip 0.04 | 1.6s
+iter 635 | games 16 (W/L/D 4/12/0) | decisions 1896 | samples 1079 | pi_loss -0.0163 | v_loss 0.2098 | ent 0.573 | clip 0.06 | 1.6s
+iter 636 | games 16 (W/L/D 4/12/0) | decisions 2074 | samples 1237 | pi_loss -0.0033 | v_loss 0.2454 | ent 0.565 | clip 0.04 | 1.7s
+iter 637 | games 16 (W/L/D 4/12/0) | decisions 2031 | samples 1202 | pi_loss -0.0048 | v_loss 0.1825 | ent 0.558 | clip 0.03 | 1.6s
+iter 638 | games 16 (W/L/D 5/11/0) | decisions 2057 | samples 1231 | pi_loss -0.0040 | v_loss 0.2032 | ent 0.582 | clip 0.04 | 1.7s
+iter 639 | games 16 (W/L/D 6/10/0) | decisions 1923 | samples 1100 | pi_loss -0.0163 | v_loss 0.2540 | ent 0.588 | clip 0.04 | 1.7s
+iter 640 | games 16 (W/L/D 1/15/0) | decisions 1950 | samples 1113 | pi_loss -0.0093 | v_loss 0.1557 | ent 0.529 | clip 0.05 | 1.8s
+iter 640 | eval vs random: 90.0% (20 games)
+iter 641 | games 16 (W/L/D 5/11/0) | decisions 1877 | samples 1082 | pi_loss 0.0020 | v_loss 0.3068 | ent 0.518 | clip 0.02 | 1.7s
+iter 642 | games 16 (W/L/D 5/11/0) | decisions 1918 | samples 1119 | pi_loss -0.0044 | v_loss 0.2955 | ent 0.550 | clip 0.04 | 1.5s
+iter 643 | games 16 (W/L/D 6/10/0) | decisions 1686 | samples 991 | pi_loss -0.0001 | v_loss 0.3773 | ent 0.587 | clip 0.04 | 1.4s
+iter 644 | games 16 (W/L/D 3/13/0) | decisions 1817 | samples 1037 | pi_loss 0.0155 | v_loss 0.2396 | ent 0.583 | clip 0.03 | 1.4s
+iter 645 | games 16 (W/L/D 5/11/0) | decisions 2043 | samples 1188 | pi_loss -0.0038 | v_loss 0.2257 | ent 0.594 | clip 0.04 | 1.6s
+iter 646 | games 16 (W/L/D 9/7/0) | decisions 2218 | samples 1287 | pi_loss -0.0611 | v_loss 0.2797 | ent 0.587 | clip 0.04 | 1.8s
+iter 647 | games 16 (W/L/D 5/11/0) | decisions 2043 | samples 1268 | pi_loss -0.0054 | v_loss 0.2361 | ent 0.563 | clip 0.03 | 1.9s
+iter 648 | games 16 (W/L/D 3/13/0) | decisions 1767 | samples 1021 | pi_loss -0.0047 | v_loss 0.2685 | ent 0.587 | clip 0.03 | 1.4s
+iter 649 | games 16 (W/L/D 3/13/0) | decisions 1877 | samples 1084 | pi_loss 0.0119 | v_loss 0.1860 | ent 0.608 | clip 0.06 | 1.6s
+iter 650 | games 16 (W/L/D 4/12/0) | decisions 2093 | samples 1168 | pi_loss -0.0031 | v_loss 0.2781 | ent 0.541 | clip 0.03 | 1.7s
+iter 650 | eval vs random: 100.0% (20 games)
+iter 651 | games 16 (W/L/D 5/11/0) | decisions 2032 | samples 1198 | pi_loss -0.0082 | v_loss 0.2552 | ent 0.595 | clip 0.04 | 1.7s
+iter 652 | games 16 (W/L/D 3/13/0) | decisions 2105 | samples 1265 | pi_loss -0.0067 | v_loss 0.1811 | ent 0.589 | clip 0.06 | 1.8s
+iter 653 | games 16 (W/L/D 4/12/0) | decisions 1701 | samples 1006 | pi_loss -0.0071 | v_loss 0.2240 | ent 0.571 | clip 0.03 | 1.5s
+iter 654 | games 16 (W/L/D 8/8/0) | decisions 1882 | samples 1100 | pi_loss -0.0152 | v_loss 0.3157 | ent 0.588 | clip 0.06 | 1.5s
+iter 655 | games 16 (W/L/D 5/11/0) | decisions 1985 | samples 1206 | pi_loss -0.0111 | v_loss 0.2115 | ent 0.594 | clip 0.05 | 1.6s
+iter 656 | games 16 (W/L/D 3/13/0) | decisions 1632 | samples 948 | pi_loss -0.0055 | v_loss 0.2016 | ent 0.576 | clip 0.03 | 1.3s
+iter 657 | games 16 (W/L/D 4/12/0) | decisions 1926 | samples 1124 | pi_loss -0.0099 | v_loss 0.2743 | ent 0.590 | clip 0.05 | 1.5s
+iter 658 | games 16 (W/L/D 5/11/0) | decisions 1739 | samples 971 | pi_loss -0.0069 | v_loss 0.3777 | ent 0.561 | clip 0.04 | 1.4s
+iter 659 | games 16 (W/L/D 3/13/0) | decisions 2182 | samples 1236 | pi_loss -0.0085 | v_loss 0.2698 | ent 0.616 | clip 0.07 | 1.7s
+iter 660 | games 16 (W/L/D 5/11/0) | decisions 1959 | samples 1129 | pi_loss -0.0020 | v_loss 0.2638 | ent 0.565 | clip 0.04 | 1.5s
+iter 660 | eval vs random: 95.0% (20 games)
+iter 661 | games 16 (W/L/D 1/15/0) | decisions 1773 | samples 1033 | pi_loss 0.0165 | v_loss 0.1243 | ent 0.568 | clip 0.03 | 1.5s
+iter 662 | games 16 (W/L/D 3/13/0) | decisions 1796 | samples 1033 | pi_loss -0.0203 | v_loss 0.2057 | ent 0.582 | clip 0.07 | 1.5s
+iter 663 | games 16 (W/L/D 1/15/0) | decisions 2095 | samples 1179 | pi_loss -0.0057 | v_loss 0.1327 | ent 0.525 | clip 0.05 | 1.6s
+iter 664 | games 16 (W/L/D 5/11/0) | decisions 2124 | samples 1268 | pi_loss -0.0021 | v_loss 0.3121 | ent 0.598 | clip 0.04 | 1.7s
+iter 665 | games 16 (W/L/D 2/14/0) | decisions 1954 | samples 1097 | pi_loss 0.0033 | v_loss 0.1352 | ent 0.532 | clip 0.03 | 1.5s
+iter 666 | games 16 (W/L/D 5/11/0) | decisions 1810 | samples 1010 | pi_loss -0.0079 | v_loss 0.2096 | ent 0.617 | clip 0.04 | 1.4s
+iter 667 | games 16 (W/L/D 7/9/0) | decisions 2107 | samples 1229 | pi_loss -0.0031 | v_loss 0.3284 | ent 0.601 | clip 0.04 | 1.7s

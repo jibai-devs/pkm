@@ -20,7 +20,7 @@ from pkm.agents.profile import AgentProfile
 from pkm.data import Deck
 
 from .model import PolicyValueNet
-from .ppo import ppo_update
+from .ppo import compute_returns, ppo_update
 from .reward_terms import DEFAULT_WEIGHTS, load_weights, write_default_weights_file
 from .rollout import (
     RandomPolicy,
@@ -48,6 +48,79 @@ def evaluate_vs_random(
     return wins / games
 
 
+def evaluate_vs_agent(
+    model: PolicyValueNet,
+    deck: list[int],
+    opponent_deck: list[int],
+    opponent_checkpoint: str,
+    games: int = 20,
+) -> float:
+    """Win rate of the greedy policy vs. another trained agent's greedy
+    policy, each playing its own deck, alternating sides. Reloads the
+    opponent checkpoint fresh every call, so this stays current if that
+    agent is itself still training.
+    """
+    opponent_model = PolicyValueNet()
+    opponent_model.load_state_dict(
+        torch.load(opponent_checkpoint, map_location="cpu", weights_only=True)
+    )
+    opponent_model.eval()
+    policy = TorchPolicy(model, greedy=True)
+    opp_policy = TorchPolicy(opponent_model, greedy=True)
+    wins = 0.0
+    for g in range(games):
+        side = g % 2
+        policies = (policy, opp_policy) if side == 0 else (opp_policy, policy)
+        decks = (deck, opponent_deck) if side == 0 else (opponent_deck, deck)
+        result = play_game(policies, decks, collect=(False, False))
+        r = result.rewards[side]
+        wins += 1.0 if r > 0 else 0.5 if r == 0 else 0.0
+    return wins / games
+
+
+def play_vs_fixed_opponent(
+    model: PolicyValueNet,
+    deck: list[int],
+    opponent_model: PolicyValueNet,
+    opponent_deck: list[int],
+    games: int,
+    gamma: float,
+    lam: float,
+    weights: dict[str, float],
+    win_reward: float = 1.0,
+) -> tuple[list, int, int, int, int]:
+    """Generate one iteration's training data entirely from games against a
+    frozen opponent -- no self-play. The opponent plays its own deck
+    greedily and is never trained on; only the trainee's trajectory is
+    collected. Alternates sides each game. Returns (data, wins, losses,
+    draws, total_decisions) in the same shape the self-play path produces,
+    so the rest of the training loop doesn't need to know which mode ran.
+    """
+    trainee = TorchPolicy(model)
+    opponent = TorchPolicy(opponent_model, greedy=True)
+    data: list = []
+    w = losses = d = 0
+    total_decisions = 0
+    for g in range(games):
+        side = g % 2
+        policies = (trainee, opponent) if side == 0 else (opponent, trainee)
+        decks = (deck, opponent_deck) if side == 0 else (opponent_deck, deck)
+        result = play_game(
+            policies, decks, collect=(True, False) if side == 0 else (False, True)
+        )
+        total_decisions += result.decisions
+        traj = result.trajectories[side]
+        r = result.rewards[side]
+        compute_returns(
+            traj, r, gamma=gamma, lam=lam, weights=weights, win_reward=win_reward
+        )
+        data.extend(traj)
+        w += 1 if r > 0 else 0
+        losses += 1 if r < 0 else 0
+        d += 1 if r == 0 else 0
+    return data, w, losses, d, total_decisions
+
+
 CSV_FIELDS = [
     "iter",
     "games",
@@ -63,6 +136,7 @@ CSV_FIELDS = [
     "time_s",
     "eval_win_rate",
     "eval_games",
+    "eval_vs_agent_win_rate",
 ]
 
 
@@ -84,6 +158,13 @@ def train(
     init_checkpoint: str | None = None,
     seed: int = 0,
     workers: int = 1,
+    eval_vs_agent_name: str | None = None,
+    eval_vs_agent_deck: list[int] | None = None,
+    eval_vs_agent_checkpoint: str | None = None,
+    vs_agent_name: str | None = None,
+    vs_agent_deck: list[int] | None = None,
+    vs_agent_checkpoint: str | None = None,
+    win_reward: float = 1.0,
 ) -> PolicyValueNet:
     random.seed(seed)
     torch.manual_seed(seed)
@@ -97,6 +178,11 @@ def train(
             torch.load(init_checkpoint, map_location="cpu", weights_only=True)
         )
         print(f"resumed from {init_checkpoint}", flush=True)
+    if vs_agent_deck is not None:
+        print(
+            f"training vs fixed opponent '{vs_agent_name}' only -- no self-play",
+            flush=True,
+        )
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     ckpt_dir = Path(checkpoint_dir)
     ckpt_dir.mkdir(exist_ok=True)
@@ -114,7 +200,7 @@ def train(
     opponent_model = PolicyValueNet()
 
     executor = None
-    if workers > 1:
+    if workers > 1 and vs_agent_deck is None:
         from .parallel_rollout import collect_parallel, make_pool
 
         executor = make_pool(workers)
@@ -128,30 +214,56 @@ def train(
             w = losses = d = 0
             total_decisions = 0
 
-            specs = make_game_specs(games_per_iter, pool, pool_prob, rng)
-            if executor is not None:
-                results = collect_parallel(
-                    executor, workers, model.state_dict(), deck, specs
+            if vs_agent_deck is not None and vs_agent_checkpoint:
+                opponent_model.load_state_dict(
+                    torch.load(
+                        vs_agent_checkpoint, map_location="cpu", weights_only=True
+                    )
+                )
+                opponent_model.eval()
+                data, w, losses, d, total_decisions = play_vs_fixed_opponent(
+                    model,
+                    deck,
+                    opponent_model,
+                    vs_agent_deck,
+                    games_per_iter,
+                    gamma,
+                    lam,
+                    effective_weights,
+                    win_reward=win_reward,
                 )
             else:
-                results = [
-                    play_one(model, opponent_model, deck, spec) for spec in specs
-                ]
+                specs = make_game_specs(games_per_iter, pool, pool_prob, rng)
+                if executor is not None:
+                    results = collect_parallel(
+                        executor, workers, model.state_dict(), deck, specs
+                    )
+                else:
+                    results = [
+                        play_one(model, opponent_model, deck, spec) for spec in specs
+                    ]
 
-            for spec, result in zip(specs, results):
-                total_decisions += result.decisions
-                gw, gl, gd = aggregate_result(
-                    spec, result, data, gamma, lam, weights=effective_weights
-                )
-                w, losses, d = w + gw, losses + gl, d + gd
+                for spec, result in zip(specs, results):
+                    total_decisions += result.decisions
+                    gw, gl, gd = aggregate_result(
+                        spec,
+                        result,
+                        data,
+                        gamma,
+                        lam,
+                        weights=effective_weights,
+                        win_reward=win_reward,
+                    )
+                    w, losses, d = w + gw, losses + gl, d + gd
 
             model.train()
             stats = ppo_update(model, optimizer, data)
             model.eval()
 
-            pool.append(copy.deepcopy(model.state_dict()))
-            if len(pool) > pool_size:
-                pool.pop(0)
+            if vs_agent_deck is None:
+                pool.append(copy.deepcopy(model.state_dict()))
+                if len(pool) > pool_size:
+                    pool.pop(0)
 
             dt = time.time() - t0
             row = {
@@ -169,6 +281,7 @@ def train(
                 "time_s": f"{dt:.2f}",
                 "eval_win_rate": "",
                 "eval_games": "",
+                "eval_vs_agent_win_rate": "",
             }
             print(
                 f"iter {it:3d} | games {games_per_iter} (W/L/D {w}/{losses}/{d}) "
@@ -188,6 +301,22 @@ def train(
                 )
                 torch.save(model.state_dict(), ckpt_dir / f"ppo_iter{it:04d}.pt")
                 torch.save(model.state_dict(), ckpt_dir / "ppo_latest.pt")
+
+                if eval_vs_agent_deck is not None and eval_vs_agent_checkpoint:
+                    wr2 = evaluate_vs_agent(
+                        model,
+                        deck,
+                        eval_vs_agent_deck,
+                        eval_vs_agent_checkpoint,
+                        games=eval_games,
+                    )
+                    row["eval_vs_agent_win_rate"] = f"{wr2:.4f}"
+                    print(
+                        f"iter {it:3d} | eval vs {eval_vs_agent_name}: "
+                        f"{wr2:.1%} ({eval_games} games)",
+                        flush=True,
+                    )
+                    tb.add_scalar(f"eval/win_rate_vs_{eval_vs_agent_name}", wr2, it)
 
             csv_w.writerow(row)
             csv_f.flush()
@@ -248,6 +377,29 @@ def main(
     workers: int = typer.Option(
         1, help="parallel worker processes for self-play rollout (1 = sequential)"
     ),
+    eval_vs: str | None = typer.Option(
+        None,
+        "--eval-vs",
+        help="another agent profile name -- every --eval-every iterations, also "
+        "report (not train on) the greedy win rate against that agent's latest "
+        "checkpoint, each side playing its own deck. Reloaded fresh each time, "
+        "so it stays current if that agent is itself still training.",
+    ),
+    vs_agent: str | None = typer.Option(
+        None,
+        "--vs-agent",
+        help="another agent profile name -- train entirely against that agent's "
+        "latest checkpoint (its own deck, played greedily) instead of self-play. "
+        "Reloaded fresh every iteration, so it tracks that agent's progress if "
+        "it's training concurrently. Mutually exclusive with the self-play pool "
+        "(--pool-size/--pool-prob are ignored) and --workers > 1.",
+    ),
+    win_reward: float = typer.Option(
+        1.0,
+        "--win-reward",
+        help="scales the terminal reward for a win only (losses/draws untouched) "
+        "-- makes winning matter more relative to shaping and losing.",
+    ),
 ) -> None:
     if agent:
         profile = AgentProfile(agent)
@@ -261,6 +413,31 @@ def main(
         if weights is None:
             write_default_weights_file(profile.reward_weights_path)
             weights = str(profile.reward_weights_path)
+
+    eval_vs_agent_deck = None
+    eval_vs_agent_checkpoint = None
+    if eval_vs:
+        eval_profile = AgentProfile(eval_vs)
+        eval_vs_agent_deck = Deck.from_csv(eval_profile.deck_path).card_ids
+        eval_vs_agent_checkpoint = eval_profile.ppo_init()
+        if eval_vs_agent_checkpoint is None:
+            raise typer.BadParameter(
+                f"--eval-vs {eval_vs!r} has no checkpoints/ppo_latest.pt yet"
+            )
+
+    vs_agent_deck = None
+    vs_agent_checkpoint = None
+    if vs_agent:
+        if workers > 1:
+            raise typer.BadParameter("--vs-agent doesn't support --workers > 1 yet")
+        vs_profile = AgentProfile(vs_agent)
+        vs_agent_deck = Deck.from_csv(vs_profile.deck_path).card_ids
+        vs_agent_checkpoint = vs_profile.ppo_init()
+        if vs_agent_checkpoint is None:
+            raise typer.BadParameter(
+                f"--vs-agent {vs_agent!r} has no checkpoints/ppo_latest.pt yet"
+            )
+
     train(
         deck_path=deck,
         iterations=iterations,
@@ -275,8 +452,15 @@ def main(
         metrics_path=metrics,
         log_dir=log_dir,
         init_checkpoint=init,
+        eval_vs_agent_name=eval_vs,
+        eval_vs_agent_deck=eval_vs_agent_deck,
+        eval_vs_agent_checkpoint=eval_vs_agent_checkpoint,
+        vs_agent_name=vs_agent,
+        vs_agent_deck=vs_agent_deck,
+        vs_agent_checkpoint=vs_agent_checkpoint,
         seed=seed,
         workers=workers,
+        win_reward=win_reward,
     )
 
 

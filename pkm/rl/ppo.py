@@ -14,8 +14,14 @@ def compute_returns(
     gamma: float = 0.99,
     lam: float = 0.95,
     weights: dict[str, float] | None = None,
+    win_reward: float = 1.0,
 ) -> None:
     """Fill advantage/ret on each decision in place.
+
+    `win_reward` scales the terminal reward for a *win* only (terminal_reward
+    > 0); losses (-1.0) and draws (0.0) are untouched. Use it to make winning
+    matter more relative to shaping/losing, without also making losses more
+    punishing.
 
     `weights` maps a term name (see reward_terms.py) to its coefficient;
     a missing name means 0.0 (off). Rewards are terminal win/loss, plus two
@@ -51,7 +57,9 @@ def compute_returns(
                 rewards[t] += coef * getattr(trajectory[t], attr)
     # terminal step: shaping toward final potential is folded into the outcome
     # (the terminal state's potential is implicitly 0 -- the game is over).
-    rewards[n - 1] = terminal_reward
+    rewards[n - 1] = (
+        terminal_reward * win_reward if terminal_reward > 0 else terminal_reward
+    )
     for name, attr in POTENTIAL_TERMS:
         coef = w.get(name, 0.0)
         if coef:

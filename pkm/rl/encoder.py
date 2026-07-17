@@ -114,6 +114,7 @@ class EncodedDecision:
     dreepy_active_charge_bonus: float = 0.0
     wasted_resources_penalty: float = 0.0
     phantom_dive_bonus: float = 0.0
+    drakloak_backup_ready_bonus: float = 0.0
     advantage: float = 0.0
     ret: float = 0.0
 
@@ -851,6 +852,44 @@ def dreepy_line_active_charge_bonus(obs: Observation, picks: list[int]) -> float
         had_combo = ENERGY_TYPE_FIRE in before and ENERGY_TYPE_PSYCHIC in before
         has_combo = ENERGY_TYPE_FIRE in after and ENERGY_TYPE_PSYCHIC in after
         if has_combo and not had_combo:
+            return 1.0
+    return 0.0
+
+
+def drakloak_backup_ready_bonus(obs: Observation, picks: list[int]) -> float:
+    """+1.0 if `picks` attach energy to a *bench* Drakloak such that it ends
+    up with exactly 1 Fire and 1 Psychic energy, while the active Pokemon is
+    Dragapult ex with Phantom Dive already available this turn -- charging
+    the next attacker in the pipeline while the current one is already a
+    live threat, rather than just charging whichever Dreepy-line member
+    happens to need it (dreepy_line_bench_charge_bonus is Drakloak-agnostic
+    and doesn't care whether the active can already attack). 0.0 otherwise.
+    """
+    sel = obs.select
+    state = obs.current
+    if sel is None or state is None:
+        return 0.0
+    you = state.yourIndex
+    active = state.players[you].active_pokemon
+    if active is None or active.id != DRAGAPULT_EX_CARD_ID:
+        return 0.0
+    phantom_dive_ready = any(
+        o.type == OPT_ATTACK and o.attackId == PHANTOM_DIVE_ATTACK_ID
+        for o in sel.option
+    )
+    if not phantom_dive_ready:
+        return 0.0
+    for i in picks:
+        if i < 0 or i >= len(sel.option):
+            continue
+        resolved = _resolve_energy_attach(obs, sel.option[i])
+        if resolved is None:
+            continue
+        target, card = resolved
+        if target.id != DRAKLOAK_CARD_ID:
+            continue
+        resulting = sorted([*target.energies, card.energy_type])
+        if resulting == sorted([ENERGY_TYPE_FIRE, ENERGY_TYPE_PSYCHIC]):
             return 1.0
     return 0.0
 

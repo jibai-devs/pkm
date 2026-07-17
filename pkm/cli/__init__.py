@@ -14,11 +14,13 @@ import typer
 
 from pkm.cli.deck import app as deck_app
 from pkm.cli.cards import app as cards_app
+from pkm.cli.agent import app as agent_app
 
 app = typer.Typer(help="pkm — Pokémon TCG AI CLI")
 
 app.add_typer(deck_app, name="deck", help="Deck management")
 app.add_typer(cards_app, name="cards", help="Card data")
+app.add_typer(agent_app, name="agent", help="Agent profile management")
 
 
 # Single-command modules: register their main functions directly so
@@ -54,6 +56,25 @@ def train(
     workers: int = typer.Option(
         1, help="parallel worker processes for self-play rollout (1 = sequential)"
     ),
+    eval_vs: str | None = typer.Option(
+        None,
+        "--eval-vs",
+        help="another agent profile name -- also report (not train on) the "
+        "greedy win rate against that agent's latest checkpoint every "
+        "--eval-every iterations.",
+    ),
+    vs_agent: str | None = typer.Option(
+        None,
+        "--vs-agent",
+        help="another agent profile name -- train entirely against that agent's "
+        "latest checkpoint instead of self-play (no self-play pool). Reloaded "
+        "fresh every iteration.",
+    ),
+    win_reward: float = typer.Option(
+        1.0,
+        "--win-reward",
+        help="scales the terminal reward for a win only (losses/draws untouched).",
+    ),
 ) -> None:
     """Phase 1: PPO self-play training."""
     from pkm.rl.train import main as _train_main
@@ -75,6 +96,9 @@ def train(
         init=init,
         seed=seed,
         workers=workers,
+        eval_vs=eval_vs,
+        win_reward=win_reward,
+        vs_agent=vs_agent,
     )
 
 

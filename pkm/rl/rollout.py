@@ -17,6 +17,7 @@ from .encoder import (
     budew_active_second_potential,
     budew_first_turn_attack_bonus,
     budew_turn_bench_setup_bonus,
+    drakloak_backup_ready_bonus,
     dragapult_backup_potential,
     dragapult_ex_attack_bonus,
     dreepy_energy_spread_penalty,
@@ -85,6 +86,7 @@ class TorchPolicy:
             parsed, res.picks
         )
         d.wasted_resources_penalty = wasted_resources_attack_penalty(parsed, res.picks)
+        d.drakloak_backup_ready_bonus = drakloak_backup_ready_bonus(parsed, res.picks)
         return res.picks, d
 
 
@@ -194,6 +196,7 @@ def aggregate_result(
     gamma: float,
     lam: float,
     weights: dict[str, float] | None = None,
+    win_reward: float = 1.0,
 ) -> tuple[int, int, int]:
     """Extend `data` with this game's collected trajectories and return the
     (win, loss, draw) increment for `current` — same counting rule the
@@ -208,6 +211,7 @@ def aggregate_result(
             gamma=gamma,
             lam=lam,
             weights=weights,
+            win_reward=win_reward,
         )
         data.extend(result.trajectories[p])
         if spec.side == -1 and p == 1:

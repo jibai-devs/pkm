@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 # Train an agent until stopped, or for a fixed wall-clock duration.
-# Usage: ./train_loop.sh [agent] [games] [eval_every] [duration_seconds]
+# Usage: ./train_loop.sh [agent] [games] [eval_every] [duration_seconds] [eval_vs] [vs_agent]
 #   agent             agent profile name (default: 03_pult_munki)
 #   games             games per iteration (default: 16, matches `just train`)
 #   eval_every        iterations between evals + checkpoint saves (default: 10)
 #   duration_seconds  auto-stop after this long; 0 = run until stopped (default: 0)
+#   eval_vs           another agent profile name -- report a side-quest greedy
+#                      win rate against its latest checkpoint every eval_every
+#                      iterations (not used for training). Default: none.
+#   vs_agent          another agent profile name -- train entirely against that
+#                      agent's latest checkpoint instead of self-play. Stop that
+#                      agent's own training first (avoids racing its checkpoint
+#                      writes). Default: none (normal self-play).
+#   win_reward        scales the terminal reward for a win only (losses/draws
+#                      untouched). Default: 1.0 (no change).
 #
 # Stop it (before the duration elapses, if any) one of two ways:
 #   - running interactively in a real terminal: type "stop" + Enter
@@ -23,6 +32,9 @@ AGENT="${1:-03_pult_munki}"
 GAMES="${2:-16}"
 EVAL_EVERY="${3:-10}"
 DURATION="${4:-0}"
+EVAL_VS="${5:-}"
+VS_AGENT="${6:-}"
+WIN_REWARD="${7:-1.0}"
 LOGFILE="agents/${AGENT}/train_loop.log"
 STOPFILE="agents/${AGENT}/STOP"
 
@@ -35,6 +47,15 @@ if [ "$DURATION" -gt 0 ]; then
 fi
 
 echo "Training '${AGENT}' (games=${GAMES}, eval_every=${EVAL_EVERY})."
+if [ -n "$VS_AGENT" ]; then
+    echo "Training entirely vs '${VS_AGENT}' (no self-play)."
+fi
+if [ "$WIN_REWARD" != "1.0" ]; then
+    echo "Win reward scaled by ${WIN_REWARD}x."
+fi
+if [ -n "$EVAL_VS" ]; then
+    echo "Side-quest eval vs '${EVAL_VS}' every ${EVAL_EVERY} iterations."
+fi
 if [ "$DURATION" -gt 0 ]; then
     echo "Auto-stopping after ${DURATION}s."
 fi
@@ -44,8 +65,19 @@ else
     echo "Not an interactive shell -- stop by creating: ${STOPFILE}"
 fi
 
+EXTRA_ARGS=()
+if [ -n "$EVAL_VS" ]; then
+    EXTRA_ARGS+=(--eval-vs "$EVAL_VS")
+fi
+if [ -n "$VS_AGENT" ]; then
+    EXTRA_ARGS+=(--vs-agent "$VS_AGENT")
+fi
+if [ "$WIN_REWARD" != "1.0" ]; then
+    EXTRA_ARGS+=(--win-reward "$WIN_REWARD")
+fi
+
 uv run pkm train --agent "$AGENT" --iterations 1000000 --games "$GAMES" \
-    --eval-every "$EVAL_EVERY" >"$LOGFILE" 2>&1 &
+    --eval-every "$EVAL_EVERY" "${EXTRA_ARGS[@]}" >"$LOGFILE" 2>&1 &
 TRAIN_PID=$!
 
 cleanup() {
