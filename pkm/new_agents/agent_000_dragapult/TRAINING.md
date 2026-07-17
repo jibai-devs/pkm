@@ -293,6 +293,15 @@ with `--checkpoint path/to/ckpt.pt`.
 on the newest bundle (override with `--bundle`, `--competition`, `--message`).
 Requires the `kaggle` CLI and credentials (`~/.kaggle/kaggle.json`).
 
+**`status`** polls Kaggle for your submissions' status + score — run it after
+`submit` to see whether the agent ran (`complete` + a score) or errored:
+```bash
+pkm new_agents 000_dragapult status            # snapshot
+pkm new_agents 000_dragapult status --watch    # poll until the latest finishes
+```
+An `error` status here is how the torch-in-sandbox risk shows up; pull the
+details with `kaggle competitions logs <competition> <submission>`.
+
 > ⚠️ **Inference uses torch.** Unlike the original `pkm` agent (which exports a
 > numpy `policy.npz` for torch-free eval), this agent runs a `PolicyValueModel` at
 > inference. Torch is **not** bundled (it exceeds the size limit), so the bundle

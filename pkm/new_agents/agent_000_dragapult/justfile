@@ -48,3 +48,7 @@ pack:
 # Upload the newest packed bundle to Kaggle. e.g. `just submit message="v1"`.
 submit message="agent_000_dragapult":
     cd {{root}} && {{cli}} submit --message "{{message}}"
+
+# Poll Kaggle for submission status + score. `just status watch=--watch` to poll.
+status watch="":
+    cd {{root}} && {{cli}} status {{watch}}

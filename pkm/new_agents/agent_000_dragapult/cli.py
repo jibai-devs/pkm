@@ -790,5 +790,82 @@ def submit(
     raise typer.Exit(result.returncode)
 
 
+@app.command()
+def status(
+    competition: str = typer.Option(_COMPETITION, help="Kaggle competition slug."),
+    watch: bool = typer.Option(
+        False,
+        "--watch",
+        "-w",
+        help="Keep polling until the latest submission finishes.",
+    ),
+    interval: int = typer.Option(30, help="Seconds between polls in --watch mode."),
+    limit: int = typer.Option(10, help="Max submissions to show."),
+) -> None:
+    """Show (or poll) your Kaggle submission status + score for this competition.
+
+    Run after `submit` to see whether the agent ran or errored (e.g. a missing-torch
+    import failure shows up as an errored submission) and what it scored. Requires
+    the kaggle CLI + credentials.
+    """
+    import csv as csvlib
+    import shutil
+    import subprocess
+    import time
+
+    if shutil.which("kaggle") is None:
+        console.print(
+            "[red]`kaggle` CLI not found.[/] Install: uv add --group dev kaggle"
+        )
+        raise typer.Exit(1)
+
+    def _poll_once() -> Optional[str]:
+        r = subprocess.run(
+            ["kaggle", "competitions", "submissions", "-c", competition, "--csv"],
+            capture_output=True,
+            text=True,
+        )
+        if r.returncode != 0:
+            console.print(
+                f"[red]kaggle error:[/] {r.stderr.strip() or r.stdout.strip()}"
+            )
+            return None
+        rows = list(csvlib.DictReader(r.stdout.splitlines()))
+        if not rows:
+            console.print("[yellow]no submissions found for this competition.[/]")
+            return None
+
+        t = Table(title=f"submissions · {competition}", title_style="bold")
+        t.add_column("date", style="dim")
+        t.add_column("file / description")
+        t.add_column("status")
+        t.add_column("score", justify="right", style="bold")
+        for row in rows[:limit]:
+            st = (row.get("status") or "").lower()
+            color = (
+                "green"
+                if "complete" in st
+                else "red"
+                if ("error" in st or "fail" in st)
+                else "yellow"
+            )
+            label = st.replace("submissionstatus.", "") or "?"  # strip kaggle prefix
+            name = row.get("fileName") or row.get("description") or ""
+            score = row.get("publicScore") or "—"
+            t.add_row(row.get("date", ""), name, f"[{color}]{label}[/]", str(score))
+        console.print(t)
+        return (rows[0].get("status") or "").lower()
+
+    while True:
+        latest = _poll_once()
+        if not watch or latest is None:
+            break
+        if "complete" in latest or "error" in latest or "fail" in latest:
+            console.print("[bold]latest submission finished.[/]")
+            break
+        console.print(f"[dim]pending… re-checking in {interval}s (Ctrl-C to stop)[/]")
+        time.sleep(interval)
+
+
 if __name__ == "__main__":
     app()
