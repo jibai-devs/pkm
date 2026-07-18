@@ -134,18 +134,35 @@ Precedence (highest first):
 | Selector | Effect |
 |---|---|
 | `PKM_ENGINE_LIB=/abs/path/cg.so` | load exactly that library |
-| `PKM_ENGINE=vendored` | our compiled `engine/build/cg.so` (or `engine/result/lib/cg.so`) |
+| `PKM_ENGINE=local-nix` | our **nix** build `engine/result/lib/cg.so` |
+| `PKM_ENGINE=local` | our **cmake** build `engine/build/cg.so` |
+| `PKM_ENGINE=vendored` | deprecated alias: nix build if present, else cmake |
 | *(default)* | the Kaggle-bundled `libcg.so` |
 
 ```bash
 just play human neural                 # official engine (default)
-PKM_ENGINE=vendored just test          # whole suite against our build
+PKM_ENGINE=local-nix just test         # whole suite against our nix build
 PKM_ENGINE_LIB=/tmp/experiment/cg.so python -m pkm.engine
 ```
 
+Only the `kaggle` backend imports `kaggle_environments` (≈2.8 s + registers every
+OpenSpiel env); the `local*` backends `dlopen` their `.so` directly, so local
+training starts fast and quiet.
+
 **The default must stay `kaggle`.** The Kaggle submission sandbox has no
-`engine/` directory, so the submission path must never require the vendored
-build.
+`engine/` directory, so the submission path must never require a local build.
+
+### Lazy, late-bound loading
+
+The engine loads on **first use**, not at import (`loader.get_lib()` caches the
+handle; there is no module-level load). This means (a) the backend can be chosen
+at runtime — `loader.set_backend("local-nix")` before the first engine call, or
+the `--engine` flag on the agent CLIs — instead of being frozen the instant
+`pkm.engine` is first imported; and (b) commands that never touch the engine
+(`pkm deck list`, most of `info`) skip loading entirely. `set_backend()` raises
+if the engine is already loaded — it cannot be hot-swapped (a second
+`GameInitialize` aborts the process). `pkm.engine.lib` / `ENGINE_BACKEND` /
+`ENGINE_LIB_PATH` still work; they resolve lazily via module `__getattr__`.
 
 ### What the switch covers (and what it doesn't)
 

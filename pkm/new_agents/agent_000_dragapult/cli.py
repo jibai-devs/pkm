@@ -75,6 +75,34 @@ def _paths(data_dir: Path) -> dict[str, Path]:
     }
 
 
+# Local training defaults to the fast, direct-ctypes nix build (no
+# `kaggle_environments` import). Override per-command with `--engine`.
+_ENGINE_HELP = "Engine backend: kaggle | local | local-nix (default local-nix)."
+_DEFAULT_ENGINE = "local-nix"
+
+
+def _select_engine(engine: str) -> None:
+    """Select the engine backend and load it now, printing an obvious banner.
+
+    Call this as the first statement of a command body. Thanks to the loader's
+    lazy loading nothing has loaded the engine yet, so :func:`set_backend` wins;
+    we then force the load here so a missing local build fails fast with a build
+    hint (rather than deep inside the first rollout).
+    """
+    from pkm.engine import loader
+
+    try:
+        loader.set_backend(engine)
+        loader.get_lib()  # load now: fail fast with a build hint if missing
+    except (FileNotFoundError, ValueError, RuntimeError) as exc:
+        console.print(f"[red]engine '{engine}' unavailable:[/]\n{exc}")
+        raise typer.Exit(1) from exc
+
+    backend, path = loader.ENGINE_BACKEND, loader.ENGINE_LIB_PATH
+    note = " [dim](slow: imports kaggle_environments)[/]" if backend == "kaggle" else ""
+    console.print(f"⚙  [bold]engine:[/] [cyan]{backend}[/] → {path}{note}")
+
+
 def _build_config(
     *,
     workers: int,
@@ -245,9 +273,17 @@ def info(
         "-o",
         help="Output/artifact root directory (checkpoints + logs).",
     ),
+    engine: str = typer.Option(_DEFAULT_ENGINE, help=_ENGINE_HELP),
 ) -> None:
     """Print the default config, engine backend, and artifact paths."""
-    from pkm.engine import ENGINE_BACKEND, ENGINE_LIB_PATH
+    from pkm.engine import loader
+
+    try:
+        loader.set_backend(engine)  # report the selection; don't force a load
+    except (ValueError, RuntimeError) as exc:
+        console.print(f"[red]engine '{engine}' unavailable:[/]\n{exc}")
+        raise typer.Exit(1) from exc
+    ENGINE_BACKEND, ENGINE_LIB_PATH = loader.ENGINE_BACKEND, loader.ENGINE_LIB_PATH
 
     from pkm.new_agents.agent_000_dragapult.config import Config
 
@@ -281,8 +317,10 @@ def smoke(
     workers: int = typer.Option(
         1, help="Rollout workers (1 = verified single-process path)."
     ),
+    engine: str = typer.Option(_DEFAULT_ENGINE, help=_ENGINE_HELP),
 ) -> None:
     """Tiny end-to-end sanity run: 2 updates x 2 games. Proves the pipeline works."""
+    _select_engine(engine)
     cfg = _build_config(
         workers=workers,
         lr=3e-4,
@@ -352,8 +390,10 @@ def train(
     run_name: Optional[str] = typer.Option(
         None, help="Run name (TB subdir + wandb run name)."
     ),
+    engine: str = typer.Option(_DEFAULT_ENGINE, help=_ENGINE_HELP),
 ) -> None:
     """Run PPO self-play training."""
+    _select_engine(engine)
     cfg = _build_config(
         workers=workers,
         lr=lr,
@@ -412,8 +452,10 @@ def resume(
     run_name: Optional[str] = typer.Option(
         None, help="Run name (TB subdir + wandb run name)."
     ),
+    engine: str = typer.Option(_DEFAULT_ENGINE, help=_ENGINE_HELP),
 ) -> None:
     """Resume training from checkpoints/latest.pt (config is restored from the checkpoint)."""
+    _select_engine(engine)
     from pkm.new_agents.agent_000_dragapult.train import TrainState
 
     p = _paths(data_dir)
@@ -454,8 +496,10 @@ def eval(
         "-o",
         help="Output/artifact root directory (checkpoints + logs).",
     ),
+    engine: str = typer.Option(_DEFAULT_ENGINE, help=_ENGINE_HELP),
 ) -> None:
     """Report a checkpoint's win-rate vs the random baseline (alternating seats)."""
+    _select_engine(engine)
     from pkm.new_agents.agent_000_dragapult.eval import winrate_vs_random
     from pkm.new_agents.agent_000_dragapult.train import TrainState
 
@@ -493,6 +537,7 @@ def sweep(
         "-o",
         help="Output/artifact root directory (checkpoints + logs).",
     ),
+    engine: str = typer.Option(_DEFAULT_ENGINE, help=_ENGINE_HELP),
 ) -> None:
     """Optuna hyperparameter sweep — maximize eval win-rate vs random.
 
@@ -501,6 +546,7 @@ def sweep(
     <output>/sweeps/<study>.db (resumable; view with `optuna-dashboard`). Trials
     are pruned early via reported intermediate evals (MedianPruner).
     """
+    _select_engine(engine)
     import optuna
 
     from pkm.new_agents.agent_000_dragapult.eval import winrate_vs_random
@@ -800,9 +846,7 @@ def status(
         help="Keep polling until the latest submission finishes.",
     ),
     interval: int = typer.Option(5, help="Seconds between polls in --watch mode."),
-    timeout: int = typer.Option(
-        180, help="Give up watching after this many seconds."
-    ),
+    timeout: int = typer.Option(180, help="Give up watching after this many seconds."),
     limit: int = typer.Option(10, help="Max submissions to show."),
 ) -> None:
     """Show (or poll) your Kaggle submission status + score for this competition.

@@ -1,18 +1,24 @@
 """Load the cabt game engine and expose its ctypes surface.
 
 This is the single place that decides *which* build of the engine backs the
-process. Both the official Kaggle `libcg.so` and our locally compiled
-`engine/build/cg.so` export the identical C ABI, so switching backends is just
-choosing a different shared-library path — everything above this module is
-byte-for-byte the same code.
+process. Both the official Kaggle `libcg.so` and our locally compiled builds
+export the identical C ABI, so switching backends is just choosing a different
+shared-library path — everything above this module is byte-for-byte the same code.
 
 Backend selection (highest precedence first):
-  1. ``PKM_ENGINE_LIB=/abs/path/to/cg.so``  — explicit override
-  2. ``PKM_ENGINE=vendored``                — our compiled engine (engine/)
-  3. default                                — the Kaggle-bundled engine
+  1. ``PKM_ENGINE_LIB=/abs/path/to/cg.so``  — explicit path override
+  2. ``PKM_ENGINE=<backend>``               — one of:
+       - ``kaggle``     the Kaggle-bundled engine (imports ``kaggle_environments``,
+                        which is ~2.8s + registers every OpenSpiel env — slow)
+       - ``local``      our cmake build   (``engine/build/cg.so``)
+       - ``local-nix``  our nix build     (``engine/result/lib/cg.so``)
+       - ``vendored``   deprecated alias: nix build if present, else cmake
+  3. default                                — ``kaggle``
 
 The default MUST stay "kaggle": that is the only engine available inside the
-Kaggle submission sandbox, where ``engine/`` does not exist.
+Kaggle submission sandbox, where ``engine/`` does not exist. The ``local*``
+backends load their ``.so`` directly via ctypes and never import
+``kaggle_environments`` — much faster startup for local training.
 """
 
 from __future__ import annotations
@@ -94,17 +100,35 @@ def _kaggle_lib_path() -> Path:
     return Path(sim.__file__).parent / _kaggle_libname()
 
 
-def _vendored_lib_path() -> Path:
+def _engine_dir() -> Path:
     # pkm/engine/loader.py -> repo root is parents[2]
-    engine_dir = Path(__file__).resolve().parents[2] / "engine"
-    # cmake (incremental) output first, then `nix build` result symlink.
-    for candidate in (
-        engine_dir / "build" / "cg.so",
-        engine_dir / "result" / "lib" / "cg.so",
-    ):
+    return Path(__file__).resolve().parents[2] / "engine"
+
+
+def _cmake_lib_path() -> Path:
+    """The cmake (incremental) build output — ``just engine-build``."""
+    return _engine_dir() / "build" / "cg.so"
+
+
+def _nix_lib_path() -> Path:
+    """The ``nix build`` result symlink — ``just engine-build-nix``."""
+    return _engine_dir() / "result" / "lib" / "cg.so"
+
+
+def _vendored_lib_path() -> Path:
+    """Deprecated ``vendored`` alias: nix build if present, else cmake."""
+    for candidate in (_nix_lib_path(), _cmake_lib_path()):
         if candidate.exists():
             return candidate
-    return engine_dir / "build" / "cg.so"  # report the expected path in the error
+    return _nix_lib_path()  # report the expected path in the error
+
+
+# Build hint shown when a selected local backend's .so is missing.
+_BUILD_HINTS: dict[str, str] = {
+    "local": "just engine-build",
+    "local-nix": "just engine-build-nix",
+    "vendored": "just engine-build-nix  (or: just engine-build)",
+}
 
 
 def resolve_lib_path() -> tuple[str, Path]:
@@ -113,12 +137,16 @@ def resolve_lib_path() -> tuple[str, Path]:
     if override:
         return "override", Path(override)
     backend = os.environ.get("PKM_ENGINE", "kaggle").lower()
-    if backend == "vendored":
+    if backend in ("local-nix", "nix"):
+        return "local-nix", _nix_lib_path()
+    if backend in ("local", "cmake"):
+        return "local", _cmake_lib_path()
+    if backend == "vendored":  # deprecated alias
         return "vendored", _vendored_lib_path()
     if backend == "kaggle":
         return "kaggle", _kaggle_lib_path()
     raise ValueError(
-        f"unknown PKM_ENGINE={backend!r} (expected 'kaggle' or 'vendored')"
+        f"unknown PKM_ENGINE={backend!r} (expected 'kaggle', 'local', or 'local-nix')"
     )
 
 
@@ -172,7 +200,9 @@ def _configure_argtypes(handle: ctypes.CDLL) -> None:
 
 
 def _load() -> ctypes.CDLL:
+    global _loaded_backend, _loaded_path
     backend, path = resolve_lib_path()
+    _loaded_backend, _loaded_path = backend, path
 
     if backend == "kaggle":
         # Importing the upstream module already dlopen'd libcg.so and called
@@ -184,12 +214,11 @@ def _load() -> ctypes.CDLL:
         handle = sim.lib
     else:
         if not path.exists():
-            hint = (
-                " — build it with `just engine-build`" if backend == "vendored" else ""
-            )
-            raise FileNotFoundError(
-                f"engine backend '{backend}' library not found: {path}{hint}"
-            )
+            hint = _BUILD_HINTS.get(backend)
+            msg = f"engine backend '{backend}' library not found: {path}"
+            if hint:
+                msg += f"\n  build it with:  {hint}"
+            raise FileNotFoundError(msg)
         handle = ctypes.cdll.LoadLibrary(str(path))
         handle.GameInitialize()
 
@@ -197,8 +226,68 @@ def _load() -> ctypes.CDLL:
     return handle
 
 
-ENGINE_BACKEND, ENGINE_LIB_PATH = resolve_lib_path()
-lib = _load()
+# --- lazy, late-bound loading ------------------------------------------------
+# The engine loads on *first use*, not at import. This lets the backend be chosen
+# at runtime (a CLI flag / :func:`set_backend`) instead of being frozen the moment
+# ``pkm.engine`` is first imported, and lets commands that never touch the engine
+# (``pkm deck list``, most of ``info``) skip loading entirely. Consumers should
+# call :func:`get_lib`; the ``pkm.engine.lib`` / ``ENGINE_BACKEND`` /
+# ``ENGINE_LIB_PATH`` names still resolve lazily via module ``__getattr__``.
+
+_lib: ctypes.CDLL | None = None
+_loaded_backend: str | None = None
+_loaded_path: Path | None = None
+
+_KNOWN_BACKENDS = frozenset(
+    {"kaggle", "local", "local-nix", "nix", "cmake", "vendored"}
+)
+
+
+def get_lib() -> ctypes.CDLL:
+    """Return the engine handle, loading + initializing it on first call (cached)."""
+    global _lib
+    if _lib is None:
+        _lib = _load()
+    return _lib
+
+
+def set_backend(name: str) -> None:
+    """Select the engine backend for this process. **Call before first use.**
+
+    Points the lazy loader at ``name`` (via ``PKM_ENGINE``) so :func:`get_lib`
+    picks it up. Raises if the engine is already loaded — it cannot be hot-swapped
+    (a second ``GameInitialize`` aborts the process), so the backend is fixed once
+    the first engine call has run.
+    """
+    if _lib is not None:
+        raise RuntimeError(
+            f"engine already loaded as {_loaded_backend!r}; set_backend() must run "
+            "before the first engine call"
+        )
+    if name.lower() not in _KNOWN_BACKENDS:
+        raise ValueError(
+            f"unknown engine backend {name!r} "
+            "(expected 'kaggle', 'local', or 'local-nix')"
+        )
+    os.environ["PKM_ENGINE"] = name
+
+
+def _selected_backend() -> str:
+    """The backend that *would* load now, by name, without importing anything."""
+    if os.environ.get("PKM_ENGINE_LIB"):
+        return "override"
+    backend = os.environ.get("PKM_ENGINE", "kaggle").lower()
+    return {"nix": "local-nix", "cmake": "local"}.get(backend, backend)
+
+
+def __getattr__(name: str):  # PEP 562: lazy module attributes
+    if name == "lib":
+        return get_lib()
+    if name == "ENGINE_BACKEND":
+        return _loaded_backend if _lib is not None else _selected_backend()
+    if name == "ENGINE_LIB_PATH":
+        return _loaded_path if _lib is not None else resolve_lib_path()[1]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 # --- capability detection ----------------------------------------------------
@@ -228,8 +317,10 @@ def available_backends() -> list[str]:
     out = []
     if kaggle_available():
         out.append("kaggle")
-    if vendored_built():
-        out.append("vendored")
+    if _cmake_lib_path().exists():
+        out.append("local")
+    if _nix_lib_path().exists():
+        out.append("local-nix")
     return out
 
 
@@ -237,7 +328,7 @@ def available_backends() -> list[str]:
 class EngineCapabilities:
     """A snapshot of what the currently loaded engine can do."""
 
-    backend: str  # "kaggle" | "vendored" | "override"
+    backend: str  # "kaggle" | "local" | "local-nix" | "vendored" | "override"
     lib_path: str
     kaggle_available: bool
     vendored_built: bool
@@ -258,12 +349,13 @@ def capabilities() -> EngineCapabilities:
     entry point in the public ABI (see docs/ENGINE.md). They flip automatically
     if a future patched build exports one of :data:`SEED_SYMBOLS`.
     """
-    present = tuple(s for s in CORE_SYMBOLS if _has_symbol(lib, s))
+    handle = get_lib()
+    present = tuple(s for s in CORE_SYMBOLS if _has_symbol(handle, s))
     missing = tuple(s for s in CORE_SYMBOLS if s not in present)
-    seeded = any(_has_symbol(lib, s) for s in SEED_SYMBOLS)
+    seeded = any(_has_symbol(handle, s) for s in SEED_SYMBOLS)
     return EngineCapabilities(
-        backend=ENGINE_BACKEND,
-        lib_path=str(ENGINE_LIB_PATH),
+        backend=str(_loaded_backend),
+        lib_path=str(_loaded_path),
         kaggle_available=kaggle_available(),
         vendored_built=vendored_built(),
         present_symbols=present,

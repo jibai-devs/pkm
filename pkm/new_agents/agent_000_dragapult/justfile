@@ -13,29 +13,32 @@ default:
 info:
     cd {{root}} && {{cli}} info
 
+# Training/eval recipes default to the fast local-nix engine (no kaggle_environments
+# import). Override per-recipe: `just train engine=kaggle` / `engine=local`.
+
 # Tiny end-to-end sanity run (2 updates x 2 games). Proves the pipeline works.
-smoke workers="1":
-    cd {{root}} && {{cli}} smoke --workers {{workers}}
+smoke workers="1" engine="local-nix":
+    cd {{root}} && {{cli}} smoke --workers {{workers}} --engine {{engine}}
 
 # PPO self-play training. e.g. `just train updates=200 games=16 workers=8`.
-train updates="200" games="16" workers="1":
-    cd {{root}} && {{cli}} train --updates {{updates}} --games {{games}} --workers {{workers}}
+train updates="200" games="16" workers="1" engine="local-nix":
+    cd {{root}} && {{cli}} train --updates {{updates}} --games {{games}} --workers {{workers}} --engine {{engine}}
 
 # Resume from checkpoints/latest.pt for more updates.
-resume updates="50" games="16" workers="1":
-    cd {{root}} && {{cli}} resume --updates {{updates}} --games {{games}} --workers {{workers}}
+resume updates="50" games="16" workers="1" engine="local-nix":
+    cd {{root}} && {{cli}} resume --updates {{updates}} --games {{games}} --workers {{workers}} --engine {{engine}}
 
 # Win-rate of the latest checkpoint vs the random baseline.
-eval games="100":
-    cd {{root}} && {{cli}} eval --games {{games}}
+eval games="100" engine="local-nix":
+    cd {{root}} && {{cli}} eval --games {{games}} --engine {{engine}}
 
 # Launch TensorBoard over this agent's runs/ dir.
 tensorboard port="6006":
     cd {{root}} && uv run tensorboard --logdir=pkm_data/new_agents/agent_000_dragapult/runs --port {{port}}
 
 # Optuna hyperparameter sweep. e.g. `just sweep trials=30 updates=15 games=32 workers=8`.
-sweep trials="30" updates="15" games="32" workers="8":
-    cd {{root}} && {{cli}} sweep --trials {{trials}} --updates {{updates}} --games {{games}} --workers {{workers}}
+sweep trials="30" updates="15" games="32" workers="8" engine="local-nix":
+    cd {{root}} && {{cli}} sweep --trials {{trials}} --updates {{updates}} --games {{games}} --workers {{workers}} --engine {{engine}}
 
 # Backfill TensorBoard from an existing train.csv (-> runs/csv-import/).
 import-csv:

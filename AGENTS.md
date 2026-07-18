@@ -184,11 +184,15 @@ commit `0a56d34`, Competition-Use-Only license). It compiles to `engine/build/cg
 which is ABI-identical (same 13 exported symbols) to the Kaggle-bundled `libcg.so`.
 
 `pkm/engine/loader.py` picks which build backs the process, precedence:
-`PKM_ENGINE_LIB=/abs/path` > `PKM_ENGINE=vendored` > default `kaggle`. **Default must
+`PKM_ENGINE_LIB=/abs/path` > `PKM_ENGINE=local-nix` (nix build) / `local` (cmake) /
+`vendored` (deprecated alias: nix-then-cmake) > default `kaggle`. **Default must
 stay `kaggle`** — the submission sandbox has no `engine/`. The switch covers the
 direct engine paths (search, card data, RL/MCTS rollouts); `pkm/rl/play.py` and the
 TUI still run matches through `kaggle_environments.make()`, which always uses the
-bundled engine.
+bundled engine. The engine loads **lazily on first use** (`loader.get_lib()`), so
+the backend can be picked at runtime (`loader.set_backend(...)` / the agent CLIs'
+`--engine` flag) and non-engine commands skip the load; only `kaggle` pulls in
+`kaggle_environments`, so `local*` starts fast.
 
 ```bash
 just engine-build         # nix devshell: cmake+ninja (libc++) -> engine/build/cg.so
