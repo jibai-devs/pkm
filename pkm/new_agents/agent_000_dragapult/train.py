@@ -31,6 +31,7 @@ from pkm.new_agents.agent_000_dragapult.config import Config, build_model
 from pkm.new_agents.agent_000_dragapult.features import Features, featurize
 from pkm.new_agents.agent_000_dragapult.model import collate
 from pkm.new_agents.agent_000_dragapult.monitor import MetricSink, RunContext, notify
+from pkm.new_agents.agent_000_dragapult.shaping import assign_targets
 
 
 @dataclass
@@ -42,6 +43,7 @@ class Step:
     logprob: float
     value: float
     seat: int
+    reward: float = 0.0  # filled by the shaper (shaping.assign_targets)
     adv: float = 0.0
     ret: float = 0.0
 
@@ -51,32 +53,8 @@ class Step:
 # --------------------------------------------------------------------------- #
 
 
-def _seat_reward(result: int, seat: int) -> float:
-    if result == seat:
-        return 1.0
-    if result in (0, 1):  # a decisive result for the other seat
-        return -1.0
-    return 0.0  # draw / unknown
-
-
-def _gae(steps: list[Step], gamma: float, lam: float, result: int) -> None:
-    """Fill adv/ret per seat (each seat's decisions are its own trajectory)."""
-    for seat in (0, 1):
-        traj = [s for s in steps if s.seat == seat]
-        adv = 0.0
-        for t in reversed(range(len(traj))):
-            last = t == len(traj) - 1
-            next_v = 0.0 if last else traj[t + 1].value
-            nonterm = 0.0 if last else 1.0
-            r = _seat_reward(result, seat) if last else 0.0
-            delta = r + gamma * next_v * nonterm - traj[t].value
-            adv = delta + gamma * lam * nonterm * adv
-            traj[t].adv = adv
-            traj[t].ret = adv + traj[t].value
-
-
 def play_game(
-    model: torch.nn.Module, gamma: float, lam: float, gen: torch.Generator | None = None
+    model: torch.nn.Module, cfg: Config, gen: torch.Generator | None = None
 ) -> tuple[list[Step], int]:
     """Play one self-play game; return (recorded steps, result)."""
     steps: list[Step] = []
@@ -113,7 +91,7 @@ def play_game(
         n_iter += 1
     result = obs["current"]["result"]
     battle_finish()
-    _gae(steps, gamma, lam, result)
+    assign_targets(steps, result, cfg)
     return steps, result
 
 
@@ -127,7 +105,7 @@ def collect_rollout(
     steps: list[Step] = []
     results = []
     for _ in range(n_games):
-        s, r = play_game(model, cfg.train.gamma, cfg.train.gae_lambda, gen=gen)
+        s, r = play_game(model, cfg, gen=gen)
         steps.extend(s)
         results.append(r)
     denom = max(n_games, 1)

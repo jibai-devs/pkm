@@ -187,6 +187,8 @@ def _build_config(
     minibatch_size: int,
     seed: int,
     ckpt_every: int,
+    shaping: str = "terminal",
+    shaping_coef: float = 1.0,
 ) -> Config:
     from pkm.new_agents.agent_000_dragapult.config import Config, RunConfig, TrainConfig
 
@@ -202,6 +204,8 @@ def _build_config(
         epochs_per_update=epochs,
         minibatch_size=minibatch_size,
         seed=seed,
+        shaping=shaping,
+        shaping_coef=shaping_coef,
     )
     run = dataclasses.replace(RunConfig(), checkpoint_every_updates=ckpt_every)
     return Config(train=train, run=run)
@@ -223,6 +227,7 @@ def _config_table(cfg: Config) -> Table:
         ("epochs/update", tc.epochs_per_update),
         ("minibatch", tc.minibatch_size),
         ("seed", tc.seed),
+        ("shaping", f"{tc.shaping} (coef={tc.shaping_coef})"),
         ("ckpt_every", cfg.run.checkpoint_every_updates),
         ("config_hash", cfg.hash()),
     ]:
@@ -442,6 +447,13 @@ def train(
     epochs: int = typer.Option(4, help="PPO epochs per update."),
     minibatch_size: int = typer.Option(64, help="Minibatch size (decisions)."),
     seed: int = typer.Option(0, help="RNG seed."),
+    shaping: str = typer.Option(
+        "terminal",
+        help="Reward shaping: 'terminal' (sparse +/-1) or 'prize_potential'.",
+    ),
+    shaping_coef: float = typer.Option(
+        1.0, help="Scale on the shaping term (0.0 == terminal)."
+    ),
     eval_every: int = typer.Option(
         10, help="Evaluate vs random every N updates (0 = never)."
     ),
@@ -497,6 +509,8 @@ def train(
         epochs=epochs,
         minibatch_size=minibatch_size,
         seed=seed,
+        shaping=shaping,
+        shaping_coef=shaping_coef,
         ckpt_every=ckpt_every,
     )
     _run_training(
