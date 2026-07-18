@@ -45,15 +45,15 @@ train-fast mode="train" exp=exp updates="256" games="16" workers="8" engine="loc
 # train-fast: `train` (fresh; injects the tuned flags) or `resume` (config restored
 # from the checkpoint, so the flags must NOT be re-passed). e.g.
 # `just train-opt-00 train opt00 200 16` then `just train-opt-00 resume opt00 100 16`.
-train-opt-00 mode="train" exp=exp updates="256" games="16" workers="8" engine="can we implement the MCTS expert iteration now ?
-
-  come up with a plan to do it.
-
-  look at the code and tell me what you are going to add.
-  it should support different training methods
-  the old way should still be possible.
-  come up with better interfaces to support both expert iteration and classic PPO can you do it? any plans?local-nix" force="":
+train-opt-00 mode="train" exp=exp updates="256" games="16" workers="8" engine="local-nix" force="":
     cd {{root}} && {{cli}} {{mode}} --experiment {{exp}} --updates {{updates}} --games {{games}} --workers {{workers}} {{ if mode == "train" { "--lr 0.001476395812742625 --entropy-coef 0.009663651584975216 --clip-eps 0.14448934467726907 --epochs 5 --minibatch-size 32 --gamma 0.9644139546520633 --lam 0.917435752072244" } else { "" } }} --engine {{engine}} {{ if mode == "train" { force } else { "" } }}
+
+# MCTS expert-iteration self-play. Same mode contract as train-fast: `train`
+# (fresh; injects --method exit + MCTS knobs) or `resume` (config restored from
+# the checkpoint, so the flags must NOT be re-passed). e.g.
+# `just train-exit train exit0 100 8` then `just train-exit resume exit0 50 8`.
+train-exit mode="train" exp=exp updates="128" games="8" workers="8" engine="local-nix" force="":
+    cd {{root}} && {{cli}} {{mode}} --experiment {{exp}} --updates {{updates}} --games {{games}} --workers {{workers}} {{ if mode == "train" { "--method exit --mcts-simulations 32" } else { "" } }} --engine {{engine}} {{ if mode == "train" { force } else { "" } }}
 
 # Resume experiment `exp` from its checkpoints/latest.pt for more updates.
 resume exp=exp updates="50" games="16" workers="8" engine="local-nix":

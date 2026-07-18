@@ -190,6 +190,11 @@ def _build_config(
     ckpt_every: int,
     shaping: str = "prize_potential",
     shaping_coef: float = 1.0,
+    method: str = "ppo",
+    mcts_simulations: int = 32,
+    mcts_c_puct: float = 1.25,
+    mcts_temperature: float = 1.0,
+    determinization: str = "sample",
 ) -> Config:
     from pkm.new_agents.agent_000_dragapult.config import Config, RunConfig, TrainConfig
 
@@ -207,6 +212,11 @@ def _build_config(
         seed=seed,
         shaping=shaping,
         shaping_coef=shaping_coef,
+        method=method,
+        mcts_simulations=mcts_simulations,
+        mcts_c_puct=mcts_c_puct,
+        mcts_temperature=mcts_temperature,
+        determinization=determinization,
     )
     run = dataclasses.replace(RunConfig(), checkpoint_every_updates=ckpt_every)
     return Config(train=train, run=run)
@@ -455,6 +465,19 @@ def train(
     shaping_coef: float = typer.Option(
         1.0, help="Scale on the shaping term (0.0 == terminal)."
     ),
+    method: str = typer.Option("ppo", help="Training method: 'ppo' or 'exit'."),
+    mcts_simulations: int = typer.Option(
+        32, help="MCTS simulations per move (exit)."
+    ),
+    mcts_c_puct: float = typer.Option(
+        1.25, help="PUCT exploration constant (exit)."
+    ),
+    mcts_temperature: float = typer.Option(
+        1.0, help="Visit-count temperature (exit)."
+    ),
+    determinization: str = typer.Option(
+        "sample", help="Hidden-state determinizer (exit)."
+    ),
     eval_every: int = typer.Option(
         16, help="Evaluate vs random every N updates (0 = never)."
     ),
@@ -512,6 +535,11 @@ def train(
         seed=seed,
         shaping=shaping,
         shaping_coef=shaping_coef,
+        method=method,
+        mcts_simulations=mcts_simulations,
+        mcts_c_puct=mcts_c_puct,
+        mcts_temperature=mcts_temperature,
+        determinization=determinization,
         ckpt_every=ckpt_every,
     )
     _run_training(
