@@ -19,6 +19,7 @@ exposes a ``kind`` property that returns the enum or ``None``.
 """
 
 from enum import IntEnum
+from typing import TypeVar
 
 from pydantic import BaseModel, ConfigDict
 
@@ -192,7 +193,10 @@ N_BOARD_SLOTS = N_POKEMON_SLOTS + 1
 """Pokémon slots + stadium."""
 
 
-def _as_enum[E: IntEnum](enum_cls: type[E], value: int | None) -> E | None:
+_E = TypeVar("_E", bound=IntEnum)
+
+
+def _as_enum(enum_cls: type[_E], value: int | None) -> _E | None:
     if value is None:
         return None
     try:
