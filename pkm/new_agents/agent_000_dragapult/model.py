@@ -11,11 +11,14 @@ encoder, heads) so methods can swap/extend pieces (multi-net designs) later.
 
 **Provisional v1:**
   * The scorer uses each option's (type + raw fields) + a decision-context
-    embedding + the state summary. It does **not yet gather the board entity an
-    option references** (the per-entity embeddings from the encoder) — that
-    richer pointer is a planned upgrade. `[DECIDE]`
+    embedding + the state summary + **the encoder's contextual embedding of the
+    board entity the option references** (grounded pointer, via
+    ``option_entity_slot``; :meth:`_gather_entity`). This is what makes the
+    encoder's set attention pay off — the per-entity embeddings are now consumed.
   * Multi-select (``maxCount > 1``) is left to the sampling layer (the agent);
-    the model emits per-option logits only. `[DECIDE]`
+    the model emits per-option logits only. Sequential, in-network conditioning
+    on already-picked options (a STOP token + running pick summary) is a planned
+    upgrade. `[DECIDE]`
 """
 
 from __future__ import annotations
@@ -28,7 +31,12 @@ from pkm.new_agents.agent_000_dragapult.cabt import (
     SelectContext,
     SelectType,
 )
-from pkm.new_agents.agent_000_dragapult.encoder import StateEncoder, collate_states
+from pkm.new_agents.agent_000_dragapult.attacks import AttackEncoder
+from pkm.new_agents.agent_000_dragapult.encoder import (
+    CardEncoder,
+    StateEncoder,
+    collate_states,
+)
 from pkm.new_agents.agent_000_dragapult.features import O, Features
 
 # Masked-option fill: a FINITE large-negative sentinel, not -inf. exp(-1e9)
@@ -54,15 +62,28 @@ def collate(batch: list[Features]) -> dict[str, torch.Tensor]:
     otype = torch.zeros(bsz, lmax, dtype=torch.long)
     ofeat = torch.zeros(bsz, lmax, O, dtype=torch.float32)
     omask = torch.zeros(bsz, lmax, dtype=torch.float32)
+    # -1 = "no board entity" (also the fill for padded option slots).
+    oslot = torch.full((bsz, lmax), -1, dtype=torch.long)
+    ocard = torch.zeros(bsz, lmax, dtype=torch.long)  # raw card id (0 = none)
+    ocard_row = torch.zeros(bsz, lmax, dtype=torch.long)  # own-vocab row
+    oatk = torch.zeros(bsz, lmax, dtype=torch.long)  # attack id (0 = none)
     for i, f in enumerate(batch):
         n = f.n_options
         if n:
             otype[i, :n] = torch.from_numpy(f.option_type)
             ofeat[i, :n] = torch.from_numpy(f.option_feat)
+            oslot[i, :n] = torch.from_numpy(f.option_entity_slot)
+            ocard[i, :n] = torch.from_numpy(f.option_card_id)
+            ocard_row[i, :n] = torch.from_numpy(f.option_card_row)
+            oatk[i, :n] = torch.from_numpy(f.option_attack_id)
             omask[i, :n] = 1.0
     s.update(
         option_type=otype,
         option_feat=ofeat,
+        option_entity_slot=oslot,
+        option_card_id=ocard,
+        option_card_row=ocard_row,
+        option_attack_id=oatk,
         option_mask=omask,
         select_type=torch.tensor([f.select_type for f in batch], dtype=torch.long),
         select_context=torch.tensor(
@@ -73,17 +94,45 @@ def collate(batch: list[Features]) -> dict[str, torch.Tensor]:
 
 
 class OptionEncoder(nn.Module):
-    """Encode each presented option -> a vector."""
+    """Encode each presented option -> a vector.
 
-    def __init__(self, d_opt: int = D_OPT):
+    An option is a pointer, so its vector fuses four grounded signals:
+      * **what kind** of action it is (``type_emb``),
+      * **which card** it acts with — run through the *shared* hybrid card
+        encoder, so a card has the same identity here as on the board,
+      * **which move** it is (``attack_enc``; 0 = not an attack), and
+      * the remaining genuinely-numeric fields (counts/numbers) via ``feat_proj``.
+    """
+
+    def __init__(
+        self,
+        card_enc: CardEncoder,
+        attack_enc: AttackEncoder,
+        d_opt: int = D_OPT,
+    ):
         super().__init__()
         self.type_emb = nn.Embedding(N_OPTION_TYPES, d_opt)
         self.feat_proj = nn.Linear(O, d_opt)
+        self.card = card_enc  # SHARED with the board/state encoder
+        self.card_proj = nn.Linear(card_enc.d_card, d_opt)
+        self.attack = attack_enc
+        self.attack_proj = nn.Linear(attack_enc.d_atk, d_opt)
 
     def forward(
-        self, option_type: torch.Tensor, option_feat: torch.Tensor
+        self,
+        option_type: torch.Tensor,
+        option_feat: torch.Tensor,
+        option_card_row: torch.Tensor,
+        option_card_id: torch.Tensor,
+        option_attack_id: torch.Tensor,
     ) -> torch.Tensor:
-        return self.type_emb(option_type) + self.feat_proj(option_feat)  # [B,L,d_opt]
+        card_vec = self.card(option_card_row, option_card_id)  # [B,L,d_card]
+        return (
+            self.type_emb(option_type)
+            + self.feat_proj(option_feat)
+            + self.card_proj(card_vec)
+            + self.attack_proj(self.attack(option_attack_id))
+        )  # [B,L,d_opt]
 
 
 class PolicyValueModel(nn.Module):
@@ -100,16 +149,27 @@ class PolicyValueModel(nn.Module):
         encoder: StateEncoder | None = None,
         d_opt: int = D_OPT,
         d_ctx: int = D_CTX,
+        attack_enc: AttackEncoder | None = None,
     ):
         super().__init__()
         self.encoder = encoder or StateEncoder()
         d_state = self.encoder.d_state
-        self.option_enc = OptionEncoder(d_opt)
+        d_entity = self.encoder.d_entity
+        # The option encoder SHARES the trunk's card encoder, so a card is
+        # embedded identically whether it sits on the board or is being played.
+        self.option_enc = OptionEncoder(
+            self.encoder.card, attack_enc or AttackEncoder(), d_opt
+        )
         self.sel_type_emb = nn.Embedding(N_SELECT_TYPES, d_ctx)
         self.sel_ctx_emb = nn.Embedding(N_SELECT_CTX, d_ctx)
-        # policy scorer: per-option MLP over [option_vec, state, decision-context]
+        # Learned stand-in embedding for options that reference no board entity
+        # (YES/NO, NUMBER, deck/hand picks, …). Gathered in place of a real
+        # per-entity vector so the scorer input is always the same width.
+        self.null_entity = nn.Parameter(torch.zeros(d_entity))
+        # policy scorer: per-option MLP over
+        #   [option_vec, state, decision-context, referenced-entity]
         self.scorer = nn.Sequential(
-            nn.Linear(d_opt + d_state + 2 * d_ctx, d_opt),
+            nn.Linear(d_opt + d_state + 2 * d_ctx + d_entity, d_opt),
             nn.ReLU(),
             nn.Linear(d_opt, 1),
         )
@@ -128,10 +188,38 @@ class PolicyValueModel(nn.Module):
     def value_from_state(self, state: torch.Tensor) -> torch.Tensor:
         return self.value_head(state).squeeze(-1)  # [B]
 
-    def policy_from_state(
-        self, state: torch.Tensor, b: dict[str, torch.Tensor]
+    def _gather_entity(
+        self, ent: torch.Tensor, b: dict[str, torch.Tensor]
     ) -> torch.Tensor:
-        opt = self.option_enc(b["option_type"], b["option_feat"])  # [B,L,d_opt]
+        """Per-option referenced-entity vector ``[B,L,d_entity]``.
+
+        Each option carries ``option_entity_slot`` (the board slot it acts on,
+        or -1). We gather that entity's contextual embedding from the encoder;
+        options with no target — or that resolve to an empty slot — get the
+        learned ``null_entity``. This is what makes the encoder's attention pay
+        off: the pointer scores an option against the *entity it references*.
+        """
+        d_ent = ent.shape[-1]
+        slot = b["option_entity_slot"]  # [B,L] long, -1 = none
+        safe = slot.clamp(min=0)  # valid index for gather; masked out below
+        gathered = torch.gather(
+            ent, 1, safe.unsqueeze(-1).expand(-1, -1, d_ent)
+        )  # [B,L,d_entity]
+        occ = torch.gather(b["entity_mask"], 1, safe)  # [B,L] 1 = occupied slot
+        has = (slot >= 0) & (occ > 0)
+        null = self.null_entity.expand_as(gathered)
+        return torch.where(has.unsqueeze(-1), gathered, null)
+
+    def policy_from_state(
+        self, state: torch.Tensor, ent: torch.Tensor, b: dict[str, torch.Tensor]
+    ) -> torch.Tensor:
+        opt = self.option_enc(
+            b["option_type"],
+            b["option_feat"],
+            b["option_card_row"],
+            b["option_card_id"],
+            b["option_attack_id"],
+        )  # [B,L,d_opt]
         ctx = torch.cat(
             [
                 self.sel_type_emb(b["select_type"]),
@@ -141,12 +229,13 @@ class PolicyValueModel(nn.Module):
         )  # [B,2*d_ctx]
         bsz, lmax = opt.shape[0], opt.shape[1]
         cond = torch.cat([state, ctx], dim=-1).unsqueeze(1).expand(bsz, lmax, -1)
-        logits = self.scorer(torch.cat([opt, cond], dim=-1)).squeeze(-1)  # [B,L]
+        ent_vec = self._gather_entity(ent, b)  # [B,L,d_entity]
+        logits = self.scorer(torch.cat([opt, cond, ent_vec], dim=-1)).squeeze(-1)  # [B,L]
         return logits.masked_fill(b["option_mask"] == 0, MASK_FILL)  # mask padding
 
     def forward(self, b: dict[str, torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
-        state, _entity = self.encode(b)
-        return self.policy_from_state(state, b), self.value_from_state(state)
+        state, ent = self.encode(b)
+        return self.policy_from_state(state, ent, b), self.value_from_state(state)
 
     def value(self, b: dict[str, torch.Tensor]) -> torch.Tensor:
         """Value-only (e.g. MCTS leaf eval)."""
@@ -155,6 +244,6 @@ class PolicyValueModel(nn.Module):
     @torch.no_grad()
     def evaluate(self, b: dict[str, torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
         """MCTS node eval: (priors over legal options, value). No grad."""
-        state, _ = self.encode(b)
-        priors = torch.softmax(self.policy_from_state(state, b), dim=-1)
+        state, ent = self.encode(b)
+        priors = torch.softmax(self.policy_from_state(state, ent, b), dim=-1)
         return priors, self.value_from_state(state)

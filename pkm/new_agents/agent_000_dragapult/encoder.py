@@ -61,6 +61,7 @@ class CardEncoder(nn.Module):
 
     def __init__(self, d_card: int = D_CARD):
         super().__init__()
+        self.d_card = d_card  # exposed so the option encoder can size off the shared card space
         self.own_emb = nn.Embedding(_VOCAB, d_card)  # our 27-vocab (incl. UNK row)
         attr = torch.from_numpy(build_card_attr_table().astype(np.float32))
         self.register_buffer("attr", attr)  # [max_id+1, A] static

@@ -21,6 +21,7 @@ import json
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
+from pkm.new_agents.agent_000_dragapult.attacks import AttackEncoder
 from pkm.new_agents.agent_000_dragapult.encoder import StateEncoder
 from pkm.new_agents.agent_000_dragapult.features import FEATURE_VERSION
 from pkm.new_agents.agent_000_dragapult.model import PolicyValueModel
@@ -37,6 +38,7 @@ class ModelConfig:
     n_heads: int = 4
     d_opt: int = 64
     d_ctx: int = 16
+    d_atk: int = 32  # attack (move) embedding dim
 
 
 @dataclass(frozen=True)
@@ -121,4 +123,9 @@ def build_model(cfg: Config | ModelConfig | None = None) -> PolicyValueModel:
         d_state=mc.d_state,
         n_heads=mc.n_heads,
     )
-    return PolicyValueModel(encoder=encoder, d_opt=mc.d_opt, d_ctx=mc.d_ctx)
+    return PolicyValueModel(
+        encoder=encoder,
+        d_opt=mc.d_opt,
+        d_ctx=mc.d_ctx,
+        attack_enc=AttackEncoder(d_atk=mc.d_atk),
+    )

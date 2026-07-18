@@ -10,8 +10,16 @@ defensible ones, NOT locked decisions (see README `[DECIDE]` items):
   * board = 12 FIXED slots (own active + 5 bench, opp active + 5 bench) + mask.
   * our own hand / discard = count histogram over our 27-row vocab
     (opponent hand is hidden; opponent discard is open-vocab -> only counted).
-  * options are emitted as (type + normalized raw fields); resolving an option
-    to the board entity it references (for the pointer action head) is TODO.
+  * options are emitted as (type + normalized raw fields) PLUS three grounded
+    references, because an option in the wire JSON is a *pointer*, not a card:
+      - ``option_entity_slot``: board slot (0-11) of the Pokémon it acts *on*
+        (target), or -1. The model gathers that entity's contextual embedding.
+      - ``option_card_id`` / ``option_card_row``: the card it acts *with*,
+        resolved from ``(playerIndex, area, index)`` against state. The model
+        runs these through the shared hybrid card encoder (identity, not a
+        meaningless slot-index scalar).
+      - ``option_attack_id``: the move id for ATTACK options (encoded by the
+        attack attribute channel, :mod:`.attacks`).
 
 Normalizers come from the deterministic ``spec.json`` so they never drift.
 Bump ``FEATURE_VERSION`` on any layout change (checkpoints record it).
@@ -26,10 +34,22 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 
-from pkm.new_agents.agent_000_dragapult.cabt import Card, Observation, Option, Pokemon
+from pkm.new_agents.agent_000_dragapult.cabt import (
+    AreaType,
+    Card,
+    Observation,
+    Option,
+    OptionType,
+    Pokemon,
+    SelectData,
+    State,
+)
 from pkm.new_agents.agent_000_dragapult import deck
 
-FEATURE_VERSION = "v1"
+# v3: options now also carry resolved card id/row + attack id (embedded moves &
+# cards). v2 added ``option_entity_slot``. Any layout change -> old checkpoints
+# are incompatible and must be retrained.
+FEATURE_VERSION = "v3"
 
 _SPEC = json.loads(Path(__file__).with_name("spec.json").read_text())
 _MAX_HP = float(_SPEC["global_max"]["max_hp"])  # 380
@@ -129,6 +149,10 @@ class Features:
     globals: npt.NDArray[np.float32]  # [G]
     option_type: npt.NDArray[np.int64]  # [L]
     option_feat: npt.NDArray[np.float32]  # [L, O]
+    option_entity_slot: npt.NDArray[np.int64]  # [L]  board slot 0-11, or -1 = none
+    option_card_id: npt.NDArray[np.int64]  # [L]  raw card id acted with (0 = none)
+    option_card_row: npt.NDArray[np.int64]  # [L]  own-vocab row (UNK if not ours)
+    option_attack_id: npt.NDArray[np.int64]  # [L]  move id for ATTACK options (0 = none)
     select_type: int
     select_context: int
     min_count: int
@@ -175,6 +199,127 @@ def _hist(cards: list[Card] | None) -> npt.NDArray[np.float32]:
     return h
 
 
+def _slot_of(
+    you: int, player_index: int | None, area: AreaType | None, index: int | None
+) -> int:
+    """Board slot (0-11) for a (player, area, index) target, or -1 if none.
+
+    Mirrors the fixed slot layout laid down in :func:`featurize`:
+    own = 0 (active) + 1..5 (bench); opponent = 6 (active) + 7..11 (bench).
+    ``player_index`` is the engine's absolute seat; ``None`` means "us".
+    """
+    if index is None or area is None:
+        return -1
+    pi = you if player_index is None else player_index
+    base = 0 if pi == you else _BOARD_SLOTS // 2  # 0 for us, 6 for opponent
+    if area == AreaType.ACTIVE:
+        return base
+    if area == AreaType.BENCH and 0 <= index < _BENCH_MAX:
+        return base + 1 + index
+    return -1
+
+
+def _option_entity_slot(you: int, opt: Option) -> int:
+    """Which board Pokémon (slot 0-11) an option acts on; -1 if it targets none.
+
+    Field precedence follows the engine's option schema: ATTACH/EVOLVE name the
+    in-play target via ``inPlayArea``/``inPlayIndex``; ATTACK/RETREAT always act
+    on our own active; everything else that names a board Pokémon does so via
+    ``area``/``index`` (+ ``playerIndex``).
+    """
+    t = opt.type
+    if t in (OptionType.ATTACH, OptionType.EVOLVE):
+        s = _slot_of(you, you, opt.inPlayArea, opt.inPlayIndex)
+        if s >= 0:
+            return s
+    if t in (OptionType.ATTACK, OptionType.RETREAT):
+        return 0  # our own active Pokémon
+    if opt.area in (AreaType.ACTIVE, AreaType.BENCH):
+        return _slot_of(you, opt.playerIndex, opt.area, opt.index)
+    return -1
+
+
+def _card_at(
+    st: State, sel: SelectData, pi: int, area: AreaType | None, index: int | None
+) -> int:
+    """Resolve a ``(player, area, index)`` card pointer to its raw card id (0 if none)."""
+    if index is None or area is None:
+        return 0
+    try:
+        p = st.players[pi]
+        if area == AreaType.HAND:
+            c = (p.hand or [])[index]
+        elif area == AreaType.DISCARD:
+            c = p.discard[index]
+        elif area == AreaType.DECK:
+            c = (sel.deck or [])[index]
+        elif area == AreaType.ACTIVE:
+            c = p.active[index]
+        elif area == AreaType.BENCH:
+            c = p.bench[index]
+        elif area == AreaType.PRIZE:
+            c = p.prize[index]
+        elif area == AreaType.STADIUM:
+            c = st.stadium[index]
+        else:
+            return 0
+        return c.id if c else 0
+    except (IndexError, TypeError, AttributeError):
+        return 0
+
+
+def _pokemon_at(
+    st: State, pi: int, area: AreaType | None, index: int | None
+) -> Pokemon | None:
+    if area is None or index is None:
+        return None
+    try:
+        p = st.players[pi]
+        if area == AreaType.ACTIVE:
+            return p.active[index]
+        if area == AreaType.BENCH:
+            return p.bench[index]
+    except (IndexError, TypeError):
+        pass
+    return None
+
+
+def _option_card_id(st: State, sel: SelectData, you: int, opt: Option) -> int:
+    """The raw card id an option acts *with* (0 if the option references no card).
+
+    An option carries only a pointer (``area``/``index``/``playerIndex`` or a
+    sub-index like ``energyIndex``); this walks it back to the actual card in
+    state, mirroring the engine's option schema.
+    """
+    t = opt.type
+    pi = you if opt.playerIndex is None else opt.playerIndex
+    if t == OptionType.PLAY:  # played from our hand; area implicit
+        return _card_at(st, sel, you, AreaType.HAND, opt.index)
+    if t in (
+        OptionType.CARD,
+        OptionType.ABILITY,
+        OptionType.DISCARD,
+        OptionType.ATTACH,
+        OptionType.EVOLVE,
+    ):
+        return _card_at(st, sel, pi, opt.area, opt.index)
+    if t in (OptionType.ENERGY, OptionType.ENERGY_CARD):
+        p = _pokemon_at(st, pi, opt.area, opt.index)
+        ei = opt.energyIndex
+        if p and ei is not None and ei < len(p.energyCards):
+            return p.energyCards[ei].id
+        return 0
+    if t == OptionType.TOOL_CARD:
+        p = _pokemon_at(st, pi, opt.area, opt.index)
+        ti = opt.toolIndex
+        if p and ti is not None and ti < len(p.tools):
+            return p.tools[ti].id
+        return 0
+    if t == OptionType.SKILL:
+        return opt.cardId or 0
+    return 0
+
+
 def _option_row(opt: Option) -> npt.NDArray[np.float32]:
     # PROVISIONAL: this encodes the option's enum/index fields as scaled scalars.
     # Per the embedding decision, `area`/`inPlayArea` (AreaType) and the option
@@ -208,8 +353,9 @@ def featurize(obs: Observation) -> Features:
     st = obs.current
     if st is None:
         raise ValueError("featurize() needs obs.current; deck-selection phase has none")
-    me = st.players[st.yourIndex]
-    opp = st.players[1 - st.yourIndex]
+    you = st.yourIndex
+    me = st.players[you]
+    opp = st.players[1 - you]
     my_status = {
         k: getattr(me, k)
         for k in ("poisoned", "burned", "asleep", "paralyzed", "confused")
@@ -269,6 +415,16 @@ def featurize(obs: Observation) -> Features:
     if sel is not None and sel.option:
         opt_type = np.array([int(o.type) for o in sel.option], dtype=np.int64)
         opt_feat = np.stack([_option_row(o) for o in sel.option]).astype(np.float32)
+        opt_slot = np.array(
+            [_option_entity_slot(you, o) for o in sel.option], dtype=np.int64
+        )
+        opt_card = np.array(
+            [_option_card_id(st, sel, you, o) for o in sel.option], dtype=np.int64
+        )
+        opt_card_row = np.array([deck.row_of(int(c)) for c in opt_card], dtype=np.int64)
+        opt_attack = np.array(
+            [o.attackId or 0 for o in sel.option], dtype=np.int64
+        )
         stype, sctx, mn, mx = (
             int(sel.type),
             int(sel.context),
@@ -278,6 +434,10 @@ def featurize(obs: Observation) -> Features:
     else:
         opt_type = np.zeros(0, dtype=np.int64)
         opt_feat = np.zeros((0, O), dtype=np.float32)
+        opt_slot = np.zeros(0, dtype=np.int64)
+        opt_card = np.zeros(0, dtype=np.int64)
+        opt_card_row = np.zeros(0, dtype=np.int64)
+        opt_attack = np.zeros(0, dtype=np.int64)
         stype = sctx = mn = mx = 0
 
     return Features(
@@ -290,6 +450,10 @@ def featurize(obs: Observation) -> Features:
         globals=g,
         option_type=opt_type,
         option_feat=opt_feat,
+        option_entity_slot=opt_slot,
+        option_card_id=opt_card,
+        option_card_row=opt_card_row,
+        option_attack_id=opt_attack,
         select_type=stype,
         select_context=sctx,
         min_count=mn,
