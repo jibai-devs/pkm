@@ -32,3 +32,6 @@ checkpoints/
 pkm/policy.npz
 replay.json
 runs/
+
+# model visualization outputs (just viz)
+viz_out/

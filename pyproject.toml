@@ -23,11 +23,17 @@ dev = [
     "jupyter>=1.0",
     "kaleido>=0.2.1",
     "nbformat>=5.0",
+    "netron>=9.0",
+    "onnx>=1.22",
+    "onnxscript>=0.7",
     "optuna>=4.0",
     "plotly>=5.0",
     "pytest>=8.0",
     "ruff>=0.5",
     "tensorboard>=2.14",
+    "torchinfo>=1.8",
+    "torchview>=0.2.7",
+    "torchviz>=0.0.3",
     "wandb>=0.18",
 ]
 
