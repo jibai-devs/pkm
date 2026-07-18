@@ -6,6 +6,10 @@ Run:  python -m pkm.new_agents.agent_000_dragapult.viz [outdir]
 The model's forward() takes a dict, but torchview/torchviz/ONNX want positional
 tensor args, so we wrap it in a module with an explicit tensor signature that
 rebuilds the dict internally. All five tools consume the *same* synthetic batch.
+
+Output defaults to the agent's artifact root (``DEFAULT_OUT``, alongside the
+weights/logs under ``pkm_data/``), so viz artifacts live with the rest and never
+land in the repo working tree.
 """
 
 from __future__ import annotations
@@ -19,6 +23,16 @@ import torch.nn as nn
 
 from pkm.new_agents.agent_000_dragapult.features import F, G, O, _VOCAB
 from pkm.new_agents.agent_000_dragapult.model import PolicyValueModel
+
+# Same artifact root the CLI uses (DATA_DIR in cli.py); viz is architecture-only
+# (not experiment-specific), so it sits at the agent root, not under experiments/.
+DEFAULT_OUT = str(
+    Path(__file__).resolve().parents[3]
+    / "pkm_data"
+    / "new_agents"
+    / "agent_000_dragapult"
+    / "viz"
+)
 
 # --- fixed shapes for the dummy batch ---
 B = 2  # batch
@@ -78,7 +92,7 @@ class TensorWrapper(nn.Module):
         return logits, value
 
 
-def main(outdir: str = "viz_out") -> None:
+def main(outdir: str = DEFAULT_OUT) -> None:
     out = Path(outdir)
     out.mkdir(parents=True, exist_ok=True)
     torch.manual_seed(0)
@@ -165,4 +179,4 @@ def main(outdir: str = "viz_out") -> None:
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "viz_out")
+    main(sys.argv[1] if len(sys.argv) > 1 else DEFAULT_OUT)

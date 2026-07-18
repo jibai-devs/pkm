@@ -65,22 +65,26 @@ status *args:
 
 # --- model visualization ------------------------------------------------------
 
+# Viz artifacts live with the weights/logs under the agent's pkm_data root (not in
+# the repo tree). Architecture-only, so agent-level — not per-experiment.
+vizdir := "pkm_data/new_agents/agent_000_dragapult/viz"
+
 # Render the model 5 ways into out/ (torchinfo, torchview, torchviz, onnx, tb).
 # Synthetic batch — no engine/checkpoint; draws the architecture, not weights.
-viz out="viz_out":
+viz out=vizdir:
     cd {{root}} && uv run python -m pkm.new_agents.agent_000_dragapult.viz {{out}}
 
 # Open the static views: both SVGs as tabs in a browser (xdg-open sends SVG to an
 # image editor by default), summary.txt to your default text app. Override the
-# browser: `just viz-open viz_out firefox`. Servers block — see viz-netron/viz-tb.
-viz-open out="viz_out" browser="brave":
+# browser: `just viz-open {{vizdir}} firefox`. Servers block — see viz-netron/viz-tb.
+viz-open out=vizdir browser="brave":
     cd {{root}} && {{browser}} {{out}}/torchview.svg {{out}}/torchviz.svg &
     cd {{root}} && xdg-open {{out}}/summary.txt
 
 # Serve the exported ONNX graph interactively in Netron (http://localhost:PORT).
-viz-netron out="viz_out" port="8080":
+viz-netron out=vizdir port="8080":
     cd {{root}} && uv run netron --host 127.0.0.1 --port {{port}} {{out}}/model.onnx
 
 # TensorBoard Graphs tab for the exported model graph (http://localhost:PORT).
-viz-tb out="viz_out" port="6006":
+viz-tb out=vizdir port="6006":
     cd {{root}} && uv run tensorboard --logdir {{out}}/tb --port {{port}}
