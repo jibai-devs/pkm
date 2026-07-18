@@ -259,6 +259,14 @@ pkm new_agents 000_dragapult sweep --trials 30 --updates 15 --games 32 --workers
 - The study is **SQLite-backed** at `<output>/sweeps/<study>.db` → **resumable**
   (rerun the same `--study` to add trials) and inspectable with
   `optuna-dashboard sqlite:///…`.
+- **A study is bound to one objective.** Each study records its `--objective`. If
+  you resume it with a *different* one (or resume a legacy study created before
+  objective-tagging that already holds trials), the sweep **prompts you to delete
+  it and start over** — because trials scored under different objectives aren't
+  comparable (the sampler would model a mixed target). Decline the prompt and pick
+  a **new `--study` name** to keep the old results side by side; pass **`--reset`**
+  to delete-and-restart non-interactively (e.g. in scripts). You can also delete
+  `<output>/sweeps/<study>.db` by hand.
 - Each trial also logs to TensorBoard under `runs/sweep-<study>/trial_<n>/`.
 - Trials run **sequentially**, each using `--workers` internally — don't stack
   trial-parallelism on top or you'll oversubscribe cores.

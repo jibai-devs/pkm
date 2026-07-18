@@ -43,9 +43,9 @@ eval exp=exp games="100" engine="local-nix":
 tensorboard exp=exp port="6006":
     cd {{root}} && uv run tensorboard --logdir=pkm_data/new_agents/agent_000_dragapult/experiments/{{exp}}/runs --port {{port}}
 
-# Optuna hyperparameter sweep. e.g. `just sweep exp=sweep1 trials=30 updates=15`.
-sweep exp=exp trials="30" updates="15" games="32" workers="8" engine="local-nix":
-    cd {{root}} && {{cli}} sweep --experiment {{exp}} --trials {{trials}} --updates {{updates}} --games {{games}} --workers {{workers}} --engine {{engine}}
+# Optuna hyperparameter sweep. e.g. `just sweep exp=sweep1 objective=curve_auc study=s1`.
+sweep exp=exp trials="30" updates="15" games="32" workers="8" objective="curve_auc" study="dragapult_ppo" engine="local-nix":
+    cd {{root}} && {{cli}} sweep --experiment {{exp}} --trials {{trials}} --updates {{updates}} --games {{games}} --workers {{workers}} --objective {{objective}} --study {{study}} --engine {{engine}}
 
 # Backfill TensorBoard from experiment `exp`'s train.csv (-> runs/csv-import/).
 import-csv exp=exp:

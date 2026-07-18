@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import dataclasses
 import re
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
@@ -687,6 +688,11 @@ def sweep(
         "dragapult_ppo", help="Optuna study name (sqlite, resumable)."
     ),
     seed: int = typer.Option(0, help="Base RNG seed (offset per trial)."),
+    reset: bool = typer.Option(
+        False,
+        "--reset",
+        help="Delete an objective-mismatched study and start it over (no prompt).",
+    ),
     data_dir: Path = typer.Option(
         DATA_DIR,
         "--output-dir",
@@ -799,6 +805,56 @@ def sweep(
         load_if_exists=True,
         pruner=optuna.pruners.MedianPruner(n_warmup_steps=1),
     )
+    # A study's trials are only comparable if they were all scored by the same
+    # objective. Tag the study with its objective; on a mismatched resume (or a
+    # pre-tagging legacy study that already holds trials) offer to delete and start
+    # over — otherwise the sampler would model a mixed target and best_trial would
+    # compare unlike scores.
+    prev_objective = st.user_attrs.get("objective")
+    conflict = None
+    if prev_objective is None and st.trials:
+        conflict = (
+            f"study [cyan]{study}[/] predates objective tagging and holds "
+            f"{len(st.trials)} trials of unknown objective"
+        )
+    elif prev_objective is not None and prev_objective != objective:
+        conflict = (
+            f"study [cyan]{study}[/] was scored by [bold]{prev_objective}[/], "
+            f"not [bold]{objective}[/]"
+        )
+    if conflict:
+        console.print(
+            f"[yellow]{conflict}[/] — scores under different objectives are not "
+            f"comparable (the sampler would model a mixed target)."
+        )
+        do_reset = reset or (
+            sys.stdin.isatty()
+            and typer.confirm(
+                f"Delete study '{study}' and start over with objective={objective}?",
+                default=False,
+            )
+        )
+        if not do_reset:
+            console.print(
+                "[dim]aborted — use a new --study name to keep the old results, "
+                "or pass --reset to delete and start over.[/]"
+            )
+            raise typer.Exit(2)
+        optuna.delete_study(study_name=study, storage=storage)
+        st = optuna.create_study(
+            study_name=study,
+            storage=storage,
+            direction="maximize",
+            load_if_exists=False,
+            pruner=optuna.pruners.MedianPruner(n_warmup_steps=1),
+        )
+        console.print(f"[green]reset[/] study [cyan]{study}[/].\n")
+    st.set_user_attr("objective", objective)
+    if st.trials:
+        console.print(
+            f"[dim]resuming[/] {len(st.trials)} [dim]existing trials "
+            f"(objective={objective}).[/]\n"
+        )
     st.optimize(_run_trial, n_trials=trials)
 
     try:
