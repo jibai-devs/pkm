@@ -58,7 +58,10 @@ class TrainConfig:
     # Target assignment (see .shaping). Defaults reproduce the v1 terminal-only,
     # plain-GAE behaviour bit-for-bit; opt into shaping via a sweep.
     advantage: str = "gae"  # key into shaping.ESTIMATORS
-    shaping: str = "terminal"  # key into shaping.SHAPERS ("terminal" | "prize_potential")
+    # Default is potential-based prize-differential shaping (policy-invariant,
+    # densifies the sparse ±1 terminal signal). Set shaping="terminal" (or
+    # shaping_coef=0.0) to recover the original v1 terminal-only behaviour.
+    shaping: str = "prize_potential"  # key into shaping.SHAPERS
     shaping_coef: float = 1.0  # scale on the shaping term (0.0 == terminal)
 
 

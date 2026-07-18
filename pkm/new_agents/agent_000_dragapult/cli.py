@@ -187,7 +187,7 @@ def _build_config(
     minibatch_size: int,
     seed: int,
     ckpt_every: int,
-    shaping: str = "terminal",
+    shaping: str = "prize_potential",
     shaping_coef: float = 1.0,
 ) -> Config:
     from pkm.new_agents.agent_000_dragapult.config import Config, RunConfig, TrainConfig
@@ -448,8 +448,8 @@ def train(
     minibatch_size: int = typer.Option(64, help="Minibatch size (decisions)."),
     seed: int = typer.Option(0, help="RNG seed."),
     shaping: str = typer.Option(
-        "terminal",
-        help="Reward shaping: 'terminal' (sparse +/-1) or 'prize_potential'.",
+        "prize_potential",
+        help="Reward shaping: 'prize_potential' (default) or 'terminal' (sparse +/-1).",
     ),
     shaping_coef: float = typer.Option(
         1.0, help="Scale on the shaping term (0.0 == terminal)."
