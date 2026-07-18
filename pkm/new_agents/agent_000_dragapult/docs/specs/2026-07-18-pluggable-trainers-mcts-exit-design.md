@@ -139,14 +139,17 @@ A tree over engine search nodes, guided by the network:
 - **Returns** the root visit distribution `π(a) = N(a)^(1/τ) / Σ` — the improved policy
   target.
 
-### 5.3 Determinization — pluggable, v1 = "oracle"
+### 5.3 Determinization — pluggable, v1 = single-sample (K=1)
 
-`search_begin` needs predicted opponent deck/prize/hand/active. In self-play the trainer
-drives both seats and knows both decks are `DECK_60`, so v1 feeds the **true** hidden
-state (perfect-information MCTS): simplest, correct, slightly optimistic (the search sees
-the opponent's hand). It sits behind a small `determinize(obs, seat, cfg) -> predictions`
-function so **IS-MCTS** (sample K consistent hidden states, average visits) drops in later
-without touching `mcts.py`.
+`search_begin` needs predicted opponent deck/prize/hand/active. The engine only returns a
+**per-seat masked view** (`GetBattleData`, engine/api.py:44) — the opponent's hand is
+hidden and there is no full-state accessor — so true "oracle" state is not available.
+Because both seats play the known `DECK_60`, v1 instead **samples one consistent
+assignment** of the known remaining cards (the DECK_60 multiset minus everything publicly
+visible in the acting seat's view) into the opponent's hidden zones (deck / hand / prize),
+respecting the observed counts. This is honest **IS-MCTS with K=1**. It sits behind a small
+`determinize(obs, seat, cfg, gen) -> predictions` function so full **IS-MCTS** (sample K
+worlds, search each, average visits) drops in later without touching `mcts.py`.
 
 ### 5.4 `trainers/exit.py` — `ExItTrainer`
 
@@ -172,7 +175,7 @@ ships over the worker queue like `Step`. `Step` stays PPO's; each trainer owns i
 
 - `method: str = "ppo"`
 - `mcts_simulations: int = 32`, `mcts_c_puct: float = 1.25`,
-  `mcts_temperature: float = 1.0`, `determinization: str = "oracle"`
+  `mcts_temperature: float = 1.0`, `determinization: str = "sample"`
 
 All flat (matching the current style), serialized into the hash — safe via the resume
 migration (§3.4).
@@ -201,9 +204,9 @@ migration (§3.4).
 These are the deliberate v1 simplifications. Each has a clean upgrade path and should be
 mirrored as a code comment at its site, matching the repo's `[DECIDE]` convention.
 
-1. **Perfect-info oracle determinization** (§5.3) — the search sees true hidden cards.
-   Upgrade: **IS-MCTS** — sample K consistent hidden states, search each, average visits,
-   behind the existing `determinize()` seam.
+1. **Single-sample determinization, K=1** (§5.3) — one sampled world per search, so the
+   search can be lucky/unlucky about hidden cards. Upgrade: **full IS-MCTS** — sample K
+   worlds, search each, average visits, behind the existing `determinize()` seam.
 2. **Chance resolved inside `search_step`** — coin flips / draws are treated as
    environment transitions rather than explicit **chance nodes**. Slightly biases visit
    counts; explicit chance nodes are a later refinement.
