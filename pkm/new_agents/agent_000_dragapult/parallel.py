@@ -34,10 +34,11 @@ def _worker(rank: int, cfg_dict: dict, cmd_q, res_q, base_seed: int) -> None:
         torch.set_num_threads(1)  # avoid N x BLAS oversubscription
         torch.manual_seed(base_seed + rank)  # distinct sampling per worker
         from pkm.new_agents.agent_000_dragapult.config import Config, build_model
-        from pkm.new_agents.agent_000_dragapult.train import collect_rollout
+        from pkm.new_agents.agent_000_dragapult import trainers
 
         cfg = Config.from_dict(cfg_dict)
         model = build_model(cfg)
+        trainer = trainers.get_trainer(cfg)
         while True:
             cmd = cmd_q.get()
             if cmd is None:  # shutdown sentinel
@@ -45,7 +46,7 @@ def _worker(rank: int, cfg_dict: dict, cmd_q, res_q, base_seed: int) -> None:
             state_dict, n_games = cmd
             model.load_state_dict(state_dict)
             t0 = time.perf_counter()
-            steps, stats = collect_rollout(model, n_games, cfg)
+            steps, stats = trainer.collect(model, n_games, cfg)
             stats["t_worker"] = time.perf_counter() - t0  # busy time (excl. barrier wait)
             res_q.put((rank, steps, stats, None))
     except Exception:  # propagate so the learner doesn't hang on res_q.get()
@@ -57,7 +58,22 @@ def _worker(rank: int, cfg_dict: dict, cmd_q, res_q, base_seed: int) -> None:
 class ParallelRollout:
     """Manages persistent spawn workers for synchronous self-play collection."""
 
-    def __init__(self, cfg, num_workers: int, base_seed: int = 0):
+    def __init__(
+        self,
+        cfg,
+        num_workers: int,
+        base_seed: int = 0,
+        model: torch.nn.Module | None = None,
+    ):
+        # `model` should be the caller's live TrainState.model: PPO/ExIt update
+        # steps mutate its parameters in place (never reassign the object), so
+        # holding this one reference is enough for `collect` to always broadcast
+        # the current weights without the model being re-passed on every call.
+        # Callers that don't have one yet (e.g. this module's own test) get a
+        # freshly built model instead.
+        from pkm.new_agents.agent_000_dragapult.config import build_model
+
+        self.model = model if model is not None else build_model(cfg)
         self.num_workers = num_workers
         self.ctx = tmp.get_context("spawn")
         self.cmd_qs = [self.ctx.Queue() for _ in range(num_workers)]
@@ -80,11 +96,17 @@ class ParallelRollout:
         return per
 
     def collect(
-        self, model: torch.nn.Module, total_games: int
+        self, trainer: Any, total_games: int
     ) -> tuple[list, dict[str, Any]]:
-        """Broadcast weights, gather trajectories from all workers, aggregate stats."""
+        """Broadcast weights, gather trajectories from all workers, aggregate stats.
+
+        ``trainer`` is unused here: each worker already self-selects its own
+        trainer from ``cfg.train.method`` (see ``_worker``). It is kept as a
+        parameter purely for interface symmetry with the single-process caller
+        (``trainer.collect(ts.model, ...)`` in ``train.train``).
+        """
         per = self._split(total_games)
-        state_dict = {k: v.detach().cpu() for k, v in model.state_dict().items()}
+        state_dict = {k: v.detach().cpu() for k, v in self.model.state_dict().items()}
         for rank in range(self.num_workers):
             self.cmd_qs[rank].put((state_dict, per[rank]))
 

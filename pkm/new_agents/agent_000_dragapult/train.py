@@ -24,15 +24,8 @@ import torch
 from pkm.new_agents.agent_000_dragapult.config import Config, _hash_dict, build_model
 from pkm.new_agents.agent_000_dragapult.monitor import MetricSink, RunContext, notify
 
-# Back-compat re-export: Step, collect_rollout, ppo_update used to live here.
-# The train() driver below still calls collect_rollout/ppo_update directly
-# until Task 4 rewires it through the Trainer protocol; parallel.py also
-# imports collect_rollout from this module.
-from pkm.new_agents.agent_000_dragapult.trainers.ppo import (  # noqa: F401
-    Step,
-    collect_rollout,
-    ppo_update,
-)
+# Back-compat re-export: Step used to live here.
+from pkm.new_agents.agent_000_dragapult.trainers.ppo import Step  # noqa: F401
 
 
 # --------------------------------------------------------------------------- #
@@ -130,6 +123,10 @@ def train(
     )
     notify(observers, "start", ctx)
 
+    from pkm.new_agents.agent_000_dragapult.trainers import get_trainer
+
+    _trainer = get_trainer(cfg)
+
     pool = None
     if cfg.train.num_workers and cfg.train.num_workers > 1:
         import os
@@ -154,17 +151,20 @@ def train(
                 "raise --games or --workers for better utilization.",
                 flush=True,
             )
-        pool = ParallelRollout(cfg, cfg.train.num_workers, base_seed=cfg.train.seed)
+        pool = ParallelRollout(
+            cfg, cfg.train.num_workers, base_seed=cfg.train.seed, model=ts.model
+        )
     try:
         for _ in range(updates):
             t0 = time.perf_counter()
+            trainer = _trainer  # built once before the loop
             if pool is not None:
-                steps, roll_stats = pool.collect(ts.model, games_per_update)
+                steps, roll_stats = pool.collect(trainer, games_per_update)
             else:
-                steps, roll_stats = collect_rollout(ts.model, games_per_update, cfg)
+                steps, roll_stats = trainer.collect(ts.model, games_per_update, cfg)
             t_rollout = time.perf_counter() - t0
             t1 = time.perf_counter()
-            upd_stats = ppo_update(ts.model, ts.optimizer, steps, cfg)
+            upd_stats = trainer.update(ts.model, ts.optimizer, steps, cfg)
             t_update = time.perf_counter() - t1
             ts.update_idx += 1
 
