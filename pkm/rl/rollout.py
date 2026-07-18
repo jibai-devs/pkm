@@ -12,8 +12,28 @@ from pkm.engine import (
 
 from pkm.types.obs import Observation
 
-from .encoder import EncodedDecision, encode_decision, prize_potential
+from .encoder import (
+    EncodedDecision,
+    budew_active_second_potential,
+    budew_first_turn_attack_bonus,
+    budew_turn_bench_setup_bonus,
+    dragapult_backup_potential,
+    dragapult_ex_attack_bonus,
+    dreepy_energy_spread_penalty,
+    dreepy_evolve_bonus,
+    dreepy_line_active_charge_bonus,
+    dreepy_line_bench_charge_bonus,
+    dreepy_line_field_potential,
+    encode_decision,
+    energy_overattach_penalty,
+    phantom_dive_attack_bonus,
+    prize_potential,
+    wasted_resources_attack_penalty,
+    wrong_type_energy_penalty,
+    xerosic_machinations_bonus,
+)
 from .model import PolicyValueNet
+from .ppo import compute_returns
 
 MAX_DECISIONS = 3000
 
@@ -46,6 +66,23 @@ class TorchPolicy:
         d.logprob = res.logprob
         d.value = res.value
         d.potential = prize_potential(parsed)
+        d.board_setup_potential = dragapult_backup_potential(parsed)
+        d.budew_setup_potential = budew_active_second_potential(parsed)
+        d.dreepy_line_field_potential = dreepy_line_field_potential(parsed)
+        d.energy_penalty = energy_overattach_penalty(parsed, res.picks)
+        d.budew_bonus = budew_first_turn_attack_bonus(parsed, res.picks)
+        d.wrong_type_energy_penalty = wrong_type_energy_penalty(parsed, res.picks)
+        d.dragapult_attack_bonus = dragapult_ex_attack_bonus(parsed, res.picks)
+        d.phantom_dive_bonus = phantom_dive_attack_bonus(parsed, res.picks)
+        d.dreepy_spread_penalty = dreepy_energy_spread_penalty(parsed, res.picks)
+        d.xerosic_bonus = xerosic_machinations_bonus(parsed, res.picks)
+        d.budew_bench_setup_bonus = budew_turn_bench_setup_bonus(parsed, res.picks)
+        d.dreepy_evolve_bonus = dreepy_evolve_bonus(parsed, res.picks)
+        d.dreepy_bench_charge_bonus = dreepy_line_bench_charge_bonus(parsed, res.picks)
+        d.dreepy_active_charge_bonus = dreepy_line_active_charge_bonus(
+            parsed, res.picks
+        )
+        d.wasted_resources_penalty = wasted_resources_attack_penalty(parsed, res.picks)
         return res.picks, d
 
 
@@ -97,3 +134,82 @@ def play_game(
     return GameResult(
         trajectories=trajectories, rewards=rewards, decisions=count, turns=turns
     )
+
+
+@dataclass
+class GameSpec:
+    """One game's pre-decided matchup, so rollout (sequential or parallel)
+    and aggregation always agree on who played and what to count."""
+
+    opponent_state: dict | None  # None = mirror self-play (both sides = current)
+    side: int  # which side "current" plays if opponent_state is set; -1 if mirror
+    collect: tuple[bool, bool]
+
+
+def make_game_specs(
+    games_per_iter: int, pool: list[dict], pool_prob: float, rng: random.Random
+) -> list[GameSpec]:
+    """Decide, up front, the full iteration's matchups — same logic regardless
+    of whether rollout runs sequentially or across worker processes."""
+    specs = []
+    for _ in range(games_per_iter):
+        if rng.random() < pool_prob and len(pool) > 1:
+            opponent_state = rng.choice(pool[:-1])
+            side = rng.randint(0, 1)
+            collect = (side == 0, side == 1)
+        else:
+            opponent_state = None
+            side = -1
+            collect = (True, True)
+        specs.append(GameSpec(opponent_state, side, collect))
+    return specs
+
+
+def play_one(
+    current_model: PolicyValueNet,
+    opponent_model: PolicyValueNet,
+    deck: list[int],
+    spec: GameSpec,
+) -> GameResult:
+    """Play one game per `spec`, reusing `opponent_model` as scratch space for
+    the pooled-opponent case (avoids rebuilding a fresh module every game)."""
+    if spec.opponent_state is None:
+        cur = TorchPolicy(current_model)
+        policies = (cur, cur)
+    else:
+        opponent_model.load_state_dict(spec.opponent_state)
+        opponent_model.eval()
+        opp = TorchPolicy(opponent_model)
+        cur = TorchPolicy(current_model)
+        policies = (cur, opp) if spec.side == 0 else (opp, cur)
+    return play_game(policies, (deck, deck), collect=spec.collect)
+
+
+def aggregate_result(
+    spec: GameSpec,
+    result: GameResult,
+    data: list,
+    gamma: float,
+    lam: float,
+    weights: dict[str, float] | None = None,
+) -> tuple[int, int, int]:
+    """Extend `data` with this game's collected trajectories and return the
+    (win, loss, draw) increment for `current` — same counting rule the
+    sequential loop always used, factored out so the parallel path matches."""
+    wins = losses = draws = 0
+    for p in range(2):
+        if not spec.collect[p]:
+            continue
+        compute_returns(
+            result.trajectories[p],
+            result.rewards[p],
+            gamma=gamma,
+            lam=lam,
+            weights=weights,
+        )
+        data.extend(result.trajectories[p])
+        if spec.side == -1 and p == 1:
+            continue  # count mirror games once
+        r = result.rewards[p if spec.side == -1 else spec.side]
+        wins, losses, draws = wins + (r > 0), losses + (r < 0), draws + (r == 0)
+    return wins, losses, draws

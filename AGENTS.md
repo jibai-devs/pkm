@@ -51,8 +51,13 @@ pytest tests/              # run tests
 - `pkm/agents/base.py` — `make_agent(deck, strategy_fn)` factory
 - `pkm/agents/random_agent.py` — random legal move agent
 - `pkm/agents/neural_agent.py` — greedy trained-policy agent (numpy inference, no torch)
+- `pkm/agents/singaporean_middleman.py` — decision-routing agent; dispatches each
+  turn to sub-agents (heuristics/neural/random). Current Kaggle submission agent
+- `pkm/heuristics/` — hand-written strategy helpers (`deck_tracker.py`: deck/prize tracking)
 - `pkm/engine/` — the single engine seam: `loader.py` (backend switch, ctypes ABI, capabilities), `api.py` (all 13 typed engine functions incl. SearchBegin/SearchStep)
-- `pkm/rl/` — encoders, pointer-style policy/value net, PPO self-play, expert iteration
+- `pkm/rl/` — encoders, pointer-style policy/value net, PPO self-play, expert iteration;
+  `reward_terms.py` (registry of reward-shaping terms + per-agent weights JSON),
+  `parallel_rollout.py` (ProcessPoolExecutor self-play, `pkm train --workers N`)
 - `pkm/cli_deck.py` — deck management CLI (list, show, convert)
 - `docs/ideas/` — architecture ideas and future design notes
   - `docs/ideas/agent-composition-and-refactor.md` — code map (net/policy/value/MCTS/training), composition modes (pipeline vs injection vs delegation), and the ranked refactor plan
@@ -64,11 +69,11 @@ pytest tests/              # run tests
 - `deck/` — deck files (CSV: one card ID per line; JSON: id/name/count)
 - `deck/00_basic.csv` — starter 60-card deck
 - `deck/01_psychic.csv` — Psychic Toolbox (Slowking + Mega Kangaskhan ex)
-- `deck/02_dragapult.csv` — **default deck**: Dragapult ex / Dusknoir (Psychic/Dark)
+- `deck/02_dragapult.csv` — Dragapult ex / Dusknoir (Psychic/Dark)
+- `deck/03_pult_munki.csv` — **default deck**: Dragapult ex / Budew / Munkidori (PultMunki)
 - `submit.sh` — creates `submission.tar.gz` for Kaggle
 - `docs/RL_PLAN.md` — RL self-play design (Phase 1 PPO, Phase 2 IS-MCTS/ExIt)
 - `replay/` — replay viewer + data
-  - `replay/02_vite_web_app/` — Bun + Vite replay viewer (vanilla JS)
   - `replay/05_vite_react_app/` — Bun + Vite + React/TS replay viewer
   - `replay/replay.json` — sample replay log
   - `replay/cards.json` — card database with attack metadata
