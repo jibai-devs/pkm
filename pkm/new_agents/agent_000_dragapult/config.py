@@ -63,6 +63,13 @@ class TrainConfig:
     # shaping_coef=0.0) to recover the original v1 terminal-only behaviour.
     shaping: str = "prize_potential"  # key into shaping.SHAPERS
     shaping_coef: float = 1.0  # scale on the shaping term (0.0 == terminal)
+    # --- training method selector (key into trainers.TRAINERS) ---
+    method: str = "ppo"
+    # MCTS expert-iteration knobs (inert unless method == "exit").
+    mcts_simulations: int = 32
+    mcts_c_puct: float = 1.25
+    mcts_temperature: float = 1.0
+    determinization: str = "sample"  # key into trainers.exit determinizers
 
 
 @dataclass(frozen=True)
@@ -73,6 +80,11 @@ class RunConfig:
     feature_version: str = FEATURE_VERSION
     checkpoint_every_updates: int = 64
     keep_last: int = 5
+
+
+def _hash_dict(d: dict[str, Any]) -> str:
+    """Stable 12-char sha256 of a config dict (the one hashing definition)."""
+    return hashlib.sha256(json.dumps(d, sort_keys=True).encode()).hexdigest()[:12]
 
 
 @dataclass(frozen=True)
@@ -86,16 +98,17 @@ class Config:
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> "Config":
+        # Backfill missing fields with defaults (supports old checkpoints).
+        train_dict = {**asdict(TrainConfig()), **d["train"]}
         return cls(
             model=ModelConfig(**d["model"]),
-            train=TrainConfig(**d["train"]),
+            train=TrainConfig(**train_dict),
             run=RunConfig(**d["run"]),
         )
 
     def hash(self) -> str:
         """Stable short hash of the whole config (goes in checkpoints/run dirs)."""
-        blob = json.dumps(self.to_dict(), sort_keys=True).encode()
-        return hashlib.sha256(blob).hexdigest()[:12]
+        return _hash_dict(self.to_dict())
 
 
 def build_model(cfg: Config | ModelConfig | None = None) -> PolicyValueModel:

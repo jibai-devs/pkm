@@ -28,7 +28,7 @@ from pkm.new_agents.agent_000_dragapult.cabt import (
     to_observation,
 )
 from pkm.new_agents.agent_000_dragapult import deck, policy
-from pkm.new_agents.agent_000_dragapult.config import Config, build_model
+from pkm.new_agents.agent_000_dragapult.config import Config, _hash_dict, build_model
 from pkm.new_agents.agent_000_dragapult.features import Features, featurize
 from pkm.new_agents.agent_000_dragapult.model import collate
 from pkm.new_agents.agent_000_dragapult.monitor import MetricSink, RunContext, notify
@@ -254,7 +254,10 @@ class TrainState:
     def load(cls, path: str | Path) -> "TrainState":
         blob = torch.load(path, map_location="cpu", weights_only=False)
         cfg = Config.from_dict(blob["config"])
-        if cfg.hash() != blob["config_hash"]:
+        # Validate the STORED dict against its STORED hash, so additive schema
+        # changes (new fields with defaults) never trip the guard for older
+        # checkpoints. A tampered file still fails.
+        if _hash_dict(blob["config"]) != blob["config_hash"]:
             raise ValueError("config hash mismatch on resume")
         model = build_model(cfg)
         model.load_state_dict(blob["model"])
