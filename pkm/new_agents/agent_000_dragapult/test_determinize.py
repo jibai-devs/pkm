@@ -18,6 +18,7 @@ import collections
 import torch
 
 from pkm.new_agents.agent_000_dragapult import deck
+from pkm.new_agents.agent_000_dragapult.cabt import all_card_data
 from pkm.new_agents.agent_000_dragapult.determinize import DETERMINIZERS, sample_world
 
 
@@ -145,3 +146,23 @@ def test_deterministic_given_generator_seed():
 
 def test_determinizers_registry():
     assert DETERMINIZERS["sample"] is sample_world
+
+
+def test_face_down_opponent_active_picks_basic():
+    """Task-6 regression: opponent's active placed face-down (real shape is
+    `active == [None]`, momentarily during the setup coin-flip before both
+    actives are revealed together) must not raise, and must predict a Basic
+    Pokémon id for the hidden slot -- game rules require the placed Pokémon
+    to be a Basic.
+    """
+    gen = torch.Generator().manual_seed(4)
+    obs = _fake_obs(seat=0)
+    obs["current"]["players"][1]["active"] = [None]
+
+    w = sample_world(obs, seat=0, gen=gen)
+
+    by_id = {cd.cardId: cd for cd in all_card_data()}
+    assert len(w.opponent_active) == 1
+    picked = w.opponent_active[0]
+    assert by_id.get(picked) is not None
+    assert by_id[picked].basic

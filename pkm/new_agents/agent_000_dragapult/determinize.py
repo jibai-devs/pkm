@@ -112,7 +112,10 @@ def sample_world(obs: dict, seat: int, gen: torch.Generator) -> Predictions:
     my_pool = _shuffled_unknown_pool(me, gen)
     deck_n = me["deckCount"]
     your_deck, my_pool = my_pool[:deck_n], my_pool[deck_n:]
-    your_prize, _my_pool = _deal_prize(me.get("prize") or [], my_pool)
+    your_prize, leftover = _deal_prize(me.get("prize") or [], my_pool)
+    # own hidden pool == deck_n cards + facedown prize slots exactly; nothing
+    # should be left over once both are dealt out.
+    assert not leftover, "own unknown pool not fully consumed by deck+prize"
 
     # --- opponent's hidden zones ---
     opp_pool = _shuffled_unknown_pool(opp, gen)
@@ -122,14 +125,20 @@ def sample_world(obs: dict, seat: int, gen: torch.Generator) -> Predictions:
     if active and active[0] is None:
         # Only happens momentarily during setup (both seats' active are placed
         # face-down before being revealed together); the placed Pokémon must
-        # be a Basic. Pick one out of the opponent's own remaining pool.
-        cards = all_card_data()
+        # be a Basic. Pick one out of the opponent's own remaining unknown
+        # pool (their DECK_60 copy minus already-visible cards).
+        by_id = {cd.cardId: cd for cd in all_card_data()}
         pick_idx = next(
-            (i for i, c in enumerate(opp_pool) if cards.get(c) and cards[c].basic),
+            (i for i, c in enumerate(opp_pool) if by_id.get(c) is not None and by_id[c].basic),
             None,
         )
         if pick_idx is None:
-            raise ValueError("no Basic Pokémon left in opponent's unknown pool")
+            raise ValueError(
+                "sample_world: no Basic Pokémon remains in the opponent's "
+                "unknown pool to seed their face-down active slot -- every "
+                "seat's DECK_60 copy contains Basics, so this indicates a "
+                "data/state inconsistency"
+            )
         opponent_active = [opp_pool.pop(pick_idx)]
 
     n_hand = opp["handCount"]
