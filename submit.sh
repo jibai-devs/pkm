@@ -2,16 +2,14 @@
 # Create submission bundle for Kaggle
 # Usage: ./submit.sh [agent_name]
 #
-# The agent name determines which deck and weights to bundle.
-# Only 02_dragapult is currently supported.
+# The agent name determines which deck gets bundled as submission/deck.csv;
+# main.py falls back to it if no deck.csv is present. Run `pkm export --agent
+# <agent> pkm/policy.npz` first so the weights being bundled (pkm/policy.npz,
+# copied in via `cp -r pkm submission/` below) match this agent.
 
 set -e
 
 AGENT="${1:-02_dragapult}"
-if [ "$AGENT" != "02_dragapult" ]; then
-    echo "Only 02_dragapult is supported" >&2
-    exit 1
-fi
 TS=$(date +%Y%m%d_%H%M%S)
 OUT="submissions/submission_${AGENT}_${TS}.tar.gz"
 
@@ -25,7 +23,7 @@ mkdir -p submissions
 cp main.py submission/
 
 # Generate flat deck.csv from the agent's deck for kaggle
-python -c "
+uv run python -c "
 from pkm.data import Deck
 Deck.from_csv('deck/${AGENT}.csv').to_csv('submission/deck.csv')
 "
