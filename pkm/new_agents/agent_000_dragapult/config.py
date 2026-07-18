@@ -55,6 +55,14 @@ class TrainConfig:
     value_coef: float = 0.5
     max_grad_norm: float = 0.5
     num_workers: int = 8  # parallel self-play envs (one engine/process)
+    # Target assignment (see .shaping). Defaults reproduce the v1 terminal-only,
+    # plain-GAE behaviour bit-for-bit; opt into shaping via a sweep.
+    advantage: str = "gae"  # key into shaping.ESTIMATORS
+    # Default is potential-based prize-differential shaping (policy-invariant,
+    # densifies the sparse ±1 terminal signal). Set shaping="terminal" (or
+    # shaping_coef=0.0) to recover the original v1 terminal-only behaviour.
+    shaping: str = "prize_potential"  # key into shaping.SHAPERS
+    shaping_coef: float = 1.0  # scale on the shaping term (0.0 == terminal)
 
 
 @dataclass(frozen=True)

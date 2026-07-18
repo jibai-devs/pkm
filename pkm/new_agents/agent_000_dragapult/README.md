@@ -251,8 +251,18 @@ same trunk+heads.
 3. **Auxiliary losses on the shared trunk** — predict opponent's next card /
    game outcome / legal options. Cheap (tiny heads, privileged self-play labels,
    dropped at inference); each needs a loss weight + ablation. Add any time.
-4. **Reward shaping** — optional weak, potential-based (prize diff / board HP)
-   beyond terminal ±1, if credit assignment is too slow.
+4. **Reward shaping** `[DONE, pluggable]` — `shaping.py` splits reward
+   (`SHAPERS`) from advantage estimation (`ESTIMATORS`), both chosen by
+   `TrainConfig.shaping`/`advantage` (serialized in the checkpoint + config
+   hash) and exposed as `--shaping`/`--shaping-coef`. Shipped: `terminal`
+   (sparse ±1) and `prize_potential` (policy-invariant `coef·(γ·Φ(s')−Φ(s))`
+   on the prize differential, Ng 1999). **Default is now `prize_potential`.**
+   *Other shaping ideas to consider* (each = one new `SHAPERS` entry, ablate
+   with `--shaping-coef`): board-HP differential, energy-in-play advantage,
+   bench-development / active-Pokémon survival, tempo (KOs per turn),
+   hand-size/card-advantage potential. All should stay **potential-based**
+   (telescoping) to preserve policy invariance. New estimators (TD(λ),
+   V-trace, GAE-with-truncation-bootstrap) drop into `ESTIMATORS` the same way.
 5. **Representation upgrades** (see `state-representation.md` gaps) — effects via
    attack/ability embeddings; opponent discard; hand/discard as count-weighted
    embeddings; attachment identity.
