@@ -34,6 +34,8 @@ from pkm.types.obs import (
     NUM_CARDS,
     NUM_OPT_TYPES,
     AreaType,
+    CardType,
+    EnergyType,
     GameState,
     Observation,
     Option,
@@ -42,12 +44,6 @@ from pkm.types.obs import (
     Select,
 )
 
-
-# CardType values (see obs_data_structure/OBSERVATION_SCHEMA.md)
-CARD_TYPE_ITEM = 1
-CARD_TYPE_SUPPORTER = 3
-CARD_TYPE_BASIC_ENERGY = 5
-CARD_TYPE_SPECIAL_ENERGY = 6
 
 # Reward-shaping card/attack IDs (ported from
 # refactor-to-prepare-for-heuristics-integration, see
@@ -60,10 +56,6 @@ DREEPY_LINE_CARD_IDS = {DREEPY_CARD_ID, DRAKLOAK_CARD_ID, DRAGAPULT_EX_CARD_ID}
 XEROSIC_MACHINATIONS_CARD_ID = 1197
 PHANTOM_DIVE_ATTACK_ID = 154
 
-# EnergyType values (see pkm/types/obs.py's EnergyType enum)
-ENERGY_TYPE_COLORLESS = 0
-ENERGY_TYPE_FIRE = 2
-ENERGY_TYPE_PSYCHIC = 5
 
 @dataclass
 class EncodedDecision:
@@ -367,7 +359,7 @@ def dragapult_backup_potential(obs: Observation) -> float:
     has_charged_drakloak = any(
         p is not None
         and p.id == DRAKLOAK_CARD_ID
-        and any(e in (ENERGY_TYPE_FIRE, ENERGY_TYPE_PSYCHIC) for e in p.energies)
+        and any(e in (EnergyType.FIRE, EnergyType.PSYCHIC) for e in p.energies)
         for p in me.bench
     )
     return 1.0 if has_charged_drakloak else 0.0
@@ -434,7 +426,7 @@ def _attack_cost_covered(attack: Attack, energies: list[int]) -> bool:
     pool = list(energies)
     generic = 0
     for req in attack.energies:
-        if req == ENERGY_TYPE_COLORLESS:
+        if req == EnergyType.COLORLESS:
             generic += 1
             continue
         if req in pool:
@@ -580,8 +572,8 @@ def _resolve_energy_attach(
     card_id = _card_id_at(state, sel, you, opt.area, opt.index)
     card = get_card_by_id(card_id) if card_id else None
     if card is None or card.card_type not in (
-        CARD_TYPE_BASIC_ENERGY,
-        CARD_TYPE_SPECIAL_ENERGY,
+        CardType.BASIC_ENERGY,
+        CardType.SPECIAL_ENERGY,
     ):
         return None
     return target, card
@@ -768,7 +760,7 @@ def dreepy_line_bench_charge_bonus(obs: Observation, picks: list[int]) -> float:
         if n >= 3:
             return -1.0
         type_set = set(resulting)
-        if len(type_set) == n and type_set <= {ENERGY_TYPE_FIRE, ENERGY_TYPE_PSYCHIC}:
+        if len(type_set) == n and type_set <= {EnergyType.FIRE, EnergyType.PSYCHIC}:
             return 1.0
     return 0.0
 
@@ -806,8 +798,8 @@ def dreepy_line_active_charge_bonus(obs: Observation, picks: list[int]) -> float
             continue  # active only
         before = set(target.energies)
         after = before | {card.energy_type}
-        had_combo = ENERGY_TYPE_FIRE in before and ENERGY_TYPE_PSYCHIC in before
-        has_combo = ENERGY_TYPE_FIRE in after and ENERGY_TYPE_PSYCHIC in after
+        had_combo = EnergyType.FIRE in before and EnergyType.PSYCHIC in before
+        has_combo = EnergyType.FIRE in after and EnergyType.PSYCHIC in after
         if has_combo and not had_combo:
             return 1.0
     return 0.0
@@ -846,7 +838,7 @@ def drakloak_backup_ready_bonus(obs: Observation, picks: list[int]) -> float:
         if target.id != DRAKLOAK_CARD_ID:
             continue
         resulting = sorted([*target.energies, card.energy_type])
-        if resulting == sorted([ENERGY_TYPE_FIRE, ENERGY_TYPE_PSYCHIC]):
+        if resulting == sorted([EnergyType.FIRE, EnergyType.PSYCHIC]):
             return 1.0
     return 0.0
 
@@ -881,6 +873,6 @@ def wasted_resources_attack_penalty(obs: Observation, picks: list[int]) -> float
             continue
         card_id = _card_id_at(state, sel, you, AreaType.HAND, o.index)
         card = get_card_by_id(card_id) if card_id else None
-        if card is not None and card.card_type in (CARD_TYPE_ITEM, CARD_TYPE_SUPPORTER):
+        if card is not None and card.card_type in (CardType.ITEM, CardType.SUPPORTER):
             return -1.0
     return 0.0
