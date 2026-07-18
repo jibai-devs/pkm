@@ -20,6 +20,7 @@ Run ``cli.py <command> --help`` for the full flag list.
 from __future__ import annotations
 
 import dataclasses
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
@@ -56,10 +57,80 @@ DATA_DIR = (
     / "agent_000_dragapult"
 )
 
+# Every run belongs to a named *experiment* — its own subdirectory under the
+# agent root (`<output>/experiments/<name>/`) holding that run's checkpoints,
+# logs, TensorBoard events, sweeps and submission bundles. This lets the same
+# agent keep many independent runs side by side. The name becomes a directory,
+# so it must be filesystem-safe (validated by `_resolve_experiment`).
+DEFAULT_EXPERIMENT = "000_default"
+_SMOKE_EXPERIMENT = "000_smoke"  # keep sanity runs out of real experiments
+_EXPERIMENT_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+_EXPERIMENT_HELP = (
+    "Experiment name — artifacts nest under <output>/experiments/<name>/. "
+    "Letters/digits/'.'/'_'/'-' only (no spaces or slashes). "
+    f"Default: {DEFAULT_EXPERIMENT}."
+)
+
 
 # --------------------------------------------------------------------------- #
 # Helpers
 # --------------------------------------------------------------------------- #
+
+
+def _resolve_experiment(data_dir: Path, experiment: str) -> Path:
+    """Return the artifact dir for `experiment` under `data_dir`, validating the name.
+
+    The name is used verbatim as a directory, so reject anything that is not a
+    plain filesystem-safe token (in particular spaces and path separators).
+    """
+    name = experiment.strip()
+    if not _EXPERIMENT_RE.fullmatch(name):
+        console.print(
+            f"[red]invalid experiment name[/] {experiment!r} — use only letters, "
+            "digits, '.', '_' or '-' (no spaces or slashes)."
+        )
+        raise typer.Exit(2)
+    return data_dir / "experiments" / name
+
+
+def _confirm_overwrite(ckpt_dir: Path, experiment: str, force: bool) -> None:
+    """Guard a fresh `train` against clobbering an experiment's existing checkpoint.
+
+    No-op when the experiment has no `latest.pt`. Otherwise prompt (or, with
+    `--force`, warn and proceed); declining aborts.
+    """
+    latest = ckpt_dir / "latest.pt"
+    if not latest.exists():
+        return
+
+    idx = None
+    try:  # read just the update counter; the blob is a TrainState dict
+        import torch
+
+        blob = torch.load(latest, map_location="cpu", weights_only=False)
+        if isinstance(blob, dict):
+            idx = blob.get("update_idx")
+    except Exception:  # noqa: BLE001 — best-effort; a bad/old blob just omits the count
+        idx = None
+    at = f" (update {idx})" if idx is not None else ""
+
+    if force:
+        console.print(
+            f"[yellow]--force:[/] overwriting existing checkpoint for experiment "
+            f"[cyan]{experiment}[/]{at}."
+        )
+        return
+
+    console.print(
+        f"[yellow]![/] experiment [cyan]{experiment}[/] already has a checkpoint"
+        f"{at} at\n    [dim]{latest}[/]"
+    )
+    if not typer.confirm("Overwrite and start a fresh run?", default=False):
+        console.print(
+            "[dim]aborted — use `resume` to continue this run, or pass "
+            "--experiment <name> to start a separate one.[/]"
+        )
+        raise typer.Exit(1)
 
 
 def _paths(data_dir: Path) -> dict[str, Path]:
@@ -273,6 +344,9 @@ def info(
         "-o",
         help="Output/artifact root directory (checkpoints + logs).",
     ),
+    experiment: str = typer.Option(
+        DEFAULT_EXPERIMENT, "--experiment", "-e", help=_EXPERIMENT_HELP
+    ),
     engine: str = typer.Option(_DEFAULT_ENGINE, help=_ENGINE_HELP),
 ) -> None:
     """Print the default config, engine backend, and artifact paths."""
@@ -287,6 +361,8 @@ def info(
 
     from pkm.new_agents.agent_000_dragapult.config import Config
 
+    data_dir = _resolve_experiment(data_dir, experiment)
+    console.print(f"[dim]experiment:[/] [cyan]{experiment}[/] → {data_dir}")
     p = _paths(data_dir)
     console.print(
         Panel.fit(
@@ -317,10 +393,14 @@ def smoke(
     workers: int = typer.Option(
         1, help="Rollout workers (1 = verified single-process path)."
     ),
+    experiment: str = typer.Option(
+        _SMOKE_EXPERIMENT, "--experiment", "-e", help=_EXPERIMENT_HELP
+    ),
     engine: str = typer.Option(_DEFAULT_ENGINE, help=_ENGINE_HELP),
 ) -> None:
     """Tiny end-to-end sanity run: 2 updates x 2 games. Proves the pipeline works."""
     _select_engine(engine)
+    data_dir = _resolve_experiment(data_dir, experiment)
     cfg = _build_config(
         workers=workers,
         lr=3e-4,
@@ -373,6 +453,15 @@ def train(
         "-o",
         help="Output/artifact root directory (checkpoints + logs).",
     ),
+    experiment: str = typer.Option(
+        DEFAULT_EXPERIMENT, "--experiment", "-e", help=_EXPERIMENT_HELP
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Overwrite an existing experiment checkpoint without prompting.",
+    ),
     resume: bool = typer.Option(False, help="Resume from checkpoints/latest.pt."),
     tb: bool = typer.Option(
         True, "--tb/--no-tb", help="Log to TensorBoard (<output>/runs/)."
@@ -393,6 +482,9 @@ def train(
     engine: str = typer.Option(_DEFAULT_ENGINE, help=_ENGINE_HELP),
 ) -> None:
     """Run PPO self-play training."""
+    data_dir = _resolve_experiment(data_dir, experiment)
+    if not resume:
+        _confirm_overwrite(_paths(data_dir)["ckpt"], experiment, force)
     _select_engine(engine)
     cfg = _build_config(
         workers=workers,
@@ -439,6 +531,9 @@ def resume(
         "-o",
         help="Output/artifact root directory (checkpoints + logs).",
     ),
+    experiment: str = typer.Option(
+        DEFAULT_EXPERIMENT, "--experiment", "-e", help=_EXPERIMENT_HELP
+    ),
     tb: bool = typer.Option(
         True, "--tb/--no-tb", help="Log to TensorBoard (<output>/runs/)."
     ),
@@ -455,13 +550,18 @@ def resume(
     engine: str = typer.Option(_DEFAULT_ENGINE, help=_ENGINE_HELP),
 ) -> None:
     """Resume training from checkpoints/latest.pt (config is restored from the checkpoint)."""
+    data_dir = _resolve_experiment(data_dir, experiment)
     _select_engine(engine)
     from pkm.new_agents.agent_000_dragapult.train import TrainState
 
     p = _paths(data_dir)
     latest = p["ckpt"] / "latest.pt"
     if not latest.exists():
-        console.print(f"[red]no checkpoint at[/] {latest}")
+        console.print(
+            f"[red]no checkpoint at[/] {latest}\n"
+            f"[dim](experiment [cyan]{experiment}[/] — start it with `train "
+            f"--experiment {experiment}`)[/]"
+        )
         raise typer.Exit(1)
     cfg = TrainState.load(latest).cfg
     cfg = dataclasses.replace(
@@ -496,6 +596,9 @@ def eval(
         "-o",
         help="Output/artifact root directory (checkpoints + logs).",
     ),
+    experiment: str = typer.Option(
+        DEFAULT_EXPERIMENT, "--experiment", "-e", help=_EXPERIMENT_HELP
+    ),
     engine: str = typer.Option(_DEFAULT_ENGINE, help=_ENGINE_HELP),
 ) -> None:
     """Report a checkpoint's win-rate vs the random baseline (alternating seats)."""
@@ -503,6 +606,7 @@ def eval(
     from pkm.new_agents.agent_000_dragapult.eval import winrate_vs_random
     from pkm.new_agents.agent_000_dragapult.train import TrainState
 
+    data_dir = _resolve_experiment(data_dir, experiment)
     ckpt = checkpoint or (_paths(data_dir)["ckpt"] / "latest.pt")
     if not ckpt.exists():
         console.print(f"[red]no checkpoint at[/] {ckpt}")
@@ -537,6 +641,9 @@ def sweep(
         "-o",
         help="Output/artifact root directory (checkpoints + logs).",
     ),
+    experiment: str = typer.Option(
+        DEFAULT_EXPERIMENT, "--experiment", "-e", help=_EXPERIMENT_HELP
+    ),
     engine: str = typer.Option(_DEFAULT_ENGINE, help=_ENGINE_HELP),
 ) -> None:
     """Optuna hyperparameter sweep — maximize eval win-rate vs random.
@@ -547,6 +654,7 @@ def sweep(
     are pruned early via reported intermediate evals (MedianPruner).
     """
     _select_engine(engine)
+    data_dir = _resolve_experiment(data_dir, experiment)
     import optuna
 
     from pkm.new_agents.agent_000_dragapult.eval import winrate_vs_random
@@ -658,6 +766,9 @@ def import_csv(
         "-o",
         help="Output/artifact root directory (checkpoints + logs).",
     ),
+    experiment: str = typer.Option(
+        DEFAULT_EXPERIMENT, "--experiment", "-e", help=_EXPERIMENT_HELP
+    ),
 ) -> None:
     """Backfill TensorBoard from an existing train.csv.
 
@@ -669,6 +780,7 @@ def import_csv(
 
     from pkm.new_agents.agent_000_dragapult.monitor import RunContext, TensorBoardSink
 
+    data_dir = _resolve_experiment(data_dir, experiment)
     p = _paths(data_dir)
     csv_path = Path(csv) if csv else p["csv"]
     if not csv_path.exists():
@@ -716,6 +828,9 @@ def pack(
         "-o",
         help="Output/artifact root directory (checkpoints + logs).",
     ),
+    experiment: str = typer.Option(
+        DEFAULT_EXPERIMENT, "--experiment", "-e", help=_EXPERIMENT_HELP
+    ),
 ) -> None:
     """Pack the latest weights into a Kaggle submission bundle (.tar.gz).
 
@@ -730,6 +845,7 @@ def pack(
 
     import torch
 
+    data_dir = _resolve_experiment(data_dir, experiment)
     p = _paths(data_dir)
     ckpt = checkpoint or (p["ckpt"] / "latest.pt")
     if not ckpt.exists():
@@ -792,6 +908,9 @@ def submit(
         "-o",
         help="Output/artifact root directory (checkpoints + logs).",
     ),
+    experiment: str = typer.Option(
+        DEFAULT_EXPERIMENT, "--experiment", "-e", help=_EXPERIMENT_HELP
+    ),
 ) -> None:
     """Upload a packed bundle to Kaggle (`kaggle competitions submit`).
 
@@ -801,6 +920,7 @@ def submit(
     import shutil
     import subprocess
 
+    data_dir = _resolve_experiment(data_dir, experiment)
     p = _paths(data_dir)
     if bundle is None:
         bundles = sorted(p["submissions"].glob("submission_*.tar.gz"))

@@ -1,56 +1,63 @@
 # agent_000_dragapult — self-contained PPO self-play trainer.
 # All recipes run from the repo root so `python -m` resolves the `pkm` package.
-# Artifacts land in <repo>/pkm_data/new_agents/agent_000_dragapult/.
+# Artifacts land in <repo>/pkm_data/new_agents/agent_000_dragapult/experiments/<exp>/.
 
 root := justfile_directory() / "../../.."
 cli  := "uv run pkm new_agents 000_dragapult"
+
+# Every run belongs to a named *experiment* (its own artifact subdirectory), so
+# the same agent can hold many runs side by side. Override per-recipe with
+# `exp=...`, e.g. `just train exp=hi-lr updates=200`. Names must be filesystem
+# safe (letters/digits/'.'/'_'/'-', no spaces). Default: 000_default.
+exp := "000_default"
 
 # List available recipes.
 default:
     @just --list --unsorted
 
-# Show default config, engine backend, and artifact paths.
-info:
-    cd {{root}} && {{cli}} info
+# Show config, engine backend, and artifact paths for experiment `exp`.
+info exp=exp:
+    cd {{root}} && {{cli}} info --experiment {{exp}}
 
 # Training/eval recipes default to the fast local-nix engine (no kaggle_environments
 # import). Override per-recipe: `just train engine=kaggle` / `engine=local`.
 
-# Tiny end-to-end sanity run (2 updates x 2 games). Proves the pipeline works.
-smoke workers="1" engine="local-nix":
-    cd {{root}} && {{cli}} smoke --workers {{workers}} --engine {{engine}}
+# Tiny end-to-end sanity run (2 updates x 2 games). Writes to the 000_smoke experiment.
+smoke exp="000_smoke" workers="1" engine="local-nix":
+    cd {{root}} && {{cli}} smoke --experiment {{exp}} --workers {{workers}} --engine {{engine}}
 
-# PPO self-play training. e.g. `just train updates=200 games=16 workers=8`.
-train updates="200" games="16" workers="1" engine="local-nix":
-    cd {{root}} && {{cli}} train --updates {{updates}} --games {{games}} --workers {{workers}} --engine {{engine}}
+# PPO self-play training. e.g. `just train exp=hi-lr updates=200 games=16 workers=8`.
+# Prompts before overwriting an experiment's existing checkpoint (pass force=--force to skip).
+train exp=exp updates="200" games="16" workers="1" engine="local-nix" force="":
+    cd {{root}} && {{cli}} train --experiment {{exp}} --updates {{updates}} --games {{games}} --workers {{workers}} --engine {{engine}} {{force}}
 
-# Resume from checkpoints/latest.pt for more updates.
-resume updates="50" games="16" workers="1" engine="local-nix":
-    cd {{root}} && {{cli}} resume --updates {{updates}} --games {{games}} --workers {{workers}} --engine {{engine}}
+# Resume experiment `exp` from its checkpoints/latest.pt for more updates.
+resume exp=exp updates="50" games="16" workers="1" engine="local-nix":
+    cd {{root}} && {{cli}} resume --experiment {{exp}} --updates {{updates}} --games {{games}} --workers {{workers}} --engine {{engine}}
 
-# Win-rate of the latest checkpoint vs the random baseline.
-eval games="100" engine="local-nix":
-    cd {{root}} && {{cli}} eval --games {{games}} --engine {{engine}}
+# Win-rate of experiment `exp`'s latest checkpoint vs the random baseline.
+eval exp=exp games="100" engine="local-nix":
+    cd {{root}} && {{cli}} eval --experiment {{exp}} --games {{games}} --engine {{engine}}
 
-# Launch TensorBoard over this agent's runs/ dir.
-tensorboard port="6006":
-    cd {{root}} && uv run tensorboard --logdir=pkm_data/new_agents/agent_000_dragapult/runs --port {{port}}
+# Launch TensorBoard over experiment `exp`'s runs/ dir.
+tensorboard exp=exp port="6006":
+    cd {{root}} && uv run tensorboard --logdir=pkm_data/new_agents/agent_000_dragapult/experiments/{{exp}}/runs --port {{port}}
 
-# Optuna hyperparameter sweep. e.g. `just sweep trials=30 updates=15 games=32 workers=8`.
-sweep trials="30" updates="15" games="32" workers="8" engine="local-nix":
-    cd {{root}} && {{cli}} sweep --trials {{trials}} --updates {{updates}} --games {{games}} --workers {{workers}} --engine {{engine}}
+# Optuna hyperparameter sweep. e.g. `just sweep exp=sweep1 trials=30 updates=15`.
+sweep exp=exp trials="30" updates="15" games="32" workers="8" engine="local-nix":
+    cd {{root}} && {{cli}} sweep --experiment {{exp}} --trials {{trials}} --updates {{updates}} --games {{games}} --workers {{workers}} --engine {{engine}}
 
-# Backfill TensorBoard from an existing train.csv (-> runs/csv-import/).
-import-csv:
-    cd {{root}} && {{cli}} import-csv
+# Backfill TensorBoard from experiment `exp`'s train.csv (-> runs/csv-import/).
+import-csv exp=exp:
+    cd {{root}} && {{cli}} import-csv --experiment {{exp}}
 
-# Pack the latest weights into a Kaggle submission bundle (.tar.gz).
-pack:
-    cd {{root}} && {{cli}} pack
+# Pack experiment `exp`'s latest weights into a Kaggle submission bundle (.tar.gz).
+pack exp=exp:
+    cd {{root}} && {{cli}} pack --experiment {{exp}}
 
-# Upload the newest packed bundle to Kaggle. e.g. `just submit message="v1"`.
-submit message="agent_000_dragapult":
-    cd {{root}} && {{cli}} submit --message "{{message}}"
+# Upload experiment `exp`'s newest packed bundle to Kaggle. e.g. `just submit message="v1"`.
+submit exp=exp message="agent_000_dragapult":
+    cd {{root}} && {{cli}} submit --experiment {{exp}} --message "{{message}}"
 
 # Poll Kaggle for submission status + score. `just status --watch` to poll.
 status *args:
