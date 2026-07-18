@@ -24,8 +24,6 @@ def test_search_begin_returns_state_with_options():
         cabt.battle_finish()
         pytest.skip("game ended during setup")
     try:
-        o = cabt.to_observation(obs)
-        seat = o.current.yourIndex
         # `_fresh_root` returns the very first select (IS_FIRST coin-flip choice),
         # before either player has drawn a hand: deckCount == 60 for both seats
         # and select.deck is None, so search_begin's own-deck validation

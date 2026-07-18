@@ -52,11 +52,15 @@ def _play_game(model, cfg, gen) -> tuple[list[ExItSample], int]:
     n_iter = 0
     while obs["current"]["result"] < 0 and n_iter < 100000:
         if obs["select"] is None or obs["current"] is None:
-            obs = battle_select(list(deck.DECK_60)); n_iter += 1; continue
+            obs = battle_select(list(deck.DECK_60))
+            n_iter += 1
+            continue
         o = to_observation(obs)
         n = len(o.select.option)
         if n == 0:
-            obs = battle_select([]); n_iter += 1; continue
+            obs = battle_select([])
+            n_iter += 1
+            continue
         seat = obs["current"]["yourIndex"]
         pi = mcts.search(obs, seat, model, cfg, gen)  # [n]
         samples.append(ExItSample(features=featurize(o), policy_target=pi, seat=seat))
@@ -64,7 +68,8 @@ def _play_game(model, cfg, gen) -> tuple[list[ExItSample], int]:
         k = policy.select_count(o.select.minCount, o.select.maxCount, n)
         k = max(1, min(k, n))
         idx = torch.multinomial(torch.from_numpy(pi), k, replacement=False, generator=gen)
-        obs = battle_select(idx.tolist()); n_iter += 1
+        obs = battle_select(idx.tolist())
+        n_iter += 1
     result = obs["current"]["result"]
     battle_finish()
     for s in samples:  # Monte-Carlo value target = game outcome
@@ -85,7 +90,8 @@ class ExItTrainer:
         results = []
         for _ in range(n_games):
             s, r = _play_game(model, cfg, gen)
-            samples.extend(s); results.append(r)
+            samples.extend(s)
+            results.append(r)
         denom = max(n_games, 1)
         stats = {
             "games": n_games, "steps": len(samples),
@@ -116,7 +122,8 @@ class ExItTrainer:
                 z = torch.tensor([s.value_target for s in mb], dtype=torch.float32)
                 value_loss = F.mse_loss(value, z)
                 loss = policy_loss + tc.value_coef * value_loss
-                opt.zero_grad(); loss.backward()
+                opt.zero_grad()
+                loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), tc.max_grad_norm)
                 opt.step()
                 agg["policy_loss"] += policy_loss.item()
