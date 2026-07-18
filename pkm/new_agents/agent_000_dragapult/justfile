@@ -31,6 +31,12 @@ smoke exp="000_smoke" workers="1" engine="local-nix":
 train exp=exp updates="256" games="16" workers="8" engine="local-nix" force="":
     cd {{root}} && {{cli}} train --experiment {{exp}} --updates {{updates}} --games {{games}} --workers {{workers}} --engine {{engine}} {{force}}
 
+# PPO self-play tuned to shrink the serial update (minibatch 256, epochs 2), which
+# dominates the cycle at 79K params — see the util/core columns. e.g.
+# `just train-fast exp=fast1 updates=200 games=16`.
+train-fast exp=exp updates="256" games="16" workers="8" engine="local-nix" force="":
+    cd {{root}} && {{cli}} train --experiment {{exp}} --updates {{updates}} --games {{games}} --workers {{workers}} --minibatch-size 256 --epochs 2 --engine {{engine}} {{force}}
+
 # Resume experiment `exp` from its checkpoints/latest.pt for more updates.
 resume exp=exp updates="50" games="16" workers="8" engine="local-nix":
     cd {{root}} && {{cli}} resume --experiment {{exp}} --updates {{updates}} --games {{games}} --workers {{workers}} --engine {{engine}}
