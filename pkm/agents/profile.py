@@ -30,6 +30,7 @@ class AgentProfile:
         self.checkpoint_dir = self.base_dir / "checkpoints"
         self.metrics_dir = self.base_dir / "metrics"
         self.runs_dir = self.base_dir / "runs"
+        self.reward_weights_path = self.base_dir / "reward_weights.json"
 
     def ensure_dirs(self) -> None:
         """Create the agent's directory tree if it doesn't exist."""

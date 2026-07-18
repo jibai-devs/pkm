@@ -6,6 +6,7 @@ import torch.nn.functional as F
 
 from .encoder import EncodedDecision
 from .model import PolicyValueNet
+from .reward_terms import DIRECT_TERMS, POTENTIAL_TERMS
 
 
 def compute_returns(
@@ -13,24 +14,61 @@ def compute_returns(
     terminal_reward: float,
     gamma: float = 0.99,
     lam: float = 0.95,
-    shaping_coef: float = 0.2,
+    weights: dict[str, float] | None = None,
+    win_reward: float = 1.0,
 ) -> None:
     """Fill advantage/ret on each decision in place.
 
-    Rewards are terminal win/loss plus potential-based shaping on the prize
-    differential: r_t += shaping_coef * (gamma * phi(s_{t+1}) - phi(s_t)),
-    which leaves the optimal policy unchanged.
+    `win_reward` scales the terminal reward for a *win* only (terminal_reward
+    > 0); losses (-1.0) and draws (0.0) are untouched. Use it to make winning
+    matter more relative to shaping/losing, without also making losses more
+    punishing.
+
+    `weights` maps a term name (see reward_terms.py) to its coefficient;
+    a missing name means 0.0 (off). Rewards are terminal win/loss, plus two
+    kinds of shaping:
+
+    - Potential-based terms, each a pure function of state (not of what was
+      picked): r_t += coef * (gamma * phi(s_{t+1}) - phi(s_t)). This leaves
+      the optimal policy unchanged, and rewards *reaching* a state rather
+      than paying out repeatedly for every decision made while it holds —
+      the prize differential, and having Dragapult ex able to attack with a
+      charged backup Drakloak on the bench.
+    - Direct terms conditioned on the specific action taken at that step, so
+      they're added straight into that step's reward instead of as a
+      potential difference — see each `EncodedDecision` field's origin in
+      encoder.py for what each one rewards/penalizes.
     """
     n = len(trajectory)
     if n == 0:
         return
+    w = weights or {}
     rewards = np.zeros(n, dtype=np.float64)
     for t in range(n - 1):
-        rewards[t] = shaping_coef * (
-            gamma * trajectory[t + 1].potential - trajectory[t].potential
-        )
+        for name, attr in POTENTIAL_TERMS:
+            coef = w.get(name, 0.0)
+            if coef:
+                rewards[t] += coef * (
+                    gamma * getattr(trajectory[t + 1], attr)
+                    - getattr(trajectory[t], attr)
+                )
+        for name, attr in DIRECT_TERMS:
+            coef = w.get(name, 0.0)
+            if coef:
+                rewards[t] += coef * getattr(trajectory[t], attr)
     # terminal step: shaping toward final potential is folded into the outcome
-    rewards[n - 1] = terminal_reward - shaping_coef * trajectory[n - 1].potential
+    # (the terminal state's potential is implicitly 0 -- the game is over).
+    rewards[n - 1] = (
+        terminal_reward * win_reward if terminal_reward > 0 else terminal_reward
+    )
+    for name, attr in POTENTIAL_TERMS:
+        coef = w.get(name, 0.0)
+        if coef:
+            rewards[n - 1] -= coef * getattr(trajectory[n - 1], attr)
+    for name, attr in DIRECT_TERMS:
+        coef = w.get(name, 0.0)
+        if coef:
+            rewards[n - 1] += coef * getattr(trajectory[n - 1], attr)
 
     gae = 0.0
     for t in reversed(range(n)):

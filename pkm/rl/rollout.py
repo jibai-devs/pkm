@@ -14,7 +14,27 @@ from pkm.heuristics.context import GameContext
 from pkm.heuristics.deck_tracker import DeckTracker
 from pkm.types.obs import Observation
 
-from .encoder import EncodedDecision, encode_decision, prize_potential
+from .encoder import (
+    EncodedDecision,
+    budew_active_second_potential,
+    budew_first_turn_attack_bonus,
+    budew_turn_bench_setup_bonus,
+    drakloak_backup_ready_bonus,
+    dragapult_backup_potential,
+    dragapult_ex_attack_bonus,
+    dreepy_energy_spread_penalty,
+    dreepy_evolve_bonus,
+    dreepy_line_active_charge_bonus,
+    dreepy_line_bench_charge_bonus,
+    dreepy_line_field_potential,
+    encode_decision,
+    energy_overattach_penalty,
+    phantom_dive_attack_bonus,
+    prize_potential,
+    wasted_resources_attack_penalty,
+    wrong_type_energy_penalty,
+    xerosic_machinations_bonus,
+)
 from .model import PolicyValueNet
 
 MAX_DECISIONS = 3000
@@ -56,6 +76,24 @@ class TorchPolicy:
         d.logprob = res.logprob
         d.value = res.value
         d.potential = prize_potential(parsed)
+        d.board_setup_potential = dragapult_backup_potential(parsed)
+        d.budew_setup_potential = budew_active_second_potential(parsed)
+        d.dreepy_line_field_potential = dreepy_line_field_potential(parsed)
+        d.energy_penalty = energy_overattach_penalty(parsed, res.picks)
+        d.budew_bonus = budew_first_turn_attack_bonus(parsed, res.picks)
+        d.wrong_type_energy_penalty = wrong_type_energy_penalty(parsed, res.picks)
+        d.dragapult_attack_bonus = dragapult_ex_attack_bonus(parsed, res.picks)
+        d.phantom_dive_bonus = phantom_dive_attack_bonus(parsed, res.picks)
+        d.dreepy_spread_penalty = dreepy_energy_spread_penalty(parsed, res.picks)
+        d.xerosic_bonus = xerosic_machinations_bonus(parsed, res.picks)
+        d.budew_bench_setup_bonus = budew_turn_bench_setup_bonus(parsed, res.picks)
+        d.dreepy_evolve_bonus = dreepy_evolve_bonus(parsed, res.picks)
+        d.dreepy_bench_charge_bonus = dreepy_line_bench_charge_bonus(parsed, res.picks)
+        d.dreepy_active_charge_bonus = dreepy_line_active_charge_bonus(
+            parsed, res.picks
+        )
+        d.wasted_resources_penalty = wasted_resources_attack_penalty(parsed, res.picks)
+        d.drakloak_backup_ready_bonus = drakloak_backup_ready_bonus(parsed, res.picks)
         return res.picks, d
 
 

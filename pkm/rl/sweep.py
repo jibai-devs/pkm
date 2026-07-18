@@ -52,7 +52,7 @@ def _ppo_objective(
         lr=lr,
         gamma=gamma,
         lam=lam,
-        shaping_coef=shaping_coef,
+        weights={"shaping": shaping_coef},
         pool_size=pool_size,
         pool_prob=pool_prob,
         eval_every=iterations,  # only eval at the end

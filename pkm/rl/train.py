@@ -20,6 +20,7 @@ from pkm.data import Deck
 from .features import archetype_index, write_stamp_sidecar
 from .model import PolicyValueNet
 from .ppo import compute_returns, ppo_update
+from .reward_terms import DEFAULT_WEIGHTS, load_weights
 from .rollout import RandomPolicy, TorchPolicy, play_game
 from .logging import MetricLog
 
@@ -66,7 +67,7 @@ def train(
     lr: float = 3e-4,
     gamma: float = 0.99,
     lam: float = 0.95,
-    shaping_coef: float = 0.2,
+    weights: dict[str, float] | None = None,
     pool_size: int = 8,
     pool_prob: float = 0.4,
     eval_every: int = 5,
@@ -81,6 +82,8 @@ def train(
 ) -> PolicyValueNet:
     random.seed(seed)
     torch.manual_seed(seed)
+
+    effective_weights = {**DEFAULT_WEIGHTS, **(weights or {})}
 
     deck = Deck.from_csv(deck_path).card_ids
     # Task 8: self-play here always mirrors deck_path against itself (no
@@ -117,7 +120,7 @@ def train(
                 "lr": lr,
                 "gamma": gamma,
                 "lam": lam,
-                "shaping_coef": shaping_coef,
+                "weights": effective_weights,
                 "pool_size": pool_size,
                 "pool_prob": pool_prob,
                 "games_per_iter": games_per_iter,
@@ -160,7 +163,7 @@ def train(
                     result.rewards[p],
                     gamma=gamma,
                     lam=lam,
-                    shaping_coef=shaping_coef,
+                    weights=effective_weights,
                 )
                 data.extend(result.trajectories[p])
                 if side == -1 and p == 1:
@@ -252,7 +255,13 @@ def main(
     games: int = typer.Option(8, help="games per iteration"),
     lr: float = typer.Option(3e-4, help="learning rate"),
     gamma: float = typer.Option(0.99, help="discount factor"),
-    shaping: float = typer.Option(0.2, help="reward shaping coefficient"),
+    weights: str | None = typer.Option(
+        None,
+        "--weights",
+        help="path to a JSON file of {term: weight} overrides — see "
+        "pkm/rl/reward_terms.py for term names and defaults. Defaults "
+        "to the agent's own reward_weights.json when --agent is given.",
+    ),
     pool_size: int = typer.Option(8, help="opponent checkpoint pool size"),
     eval_every: int = typer.Option(5, help="evaluate every N iterations"),
     eval_games: int = typer.Option(20, help="games for evaluation"),
@@ -264,6 +273,7 @@ def main(
     wandb_project: str | None = typer.Option(None, help="wandb project name (enables wandb logging)"),
     wandb_run_name: str | None = typer.Option(None, help="wandb run name"),
 ) -> None:
+    profile = None
     if agent:
         profile = AgentProfile(agent)
         profile.ensure_dirs()
@@ -273,13 +283,15 @@ def main(
         log_dir = str(profile.runs_dir / "ppo")
         if init is None:
             init = profile.ppo_init()
+    weights_path = weights or (profile.reward_weights_path if profile else None)
+    resolved_weights = load_weights(weights_path)
     train(
         deck_path=deck,
         iterations=iterations,
         games_per_iter=games,
         lr=lr,
         gamma=gamma,
-        shaping_coef=shaping,
+        weights=resolved_weights,
         pool_size=pool_size,
         eval_every=eval_every,
         eval_games=eval_games,
