@@ -252,6 +252,7 @@ pkm new_agents 000_dragapult sweep --trials 30 --updates 15 --games 32 --workers
 | `--games`      | `32`            | Games per update within a trial.        |
 | `--workers`    | `8`             | Rollout workers per trial.              |
 | `--eval-games` | `128`           | Games used to score each trial.         |
+| `--objective`  | `curve_auc`     | What each trial's score maximizes (below). |
 | `--study`      | `dragapult_ppo` | Study name (SQLite file).               |
 | `--seed`       | `0`             | Base seed (offset per trial).           |
 
@@ -263,6 +264,24 @@ pkm new_agents 000_dragapult sweep --trials 30 --updates 15 --games 32 --workers
   trial-parallelism on top or you'll oversubscribe cores.
 - Keep `--updates` short (10–20): a sweep finds good `lr`/`entropy` fast, then you
   do a full-length `train` with the winning params.
+
+**What each trial optimizes (`--objective`).** The default is **`curve_auc`**, not
+just the final win-rate: a short trial can really only measure *how fast and how
+steadily* a config learns, so scoring on the whole eval curve is both more
+informative and less noisy than a single end snapshot.
+
+| Value           | Trial score = …                                                                                                  |
+|-----------------|-------------------------------------------------------------------------------------------------------------------|
+| `curve_auc`     | **(default)** mean of the eval learning curve (all intermediate evals + the final one). Rewards fast *and* sustained learning; averages out per-eval noise. |
+| `final_winrate` | Final eval win-rate only (the legacy behaviour).                                                                  |
+| `peak_winrate`  | Best eval reached — robust to an end-of-run collapse.                                                             |
+| `net_winrate`   | Final `win_rate − loss_rate` — credits *not losing*; denser than raw wins once win-rate saturates near random's ceiling. |
+
+Win-rate vs *random* saturates near 100% (§7), so as trials cluster at the top a
+final-only objective goes flat exactly where you want discrimination; `curve_auc`
+and `net_winrate` both push that back. A true prize-differential margin (scoring by
+*how many* prizes you win by) is a further step — it needs the eval harness to
+surface per-game prize counts, not just W/L/D.
 
 **Tuning priority if doing it by hand:** `games` + `updates` (biggest levers) →
 `lr` → `entropy-coef` (if the policy collapses) → `epochs`/`minibatch` →

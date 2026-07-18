@@ -638,6 +638,36 @@ def eval(
     console.print(t)
 
 
+SWEEP_OBJECTIVES = ("curve_auc", "final_winrate", "peak_winrate", "net_winrate")
+
+
+def _score_objective(
+    name: str, curve: list[float], final_ev: dict[str, float]
+) -> float:
+    """Reduce a trial's results to the single scalar Optuna maximizes.
+
+    ``curve`` is the list of intermediate eval win-rates recorded during the
+    trial; ``final_ev`` is a fresh end-of-trial :func:`evaluate` result.
+
+    - ``curve_auc`` (default): mean of the eval learning curve (intermediate
+      evals + the final one) — rewards fast *and* sustained learning and
+      averages out per-eval noise. What a short trial can actually measure.
+    - ``final_winrate``: the final eval win-rate only (legacy behaviour).
+    - ``peak_winrate``: best eval reached — robust to an end-of-run collapse.
+    - ``net_winrate``: final ``win_rate - loss_rate`` — credits *not losing*, a
+      denser signal than raw wins once win-rate saturates near random's ceiling.
+    """
+    wr = final_ev["win_rate"]
+    if name == "final_winrate":
+        return wr
+    if name == "net_winrate":
+        return wr - final_ev["loss_rate"]
+    points = [*curve, wr]  # learning curve incl. the final snapshot
+    if name == "peak_winrate":
+        return max(points)
+    return sum(points) / len(points)  # curve_auc
+
+
 @app.command()
 def sweep(
     trials: int = typer.Option(30, help="Number of Optuna trials."),
@@ -645,6 +675,14 @@ def sweep(
     games: int = typer.Option(32, help="Self-play games per update."),
     workers: int = typer.Option(8, help="Rollout workers per trial."),
     eval_games: int = typer.Option(128, help="Games per evaluation (the objective)."),
+    objective: str = typer.Option(
+        "curve_auc",
+        help=(
+            "Trial score to maximize: curve_auc (default; mean of the eval "
+            "learning curve), final_winrate, peak_winrate, or net_winrate "
+            "(win_rate - loss_rate)."
+        ),
+    ),
     study: str = typer.Option(
         "dragapult_ppo", help="Optuna study name (sqlite, resumable)."
     ),
@@ -667,6 +705,12 @@ def sweep(
     <output>/sweeps/<study>.db (resumable; view with `optuna-dashboard`). Trials
     are pruned early via reported intermediate evals (MedianPruner).
     """
+    if objective not in SWEEP_OBJECTIVES:
+        console.print(
+            f"[red]unknown --objective[/] {objective!r} "
+            f"[dim](choose from {', '.join(SWEEP_OBJECTIVES)})[/]"
+        )
+        raise typer.Exit(2)
     _select_engine(engine)
     data_dir = _resolve_experiment(data_dir, experiment)
     import optuna
@@ -684,19 +728,22 @@ def sweep(
     storage = f"sqlite:///{p['sweeps'] / (study + '.db')}"
 
     class PruningSink(MetricSink):
-        """Report intermediate eval win-rate to Optuna and prune hopeless trials."""
+        """Report intermediate eval win-rate to Optuna, record the learning curve
+        for the objective, and prune hopeless trials."""
 
         def __init__(self, trial: optuna.Trial):
             self.trial = trial
+            self.curve: list[float] = []
 
         def log(self, update: int, total: int, stats: dict) -> None:
             ev = stats.get("eval_win_rate")
             if isinstance(ev, (int, float)):
+                self.curve.append(float(ev))
                 self.trial.report(ev, update)
                 if self.trial.should_prune():
                     raise StopTraining
 
-    def objective(trial: optuna.Trial) -> float:
+    def _run_trial(trial: optuna.Trial) -> float:
         lr = trial.suggest_float("lr", 1e-5, 1e-2, log=True)
         entropy_coef = trial.suggest_float("entropy_coef", 1e-4, 5e-2, log=True)
         clip_eps = trial.suggest_float("clip_eps", 0.1, 0.3)
@@ -718,9 +765,10 @@ def sweep(
             ckpt_every=updates,
         )
         trial_dir = p["sweeps"] / study / f"trial_{trial.number}"
+        pruning = PruningSink(trial)
         observers = [
             TensorBoardSink(p["runs"] / f"sweep-{study}" / f"trial_{trial.number}"),
-            PruningSink(trial),
+            pruning,
         ]
         try:
             ts = train(
@@ -735,11 +783,13 @@ def sweep(
             )
         except StopTraining as exc:  # pruned mid-run
             raise optuna.TrialPruned() from exc
-        return winrate_vs_random(ts.model, n_games=eval_games, seed=seed)["win_rate"]
+        final_ev = winrate_vs_random(ts.model, n_games=eval_games, seed=seed)
+        return _score_objective(objective, pruning.curve, final_ev)
 
     console.print(
         f"[bold]sweep[/] study=[cyan]{study}[/] trials={trials} "
-        f"updates/trial={updates} games={games} workers={workers}"
+        f"updates/trial={updates} games={games} workers={workers} "
+        f"objective=[cyan]{objective}[/]"
     )
     console.print(f"[dim]storage ->[/] {storage}\n")
     st = optuna.create_study(
@@ -749,7 +799,7 @@ def sweep(
         load_if_exists=True,
         pruner=optuna.pruners.MedianPruner(n_warmup_steps=1),
     )
-    st.optimize(objective, n_trials=trials)
+    st.optimize(_run_trial, n_trials=trials)
 
     try:
         best = st.best_trial
@@ -759,7 +809,7 @@ def sweep(
     t = Table(title="best trial", title_style="bold")
     t.add_column("param", style="dim")
     t.add_column("value", justify="right", style="bold")
-    t.add_row("win_rate", f"[green]{best.value:.1%}[/]")
+    t.add_row(objective, f"[green]{best.value:.1%}[/]")
     for k, v in best.params.items():
         t.add_row(k, str(v))
     console.print(t)
