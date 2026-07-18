@@ -37,14 +37,14 @@ past the update in progress (see §6).
 
 ## 2. Commands
 
-| Command | What it does |
-|---|---|
-| `info`   | Print the default config, engine backend, and where artifacts go. |
+| Command  | What it does                                                          |
+|----------|-----------------------------------------------------------------------|
+| `info`   | Print the default config, engine backend, and where artifacts go.     |
 | `smoke`  | Tiny end-to-end run (2 updates × 2 games). Proves the pipeline works. |
-| `train`  | PPO self-play training. The main command (§3–4). |
-| `resume` | Continue from `checkpoints/latest.pt` for more updates. |
-| `eval`   | Win-rate of a checkpoint vs the random baseline. |
-| `sweep`  | Optuna hyperparameter search (§9). |
+| `train`  | PPO self-play training. The main command (§3–4).                      |
+| `resume` | Continue from `checkpoints/latest.pt` for more updates.               |
+| `eval`   | Win-rate of a checkpoint vs the random baseline.                      |
+| `sweep`  | Optuna hyperparameter search (§9).                                    |
 
 There is also a `justfile` in this directory with shorthands: `just smoke`,
 `just train updates=300 games=48 workers=12`, `just eval`.
@@ -83,30 +83,30 @@ pkm new_agents 000_dragapult train \
 
 ### Every flag, explained
 
-| Flag | Default | What it controls |
-|---|---|---|
-| `--updates` | `200` | Number of collect→improve cycles = **training length**. |
-| `--games` | `16` | Self-play games collected per update = the **batch** (each game ≈ 215 decisions). |
-| `--workers` | `1` | Parallel rollout processes. **Speed only**, never changes what's learned. Try `8`–`12`. |
-| `--lr` | `0.0003` | Adam learning rate. |
-| `--gamma` | `0.997` | Reward discount over the ~215-decision game horizon. |
-| `--lam` | `0.95` | GAE λ — advantage estimator bias/variance trade-off. |
-| `--clip-eps` | `0.2` | PPO trust-region clip (how far the policy may move per update). |
-| `--entropy-coef` | `0.01` | Exploration bonus. Raise (→`0.02`–`0.03`) if the policy collapses early. |
-| `--value-coef` | `0.5` | Weight of the value (critic) loss in the total loss. |
-| `--epochs` | `4` | Optimizer passes over each collected batch. |
-| `--minibatch-size` | `64` | SGD minibatch size, in decisions. |
-| `--seed` | `0` | RNG seed (weights, sampling, worker seeding). |
-| `--eval-every` | `10` | Evaluate vs random every N updates (`0` = never). |
-| `--eval-games` | `100` | Games per evaluation. |
-| `--ckpt-every` | `50` | Write a numbered `ckpt_<N>.pt` snapshot every N updates. (`latest.pt` is *always* written every update.) |
-| `--output-dir` / `-o` | `pkm_data/new_agents/agent_000_dragapult` | Artifact root (checkpoints, logs, TB, wandb, sweeps). |
-| `--resume` / `--no-resume` | `--no-resume` | Continue from `latest.pt` instead of starting fresh (or use the `resume` command). |
-| `--tb` / `--no-tb` | `--tb` | Log to TensorBoard under `<output>/runs/`. |
-| `--log-dir` | *(auto)* | Override the TensorBoard dir (default `<output>/runs/<run-name>`). |
-| `--wandb-project` | *(off)* | Enable Weights & Biases logging to this project. Omitted = wandb off. |
-| `--wandb-mode` | `offline` | `offline` (local, no network), `online` (cloud, needs `wandb login`), or `disabled`. |
-| `--run-name` | *(timestamp)* | Names the TensorBoard subdir and the wandb run. |
+| Flag                       | Default                                   | What it controls                                                                                         |
+|----------------------------|-------------------------------------------|----------------------------------------------------------------------------------------------------------|
+| `--updates`                | `200`                                     | Number of collect→improve cycles = **training length**.                                                  |
+| `--games`                  | `16`                                      | Self-play games collected per update = the **batch** (each game ≈ 215 decisions).                        |
+| `--workers`                | `1`                                       | Parallel rollout processes. **Speed only**, never changes what's learned. Try `8`–`12`.                  |
+| `--lr`                     | `0.0003`                                  | Adam learning rate.                                                                                      |
+| `--gamma`                  | `0.997`                                   | Reward discount over the ~215-decision game horizon.                                                     |
+| `--lam`                    | `0.95`                                    | GAE λ — advantage estimator bias/variance trade-off.                                                     |
+| `--clip-eps`               | `0.2`                                     | PPO trust-region clip (how far the policy may move per update).                                          |
+| `--entropy-coef`           | `0.01`                                    | Exploration bonus. Raise (→`0.02`–`0.03`) if the policy collapses early.                                 |
+| `--value-coef`             | `0.5`                                     | Weight of the value (critic) loss in the total loss.                                                     |
+| `--epochs`                 | `4`                                       | Optimizer passes over each collected batch.                                                              |
+| `--minibatch-size`         | `64`                                      | SGD minibatch size, in decisions.                                                                        |
+| `--seed`                   | `0`                                       | RNG seed (weights, sampling, worker seeding).                                                            |
+| `--eval-every`             | `10`                                      | Evaluate vs random every N updates (`0` = never).                                                        |
+| `--eval-games`             | `100`                                     | Games per evaluation.                                                                                    |
+| `--ckpt-every`             | `50`                                      | Write a numbered `ckpt_<N>.pt` snapshot every N updates. (`latest.pt` is *always* written every update.) |
+| `--output-dir` / `-o`      | `pkm_data/new_agents/agent_000_dragapult` | Artifact root (checkpoints, logs, TB, wandb, sweeps).                                                    |
+| `--resume` / `--no-resume` | `--no-resume`                             | Continue from `latest.pt` instead of starting fresh (or use the `resume` command).                       |
+| `--tb` / `--no-tb`         | `--tb`                                    | Log to TensorBoard under `<output>/runs/`.                                                               |
+| `--log-dir`                | *(auto)*                                  | Override the TensorBoard dir (default `<output>/runs/<run-name>`).                                       |
+| `--wandb-project`          | *(off)*                                   | Enable Weights & Biases logging to this project. Omitted = wandb off.                                    |
+| `--wandb-mode`             | `offline`                                 | `offline` (local, no network), `online` (cloud, needs `wandb login`), or `disabled`.                     |
+| `--run-name`               | *(timestamp)*                             | Names the TensorBoard subdir and the wandb run.                                                          |
 
 ---
 
@@ -180,14 +180,14 @@ at the saved update index, and **appends** to `train.csv` rather than overwritin
 
 Each console line: `update  games  steps  pol  val  ent  p0/p1  eval`.
 
-| Column | Meaning | How to read it |
-|---|---|---|
-| **steps** | decision-samples in the batch (≈ `games × 215`) | just the batch size; varies with game length |
-| **pol** | PPO clipped-surrogate policy loss | near-zero & noisy **by design** — watch only that it stays small / doesn't explode; not a progress score |
-| **val** | value-head MSE (predicted outcome vs actual ±1) | should stay low / trend down as the critic learns |
-| **ent** | policy entropy over options | starts high (~1.3 = exploring), should **decline slowly**; a fast crash to ~0 = premature collapse (raise `--entropy-coef`) |
-| **p0/p1** | self-play seat win split | ~50/50 **by construction** (same policy both seats) — *not* a progress signal, only a seat-bias sanity check |
-| **eval** | win-rate vs the random baseline | **the real signal.** `-` on non-eval updates; should climb past 50% toward ~100% |
+| Column    | Meaning                                         | How to read it                                                                                                              |
+|-----------|-------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
+| **steps** | decision-samples in the batch (≈ `games × 215`) | just the batch size; varies with game length                                                                                |
+| **pol**   | PPO clipped-surrogate policy loss               | near-zero & noisy **by design** — watch only that it stays small / doesn't explode; not a progress score                    |
+| **val**   | value-head MSE (predicted outcome vs actual ±1) | should stay low / trend down as the critic learns                                                                           |
+| **ent**   | policy entropy over options                     | starts high (~1.3 = exploring), should **decline slowly**; a fast crash to ~0 = premature collapse (raise `--entropy-coef`) |
+| **p0/p1** | self-play seat win split                        | ~50/50 **by construction** (same policy both seats) — *not* a progress signal, only a seat-bias sanity check                |
+| **eval**  | win-rate vs the random baseline                 | **the real signal.** `-` on non-eval updates; should climb past 50% toward ~100%                                            |
 
 **A healthy run:** `eval` climbing (e.g. 72% → 82% → 95%), `ent` declining
 smoothly, `val` low/stable, `pol` small. Because `eval` is only vs *random* (a weak
@@ -245,15 +245,15 @@ pruned early (MedianPruner on intermediate evals).
 pkm new_agents 000_dragapult sweep --trials 30 --updates 15 --games 32 --workers 8
 ```
 
-| Flag | Default | Meaning |
-|---|---|---|
-| `--trials` | `30` | Number of Optuna trials. |
-| `--updates` | `15` | PPO updates **per trial** — keep short. |
-| `--games` | `32` | Games per update within a trial. |
-| `--workers` | `8` | Rollout workers per trial. |
-| `--eval-games` | `100` | Games used to score each trial. |
-| `--study` | `dragapult_ppo` | Study name (SQLite file). |
-| `--seed` | `0` | Base seed (offset per trial). |
+| Flag           | Default         | Meaning                                 |
+|----------------|-----------------|-----------------------------------------|
+| `--trials`     | `30`            | Number of Optuna trials.                |
+| `--updates`    | `15`            | PPO updates **per trial** — keep short. |
+| `--games`      | `32`            | Games per update within a trial.        |
+| `--workers`    | `8`             | Rollout workers per trial.              |
+| `--eval-games` | `100`           | Games used to score each trial.         |
+| `--study`      | `dragapult_ppo` | Study name (SQLite file).               |
+| `--seed`       | `0`             | Base seed (offset per trial).           |
 
 - The study is **SQLite-backed** at `<output>/sweeps/<study>.db` → **resumable**
   (rerun the same `--study` to add trials) and inspectable with
