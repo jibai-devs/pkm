@@ -6,6 +6,7 @@ from typing import Callable
 from pkm.data.card_data import get_card_by_id
 from pkm.heuristics.deck_tracker import DeckTracker
 
+from .first_turn_agent import make_first_turn_agent
 from .neural_agent import make_neural_agent
 from .random_agent import make_random_agent
 
@@ -84,6 +85,19 @@ def _select_agent(obs: dict, agents: dict[str, AgentFn], state: dict) -> str:
     `state["tracker"]` (a `DeckTracker`) is available here for routing logic
     that depends on card locations (deck/hand/discard/prize/board/attached).
     """
+    cur = obs["current"]
+    turn = cur["turn"]
+    you = cur["yourIndex"]
+    first_player = cur.get("firstPlayer", -1)
+    # our own first turn: setup (turn 0), turn 1 going first (or before the
+    # first-player coin resolves), turn 2 going second — the engine's turn
+    # counter is shared across both players
+    if turn == 0:
+        return "first_turn"
+    if turn == 1 and first_player != 1 - you:
+        return "first_turn"
+    if turn == 2 and first_player == 1 - you:
+        return "first_turn"
     return "neural"
 
 
@@ -101,6 +115,7 @@ def make_singaporean_middleman(
         else {
             "neural": make_neural_agent(deck, weights_path),
             "random": make_random_agent(deck),
+            "first_turn": make_first_turn_agent(deck),
         }
     )
 
@@ -141,6 +156,8 @@ def make_singaporean_middleman(
         if turn != state["turn"]:
             state["turn"] = turn
             state["active"] = select_agent(obs, registry, state)
+
+        _log(f"decision made by: {state['active']}", log_sink)
 
         # obs is handed to the chosen sub-agent unmodified either way.
         return registry[state["active"]](obs)
