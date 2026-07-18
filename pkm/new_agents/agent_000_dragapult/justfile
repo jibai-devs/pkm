@@ -76,7 +76,7 @@ viz-open out="viz_out":
 
 # Serve the exported ONNX graph interactively in Netron (http://localhost:PORT).
 viz-netron out="viz_out" port="8080":
-    cd {{root}} && uv run python -m netron --host 127.0.0.1 --port {{port}} {{out}}/model.onnx
+    cd {{root}} && uv run netron --host 127.0.0.1 --port {{port}} {{out}}/model.onnx
 
 # TensorBoard Graphs tab for the exported model graph (http://localhost:PORT).
 viz-tb out="viz_out" port="6006":

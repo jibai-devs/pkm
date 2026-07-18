@@ -126,6 +126,9 @@ def main(outdir: str = "viz_out") -> None:
 
     # 4) ONNX export — open the .onnx in Netron (netron file.onnx / netron.start)
     onnx_path = out / "model.onnx"
+    # Legacy TorchScript exporter (dynamo=False) at opset 17 — opset 17 supports the
+    # MultiheadAttention transpose/unsqueeze the encoder uses; do NOT pre-trace (a
+    # pre-trace loses rank info and the exporter then rejects the transpose).
     torch.onnx.export(
         wrapper,
         args,
@@ -133,16 +136,31 @@ def main(outdir: str = "viz_out") -> None:
         input_names=KEYS,
         output_names=["option_logits", "value"],
         opset_version=17,
-        dynamo=False,  # legacy tracer: handles the varargs wrapper cleanly
+        dynamo=False,
     )
-    print(f"[4/5] onnx/netron -> {onnx_path}   (view: python -m netron {onnx_path})")
+    print(f"[4/5] onnx/netron -> {onnx_path}   (view: netron {onnx_path})")
 
     # 5) TensorBoard — graph tab (tensorboard --logdir runs/viz)
     from torch.utils.tensorboard import SummaryWriter
 
     tb_dir = out / "tb"
-    with SummaryWriter(log_dir=str(tb_dir)) as w:
-        w.add_graph(wrapper, args)
+    # add_graph traces internally with check_trace=True and exposes no way to turn
+    # it off (its use_strict_trace maps to trace's *strict*, a different flag). The
+    # re-trace comparison spuriously fails on this model — module __torch_mangle
+    # renaming + value renumbering, not a numeric divergence — so force
+    # check_trace=False on the trace it runs.
+    orig_trace = torch.jit.trace
+
+    def _trace_no_check(*a, **k):
+        k["check_trace"] = False
+        return orig_trace(*a, **k)
+
+    torch.jit.trace = _trace_no_check
+    try:
+        with SummaryWriter(log_dir=str(tb_dir)) as w:
+            w.add_graph(wrapper, args)
+    finally:
+        torch.jit.trace = orig_trace
     print(f"[5/5] tensorboard -> {tb_dir}   (view: tensorboard --logdir {tb_dir})")
 
 
