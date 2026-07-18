@@ -29,6 +29,8 @@ import threading
 from dataclasses import dataclass
 from typing import Callable, Protocol
 
+from pkm.heuristics.context import GameContext
+from pkm.heuristics.deck_tracker import DeckTracker
 from pkm.types.obs import Observation
 
 HUMAN = "human"
@@ -128,6 +130,7 @@ class ThreadedEnvSession:
         self._events: queue.Queue[Event] = queue.Queue()
         self._picks: queue.Queue[list[int] | _Quit] = queue.Queue()
         self._thread: threading.Thread | None = None
+        self.ctx = GameContext(list(deck), DeckTracker(deck))
 
     # -- the human "agent" -------------------------------------------------
 
@@ -137,6 +140,10 @@ class ThreadedEnvSession:
         Note kaggle has redirect_stdout active for the whole duration of this
         call — never print() from here or anywhere the UI runs.
         """
+        self.ctx.tracker.observe(obs)
+        if self.ctx.tracker.is_search_reveal(obs):
+            self.ctx.tracker.record_search_reveal(obs)
+
         if obs["select"] is None:
             return self.deck  # deck submission is not a decision
         self._events.put(Prompt(Observation.model_validate(obs)))

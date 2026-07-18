@@ -10,6 +10,8 @@ from pkm.engine import (
     battle_start,
 )
 
+from pkm.heuristics.context import GameContext
+from pkm.heuristics.deck_tracker import DeckTracker
 from pkm.types.obs import Observation
 
 from .encoder import (
@@ -17,6 +19,7 @@ from .encoder import (
     budew_active_second_potential,
     budew_first_turn_attack_bonus,
     budew_turn_bench_setup_bonus,
+    drakloak_backup_ready_bonus,
     dragapult_backup_potential,
     dragapult_ex_attack_bonus,
     dreepy_energy_spread_penalty,
@@ -48,7 +51,9 @@ class TorchPolicy:
         self.greedy = greedy
         self.temperature = temperature
 
-    def act(self, obs: dict, collect: bool) -> tuple[list[int], EncodedDecision | None]:
+    def act(
+        self, obs: dict, collect: bool, ctx: GameContext | None = None
+    ) -> tuple[list[int], EncodedDecision | None]:
         parsed = Observation.model_validate(obs)
         sel = parsed.select
         assert sel is not None
@@ -57,8 +62,14 @@ class TorchPolicy:
         if forced is not None:
             return forced, None
 
-        d = encode_decision(parsed)
+        d = encode_decision(parsed, ctx)
         res = self.model.act(d, greedy=self.greedy, temperature=self.temperature)
+        if ctx is not None:
+            # Task 8: carry the belief forward for the *next* decision's
+            # GLOBAL feature read (see pkm/rl/features.py) -- one decision
+            # stale by construction, never recomputed inside a pure
+            # feature function.
+            ctx.archetype_belief = res.belief
         if not collect:
             return res.picks, None
         d.picks = res.picks
@@ -83,11 +94,14 @@ class TorchPolicy:
             parsed, res.picks
         )
         d.wasted_resources_penalty = wasted_resources_attack_penalty(parsed, res.picks)
+        d.drakloak_backup_ready_bonus = drakloak_backup_ready_bonus(parsed, res.picks)
         return res.picks, d
 
 
 class RandomPolicy:
-    def act(self, obs: dict, collect: bool) -> tuple[list[int], None]:
+    def act(
+        self, obs: dict, collect: bool, ctx: GameContext | None = None
+    ) -> tuple[list[int], None]:
         sel = obs["select"]
         return random.sample(range(len(sel["option"])), sel["maxCount"]), None
 
@@ -110,12 +124,23 @@ def play_game(
     if obs is None:
         raise RuntimeError(f"battle_start failed: errorPlayer={start.errorPlayer}")
 
+    # One GameContext per player, each owning its own DeckTracker over its
+    # own deck -- never reused across games (see pkm/heuristics/context.py).
+    contexts = (
+        GameContext(list(decks[0]), DeckTracker(decks[0])),
+        GameContext(list(decks[1]), DeckTracker(decks[1])),
+    )
+
     trajectories: tuple[list[EncodedDecision], list[EncodedDecision]] = ([], [])
     count = 0
     try:
         while obs["current"]["result"] < 0 and count < MAX_DECISIONS:
             p = obs["current"]["yourIndex"]
-            picks, record = policies[p].act(obs, collect=collect[p])
+            tracker = contexts[p].tracker
+            tracker.observe(obs)
+            if tracker.is_search_reveal(obs):
+                tracker.record_search_reveal(obs)
+            picks, record = policies[p].act(obs, collect=collect[p], ctx=contexts[p])
             if record is not None:
                 trajectories[p].append(record)
             obs = battle_select(picks)

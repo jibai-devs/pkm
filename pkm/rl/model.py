@@ -31,7 +31,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .encoder import (
-    N_BOARD_SLOTS,
     NUM_ATTACKS,
     NUM_CARDS,
     NUM_OPT_TYPES,
@@ -39,6 +38,8 @@ from .encoder import (
     STATE_FEATS,
     EncodedDecision,
 )
+from .features import ARCHETYPE_OUT
+from pkm.types.obs import N_POKEMON_SLOTS
 
 EMB_CARD = 32
 EMB_ATTACK = 16
@@ -46,7 +47,14 @@ EMB_OPT_TYPE = 8
 OPT_ENC = 64
 HIDDEN = 128
 
-STATE_IN = N_BOARD_SLOTS * EMB_CARD + EMB_CARD + STATE_FEATS
+N_MY_SLOTS = (
+    N_POKEMON_SLOTS // 2
+)  # my active + bench; opponent's side is the other half
+
+# Board split into my/opp pooled vectors + stadium, one EMB_CARD-wide block
+# each, plus the pooled hand and the pooled deck-ledger (Task 7) -- five
+# EMB_CARD-wide blocks total, independent of N_BOARD_SLOTS/bench size.
+STATE_IN = 5 * EMB_CARD + STATE_FEATS
 OPT_IN = 2 * EMB_CARD + EMB_ATTACK + EMB_OPT_TYPE + OPT_FEATS
 SCORE_IN = HIDDEN + 2 * OPT_ENC
 
@@ -59,6 +67,7 @@ class ActResult:
     stopped: bool
     logprob: float
     value: float
+    belief: np.ndarray  # (ARCHETYPE_OUT,) detached opponent-archetype belief
 
 
 class PolicyValueNet(nn.Module):
@@ -82,20 +91,49 @@ class PolicyValueNet(nn.Module):
         self.value_fc1 = nn.Linear(HIDDEN, 64)
         self.value_fc2 = nn.Linear(64, 1)
 
+        # --- auxiliary head: opponent-archetype belief (Task 8) ---
+        self.archetype_fc1 = nn.Linear(HIDDEN, 64)
+        self.archetype_fc2 = nn.Linear(64, ARCHETYPE_OUT)
+
     # --- building blocks ---
+
+    def _pool_cards(self, ids: torch.Tensor) -> torch.Tensor:
+        """Mean-pool a (B, K) card-id array over its non-empty (id > 0)
+        entries -> (B, EMB_CARD). Used for hand and, since Task 7, each
+        side of the board separately (my slots / opponent's slots)."""
+        e = self.card_emb(ids)
+        mask = (ids > 0).float().unsqueeze(-1)
+        return (e * mask).sum(1) / mask.sum(1).clamp(min=1.0)
+
+    def _pool_deck(self, ids: torch.Tensor, counts: torch.Tensor) -> torch.Tensor:
+        """Task 7 deck ledger: h_memory = sum_c unseen_count[c] * card_emb[c].
+        (B, K) ids + (B, K) counts -> (B, EMB_CARD). Unlike _pool_cards this
+        is a weighted sum, not a mean -- total magnitude legitimately grows
+        with how much of the deck is still unseen."""
+        e = self.card_emb(ids)
+        return (e * counts.unsqueeze(-1)).sum(1)
 
     def encode_state(
         self,
         board_cards: torch.Tensor,
         hand_cards: torch.Tensor,
         state_feats: torch.Tensor,
+        deck_card_ids: torch.Tensor,
+        deck_card_counts: torch.Tensor,
     ) -> torch.Tensor:
-        """(B, N_BOARD_SLOTS), (B, MAX_HAND), (B, STATE_FEATS) -> (B, HIDDEN)."""
-        board = self.card_emb(board_cards).flatten(1)
-        hand_e = self.card_emb(hand_cards)  # (B, MAX_HAND, E)
-        hand_mask = (hand_cards > 0).float().unsqueeze(-1)
-        hand = (hand_e * hand_mask).sum(1) / hand_mask.sum(1).clamp(min=1.0)
-        x = torch.cat([board, hand, state_feats], dim=1)
+        """(B, N_BOARD_SLOTS) board, (B, MAX_HAND) hand, (B, STATE_FEATS)
+        feats, (B, K) deck ledger ids + counts -> (B, HIDDEN).
+
+        Board is split into my slots / opponent's slots / stadium and each
+        pooled separately (Task 7), instead of one flat positional
+        concatenation across all N_BOARD_SLOTS.
+        """
+        my_board = self._pool_cards(board_cards[:, :N_MY_SLOTS])
+        opp_board = self._pool_cards(board_cards[:, N_MY_SLOTS : 2 * N_MY_SLOTS])
+        stadium = self.card_emb(board_cards[:, -1])
+        hand = self._pool_cards(hand_cards)
+        deck = self._pool_deck(deck_card_ids, deck_card_counts)
+        x = torch.cat([my_board, opp_board, stadium, hand, deck, state_feats], dim=1)
         return F.relu(self.state_fc2(F.relu(self.state_fc1(x))))
 
     def encode_options(
@@ -149,6 +187,27 @@ class PolicyValueNet(nn.Module):
         """
         return torch.tanh(self.value_fc2(F.relu(self.value_fc1(h)))).squeeze(-1)
 
+    def archetype_logits(self, h: torch.Tensor) -> torch.Tensor:
+        """Auxiliary head (Task 8): opponent-archetype classification
+        logits, width ARCHETYPE_OUT (tracked archetypes + "Other").
+
+        Trained only against its own cross-entropy loss (pkm/rl/ppo.py) --
+        must never receive gradient from the policy/value loss (plan.md
+        §8.2 rule 1). This method returns raw logits for that training use;
+        callers wanting the belief for GLOBAL-feature re-injection must use
+        archetype_belief() instead, which enforces detachment.
+        """
+        return self.archetype_fc2(F.relu(self.archetype_fc1(h)))
+
+    @torch.no_grad()
+    def archetype_belief(self, h: torch.Tensor) -> torch.Tensor:
+        """Detached softmax belief for GLOBAL-feature re-injection. The
+        @torch.no_grad() here (not a bare .detach()) is deliberate: it
+        prevents an autograd graph from ever being built for this call, so
+        there is no live tensor for a caller to accidentally backprop
+        through."""
+        return F.softmax(self.archetype_logits(h), dim=-1)
+
     # --- acting (single decision, no grad) ---
 
     @torch.no_grad()
@@ -158,8 +217,11 @@ class PolicyValueNet(nn.Module):
         board = torch.from_numpy(d.board_cards).unsqueeze(0)
         hand = torch.from_numpy(d.hand_cards).unsqueeze(0)
         feats = torch.from_numpy(d.state_feats).unsqueeze(0)
-        h = self.encode_state(board, hand, feats)
+        deck_ids = torch.from_numpy(d.deck_card_ids).unsqueeze(0)
+        deck_counts = torch.from_numpy(d.deck_card_counts).unsqueeze(0)
+        h = self.encode_state(board, hand, feats, deck_ids, deck_counts)
         v = float(self.value(h)[0])
+        belief = self.archetype_belief(h)[0].numpy()
 
         n = len(d.opt_type)
         opts = self.encode_options(
@@ -194,9 +256,48 @@ class PolicyValueNet(nn.Module):
             picked_sum = picked_sum + opts[0, idx]
             available[0, idx] = False
 
-        return ActResult(picks=picks, stopped=stopped, logprob=logprob, value=v)
+        return ActResult(
+            picks=picks, stopped=stopped, logprob=logprob, value=v, belief=belief
+        )
 
     # --- training (batched re-evaluation) ---
+
+    @staticmethod
+    def _batch_state_tensors(
+        decisions: list[EncodedDecision],
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """(board, hand, feats, deck_ids, deck_counts) padded batch tensors,
+        shared by evaluate() and evaluate_archetype()."""
+        board = torch.from_numpy(np.stack([d.board_cards for d in decisions]))
+        hand = torch.from_numpy(np.stack([d.hand_cards for d in decisions]))
+        feats = torch.from_numpy(np.stack([d.state_feats for d in decisions]))
+
+        b = len(decisions)
+        k_deck_max = max((len(d.deck_card_ids) for d in decisions), default=0)
+        deck_ids = np.zeros((b, k_deck_max), dtype=np.int64)
+        deck_counts = np.zeros((b, k_deck_max), dtype=np.float32)
+        for i, d in enumerate(decisions):
+            k = len(d.deck_card_ids)
+            deck_ids[i, :k] = d.deck_card_ids
+            deck_counts[i, :k] = d.deck_card_counts
+
+        return (
+            board,
+            hand,
+            feats,
+            torch.from_numpy(deck_ids),
+            torch.from_numpy(deck_counts),
+        )
+
+    def evaluate_archetype(self, decisions: list[EncodedDecision]) -> torch.Tensor:
+        """Batched archetype-head logits for a set of decisions (Task 8 aux
+        loss, pkm/rl/ppo.py). Kept separate from evaluate() so the
+        policy/value path is untouched by this -- callers combining this
+        with pi_loss/v_loss.backward() are responsible for weighting it,
+        never letting it dominate."""
+        board, hand, feats, deck_ids, deck_counts = self._batch_state_tensors(decisions)
+        h = self.encode_state(board, hand, feats, deck_ids, deck_counts)
+        return self.archetype_logits(h)
 
     def evaluate(
         self, decisions: list[EncodedDecision]
@@ -212,9 +313,7 @@ class PolicyValueNet(nn.Module):
         seq_lens = [len(d.picks) + (1 if d.stopped else 0) for d in decisions]
         k_max = max(max(seq_lens), 1)
 
-        board = torch.from_numpy(np.stack([d.board_cards for d in decisions]))
-        hand = torch.from_numpy(np.stack([d.hand_cards for d in decisions]))
-        feats = torch.from_numpy(np.stack([d.state_feats for d in decisions]))
+        board, hand, feats, deck_ids, deck_counts = self._batch_state_tensors(decisions)
 
         def pad_ids(key: str) -> torch.Tensor:
             out = np.zeros((b, n_max), dtype=np.int64)
@@ -230,7 +329,7 @@ class PolicyValueNet(nn.Module):
             opt_feats[i, :n] = d.opt_feats
             valid[i, :n] = True
 
-        h = self.encode_state(board, hand, feats)
+        h = self.encode_state(board, hand, feats, deck_ids, deck_counts)
         values = self.value(h)
         opts = self.encode_options(
             pad_ids("opt_type"),

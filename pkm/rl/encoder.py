@@ -3,23 +3,36 @@
 The state is encoded as card-ID slots (embedded by the model) plus float
 features. Options are encoded per-option as (type, card, target card, attack)
 IDs plus float features, so the model can score a variable-length option list.
+
+The float feature slices (state_feats/opt_feats) are assembled from the
+declarative registry in `pkm/rl/features.py`; this module owns the raw
+card-ID arrays (board_cards/hand_cards/opt_card/opt_card2/opt_attack) and
+option-type dispatch, which aren't part of that registry.
 """
 
 from dataclasses import dataclass, field
 
 import numpy as np
 
-from pkm.data import get_attack_data
 from pkm.data.card_data import Attack, CardData, get_card_by_id
+from pkm.heuristics.context import GameContext
+from pkm.rl.features import (
+    NORM,
+    OPT_FEATS,  # noqa: F401 -- re-exported for pkm.rl.model
+    STATE_FEATS,
+    FeatureConfig,
+    assemble_global,
+    assemble_per_option,
+    assemble_per_slot,
+    board_pokemon,
+    deck_ledger,
+)
 from pkm.types.obs import (
-    MAX_BENCH,
     MAX_HAND,
     N_BOARD_SLOTS,
-    N_POKEMON_SLOTS,
     NUM_ATTACKS,
     NUM_CARDS,
     NUM_OPT_TYPES,
-    NUM_SELECT_TYPES,
     AreaType,
     GameState,
     Observation,
@@ -30,39 +43,15 @@ from pkm.types.obs import (
 )
 
 
-@dataclass(frozen=True)
-class Norm:
-    """Normalization divisors for feature encoding.
-
-    Each field is the assumed maximum for the corresponding game quantity.
-    Change these if the game's bounds evolve (e.g. larger bench, higher HP).
-    """
-
-    max_hp: float = 380.0  # max in card DB; engine/src/card/CardImpl.h grep
-    max_energies: float = 5.0  # practical max; no C++ cap
-    max_hand_count: float = 20.0  # practical max; no C++ cap
-    max_deck_count: float = 60.0  # engine/src/core/Core.h:12 DECK_SIZE=60
-    max_prize_count: float = 6.0  # engine/src/core/Core.h:15 PRIZE_SIZE=6
-    max_discard_count: float = 60.0  # bounded by DECK_SIZE
-    max_bench_count: float = 8.0  # engine/src/core/Core.h:14 BENCH_SIZE_MAX=8
-    max_turn: float = 30.0  # practical max; engine/src/game/GameProc.h:809 hard cap=10000
-    max_actions_per_turn: float = 20.0  # practical max; engine/src/game/GameProc.h:805 hard cap=10000
-    max_pick_count: float = 5.0  # practical max; no C++ cap
-    max_energy_cost: float = 5.0  # practical max; no C++ cap
-    max_damage_counters: float = 10.0  # practical max; bounded by max_hp
-    max_damage: float = 350.0  # max in card DB; engine/src/card/CardImpl.h grep
-    max_option_number: float = 20.0  # practical max; no C++ cap
-    max_option_count: float = 5.0  # practical max; no C++ cap
-
-
-NORM = Norm()
-
 # CardType values (see obs_data_structure/OBSERVATION_SCHEMA.md)
 CARD_TYPE_ITEM = 1
 CARD_TYPE_SUPPORTER = 3
 CARD_TYPE_BASIC_ENERGY = 5
 CARD_TYPE_SPECIAL_ENERGY = 6
 
+# Reward-shaping card/attack IDs (ported from
+# refactor-to-prepare-for-heuristics-integration, see
+# docs/superpowers/plans/2026-07-18-merge-architecture-with-heuristics.md)
 BUDEW_CARD_ID = 235
 DREEPY_CARD_ID = 119
 DRAKLOAK_CARD_ID = 120
@@ -76,13 +65,6 @@ ENERGY_TYPE_COLORLESS = 0
 ENERGY_TYPE_FIRE = 2
 ENERGY_TYPE_PSYCHIC = 5
 
-
-SLOT_FEATS = 5
-GLOBAL_FEATS = 45
-STATE_FEATS = N_POKEMON_SLOTS * SLOT_FEATS + GLOBAL_FEATS
-OPT_FEATS = 5
-
-
 @dataclass
 class EncodedDecision:
     """One decision point: encoded state + options, filled in by rollout/PPO."""
@@ -90,6 +72,8 @@ class EncodedDecision:
     board_cards: np.ndarray  # (N_BOARD_SLOTS,) int64
     hand_cards: np.ndarray  # (MAX_HAND,) int64
     state_feats: np.ndarray  # (STATE_FEATS,) float32
+    deck_card_ids: np.ndarray  # (K,) int64 -- unique still-unseen card ids
+    deck_card_counts: np.ndarray  # (K,) float32 -- their unseen counts
     opt_type: np.ndarray  # (N,) int64
     opt_card: np.ndarray  # (N,) int64
     opt_card2: np.ndarray  # (N,) int64
@@ -121,100 +105,66 @@ class EncodedDecision:
     phantom_dive_bonus: float = 0.0
     advantage: float = 0.0
     ret: float = 0.0
+    # Task 8: ground-truth opponent-archetype label for the auxiliary head's
+    # own cross-entropy loss; -1 = unknown/unset (e.g. self-play against a
+    # single fixed deck never stamps this -- see pkm/rl/train.py).
+    true_archetype: int = -1
+    # Reward-shaping terms, ported from
+    # refactor-to-prepare-for-heuristics-integration (see
+    # docs/superpowers/plans/2026-07-18-merge-architecture-with-heuristics.md).
+    # Populated by pkm/rl/rollout.py, consumed by pkm/rl/ppo.py via
+    # pkm/rl/reward_terms.py's POTENTIAL_TERMS/DIRECT_TERMS -- these do not
+    # feed the network's inputs, only the reward it's trained to chase.
+    board_setup_potential: float = 0.0
+    budew_setup_potential: float = 0.0
+    dreepy_line_field_potential: float = 0.0
+    energy_penalty: float = 0.0
+    budew_bonus: float = 0.0
+    wrong_type_energy_penalty: float = 0.0
+    dragapult_attack_bonus: float = 0.0
+    dreepy_spread_penalty: float = 0.0
+    xerosic_bonus: float = 0.0
+    budew_bench_setup_bonus: float = 0.0
+    dreepy_evolve_bonus: float = 0.0
+    dreepy_bench_charge_bonus: float = 0.0
+    dreepy_active_charge_bonus: float = 0.0
+    wasted_resources_penalty: float = 0.0
+    phantom_dive_bonus: float = 0.0
+    drakloak_backup_ready_bonus: float = 0.0
 
 
-def _pokemon_slot_feats(p: PokemonRef | None) -> list[float]:
-    if p is None:
-        return [0.0] * SLOT_FEATS
-    return [
-        1.0,
-        p.hp / NORM.max_hp,
-        p.maxHp / NORM.max_hp,
-        len(p.energies) / NORM.max_energies,
-        1.0 if p.appearThisTurn else 0.0,
-    ]
-
-
-def encode_state(obs: Observation) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Encode observation into (board_cards, hand_cards, state_feats)."""
+def encode_state(
+    obs: Observation,
+    ctx: GameContext | None = None,
+    config: FeatureConfig | None = None,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Encode observation into (board_cards, hand_cards, state_feats,
+    deck_card_ids, deck_card_counts)."""
     state = obs.current
-    sel = obs.select
-    assert state is not None and sel is not None
-    you = state.yourIndex
-    me = state.players[you]
-    opp = state.players[1 - you]
+    assert state is not None and obs.select is not None
+    me = state.players[state.yourIndex]
 
+    pokes = board_pokemon(obs)
     board = np.zeros(N_BOARD_SLOTS, dtype=np.int64)
-    slot_feats: list[float] = []
-
-    slot = 0
-    for player in (me, opp):
-        pokes: list[PokemonRef | None] = [player.active_pokemon]
-        pokes += list(player.bench)[:MAX_BENCH]
-        pokes += [None] * (1 + MAX_BENCH - len(pokes))
-        for p in pokes:
-            board[slot] = p.id if p else 0
-            slot_feats.extend(_pokemon_slot_feats(p))
-            slot += 1
-    board[slot] = state.stadium[0].id if state.stadium and state.stadium[0] else 0
+    for i, p in enumerate(pokes):
+        board[i] = p.id if p else 0
+    board[len(pokes)] = state.stadium[0].id if state.stadium and state.stadium[0] else 0
 
     hand = np.zeros(MAX_HAND, dtype=np.int64)
     for i, c in enumerate((me.hand or [])[:MAX_HAND]):
         hand[i] = c.id
 
-    g: list[float] = []
-    for player in (me, opp):
-        g.extend(
-            [
-                1.0 if player.poisoned else 0.0,
-                1.0 if player.burned else 0.0,
-                1.0 if player.asleep else 0.0,
-                1.0 if player.paralyzed else 0.0,
-                1.0 if player.confused else 0.0,
-            ]
-        )
-    for player in (me, opp):
-        g.extend(
-            [
-                player.handCount / NORM.max_hand_count,
-                player.deckCount / NORM.max_deck_count,
-                len(player.prize) / NORM.max_prize_count,
-                len(player.discard) / NORM.max_discard_count,
-            ]
-        )
-    for player in (me, opp):
-        g.append(len(player.bench) / NORM.max_bench_count)
-        g.append(player.benchMax / NORM.max_bench_count)
-    g.append(state.turn / NORM.max_turn)
-    g.append(state.turnActionCount / NORM.max_actions_per_turn)
-    g.extend(
+    feats = np.concatenate(
         [
-            1.0 if state.energyAttached else 0.0,
-            1.0 if state.supporterPlayed else 0.0,
-            1.0 if state.stadiumPlayed else 0.0,
-            1.0 if state.retreated else 0.0,
+            assemble_per_slot(obs, ctx, config),
+            assemble_global(obs, ctx, config),
         ]
     )
-    g.append(1.0 if state.firstPlayer == you else 0.0)
-    g.append(1.0 if state.firstPlayer >= 0 else 0.0)
-
-    sel_onehot = [0.0] * NUM_SELECT_TYPES
-    st = sel.type
-    if 0 <= st < NUM_SELECT_TYPES:
-        sel_onehot[st] = 1.0
-    g.extend(sel_onehot)
-    g.extend(
-        [
-            sel.minCount / NORM.max_pick_count,
-            sel.maxCount / NORM.max_pick_count,
-            sel.remainEnergyCost / NORM.max_energy_cost,
-            sel.remainDamageCounter / NORM.max_damage_counters,
-        ]
-    )
-
-    feats = np.array(slot_feats + g, dtype=np.float32)
     assert feats.shape[0] == STATE_FEATS, feats.shape
-    return board, hand, feats
+
+    deck_card_ids, deck_card_counts = deck_ledger(ctx)
+
+    return board, hand, feats, deck_card_ids, deck_card_counts
 
 
 def _card_id_at(
@@ -267,7 +217,11 @@ def _pokemon_at(
     return None
 
 
-def encode_options(obs: Observation) -> dict[str, np.ndarray]:
+def encode_options(
+    obs: Observation,
+    ctx: GameContext | None = None,
+    config: FeatureConfig | None = None,
+) -> dict[str, np.ndarray]:
     """Encode the option list into parallel arrays."""
     state = obs.current
     select = obs.select
@@ -276,13 +230,10 @@ def encode_options(obs: Observation) -> dict[str, np.ndarray]:
     options = select.option
     n = len(options)
 
-    attack_data = get_attack_data()
-
     opt_type = np.zeros(n, dtype=np.int64)
     opt_card = np.zeros(n, dtype=np.int64)
     opt_card2 = np.zeros(n, dtype=np.int64)
     opt_attack = np.zeros(n, dtype=np.int64)
-    opt_feats = np.zeros((n, OPT_FEATS), dtype=np.float32)
 
     for i, o in enumerate(options):
         t = o.type
@@ -294,8 +245,6 @@ def encode_options(obs: Observation) -> dict[str, np.ndarray]:
         card_id = 0
         card2_id = 0
         attack_id = 0
-        damage = 0.0
-        cost = 0.0
 
         if t == OptionType.CARD:
             card_id = _card_id_at(state, select, pi, area, index)
@@ -329,43 +278,38 @@ def encode_options(obs: Observation) -> dict[str, np.ndarray]:
             active = state.players[you].active_pokemon
             if active:
                 card_id = active.id
-            atk = attack_data.get(attack_id)
-            if atk:
-                damage = atk.damage / NORM.max_damage
-                cost = len(atk.energies) / NORM.max_energies
         elif t == OptionType.SKILL:
             card_id = o.cardId or 0
 
         opt_card[i] = card_id if 0 <= card_id < NUM_CARDS else 0
         opt_card2[i] = card2_id if 0 <= card2_id < NUM_CARDS else 0
         opt_attack[i] = attack_id if 0 <= attack_id < NUM_ATTACKS else 0
-        opt_feats[i] = [
-            (o.number or 0) / NORM.max_option_number,
-            (o.count or 0) / NORM.max_option_count,
-            damage,
-            cost,
-            1.0 if pi == you else 0.0,
-        ]
 
     return {
         "opt_type": opt_type,
         "opt_card": opt_card,
         "opt_card2": opt_card2,
         "opt_attack": opt_attack,
-        "opt_feats": opt_feats,
+        "opt_feats": assemble_per_option(obs, ctx, config),
     }
 
 
-def encode_decision(obs: Observation) -> EncodedDecision:
+def encode_decision(
+    obs: Observation,
+    ctx: GameContext | None = None,
+    config: FeatureConfig | None = None,
+) -> EncodedDecision:
     """Encode a full decision point (state + options)."""
-    board, hand, feats = encode_state(obs)
-    opts = encode_options(obs)
+    board, hand, feats, deck_ids, deck_counts = encode_state(obs, ctx, config)
+    opts = encode_options(obs, ctx, config)
     sel = obs.select
     assert sel is not None
     return EncodedDecision(
         board_cards=board,
         hand_cards=hand,
         state_feats=feats,
+        deck_card_ids=deck_ids,
+        deck_card_counts=deck_counts,
         min_count=sel.minCount,
         max_count=sel.maxCount,
         **opts,
@@ -384,6 +328,15 @@ def prize_potential(obs: Observation) -> float:
     me = state.players[you]
     opp = state.players[1 - you]
     return (len(opp.prize) - len(me.prize)) / NORM.max_prize_count
+
+
+# --- Reward-shaping terms (ported from
+# refactor-to-prepare-for-heuristics-integration; see
+# docs/superpowers/plans/2026-07-18-merge-architecture-with-heuristics.md).
+# These are deck-specific (Dreepy/Drakloak/Dragapult ex/Budew/Xerosic) and
+# feed pkm/rl/reward_terms.py's POTENTIAL_TERMS/DIRECT_TERMS, not the
+# network's input features -- they shape what PPO trains the network to
+# chase, not what it sees. ---
 
 
 def dragapult_backup_potential(obs: Observation) -> float:
@@ -856,6 +809,44 @@ def dreepy_line_active_charge_bonus(obs: Observation, picks: list[int]) -> float
         had_combo = ENERGY_TYPE_FIRE in before and ENERGY_TYPE_PSYCHIC in before
         has_combo = ENERGY_TYPE_FIRE in after and ENERGY_TYPE_PSYCHIC in after
         if has_combo and not had_combo:
+            return 1.0
+    return 0.0
+
+
+def drakloak_backup_ready_bonus(obs: Observation, picks: list[int]) -> float:
+    """+1.0 if `picks` attach energy to a *bench* Drakloak such that it ends
+    up with exactly 1 Fire and 1 Psychic energy, while the active Pokemon is
+    Dragapult ex with Phantom Dive already available this turn -- charging
+    the next attacker in the pipeline while the current one is already a
+    live threat, rather than just charging whichever Dreepy-line member
+    happens to need it (dreepy_line_bench_charge_bonus is Drakloak-agnostic
+    and doesn't care whether the active can already attack). 0.0 otherwise.
+    """
+    sel = obs.select
+    state = obs.current
+    if sel is None or state is None:
+        return 0.0
+    you = state.yourIndex
+    active = state.players[you].active_pokemon
+    if active is None or active.id != DRAGAPULT_EX_CARD_ID:
+        return 0.0
+    phantom_dive_ready = any(
+        o.type == OptionType.ATTACK and o.attackId == PHANTOM_DIVE_ATTACK_ID
+        for o in sel.option
+    )
+    if not phantom_dive_ready:
+        return 0.0
+    for i in picks:
+        if i < 0 or i >= len(sel.option):
+            continue
+        resolved = _resolve_energy_attach(obs, sel.option[i])
+        if resolved is None:
+            continue
+        target, card = resolved
+        if target.id != DRAKLOAK_CARD_ID:
+            continue
+        resulting = sorted([*target.energies, card.energy_type])
+        if resulting == sorted([ENERGY_TYPE_FIRE, ENERGY_TYPE_PSYCHIC]):
             return 1.0
     return 0.0
 

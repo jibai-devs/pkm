@@ -2,6 +2,7 @@
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 from .encoder import EncodedDecision
 from .model import PolicyValueNet
@@ -14,8 +15,14 @@ def compute_returns(
     gamma: float = 0.99,
     lam: float = 0.95,
     weights: dict[str, float] | None = None,
+    win_reward: float = 1.0,
 ) -> None:
     """Fill advantage/ret on each decision in place.
+
+    `win_reward` scales the terminal reward for a *win* only (terminal_reward
+    > 0); losses (-1.0) and draws (0.0) are untouched. Use it to make winning
+    matter more relative to shaping/losing, without also making losses more
+    punishing.
 
     `weights` maps a term name (see reward_terms.py) to its coefficient;
     a missing name means 0.0 (off). Rewards are terminal win/loss, plus two
@@ -51,7 +58,9 @@ def compute_returns(
                 rewards[t] += coef * getattr(trajectory[t], attr)
     # terminal step: shaping toward final potential is folded into the outcome
     # (the terminal state's potential is implicitly 0 -- the game is over).
-    rewards[n - 1] = terminal_reward
+    rewards[n - 1] = (
+        terminal_reward * win_reward if terminal_reward > 0 else terminal_reward
+    )
     for name, attr in POTENTIAL_TERMS:
         coef = w.get(name, 0.0)
         if coef:
@@ -80,12 +89,30 @@ def ppo_update(
     value_coef: float = 0.5,
     entropy_coef: float = 0.01,
     max_grad_norm: float = 0.5,
+    archetype_coef: float = 0.1,
 ) -> dict[str, float]:
-    """Run PPO clip updates over the collected decisions."""
+    """Run PPO clip updates over the collected decisions.
+
+    Task 8: also adds the opponent-archetype auxiliary head's own
+    cross-entropy loss, weighted by archetype_coef, at the same point
+    policy_loss/value_loss combine (plan.md §8.2 rule 2) -- the actual
+    combine site is here in pkm/rl/ppo.py, not pkm/rl/train.py, despite
+    the plan naming train.py.
+
+    Decisions with true_archetype == -1 (unknown -- e.g. self-play against
+    a single fixed deck never stamps a real label) are masked out of the
+    aux loss entirely; a batch with no labeled decisions contributes 0.
+    """
     advs = np.array([d.advantage for d in decisions], dtype=np.float32)
     adv_mean, adv_std = advs.mean(), advs.std() + 1e-8
 
-    stats = {"policy_loss": 0.0, "value_loss": 0.0, "entropy": 0.0, "clip_frac": 0.0}
+    stats = {
+        "policy_loss": 0.0,
+        "value_loss": 0.0,
+        "entropy": 0.0,
+        "clip_frac": 0.0,
+        "archetype_loss": 0.0,
+    }
     n_batches = 0
 
     for _ in range(epochs):
@@ -107,7 +134,25 @@ def ppo_update(
             value_loss = torch.nn.functional.mse_loss(values, returns)
             entropy = entropies.mean()
 
-            loss = policy_loss + value_coef * value_loss - entropy_coef * entropy
+            labels = torch.tensor([d.true_archetype for d in batch], dtype=torch.long)
+            labeled = labels >= 0
+            if bool(labeled.any()):
+                archetype_logits = model.evaluate_archetype(batch)
+                per_sample = F.cross_entropy(
+                    archetype_logits, labels.clamp(min=0), reduction="none"
+                )
+                archetype_loss = (
+                    per_sample * labeled.float()
+                ).sum() / labeled.float().sum()
+            else:
+                archetype_loss = torch.zeros(())
+
+            loss = (
+                policy_loss
+                + value_coef * value_loss
+                - entropy_coef * entropy
+                + archetype_coef * archetype_loss
+            )
             optimizer.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
@@ -119,6 +164,7 @@ def ppo_update(
             stats["clip_frac"] += float(
                 ((ratio.detach() - 1.0).abs() > clip).float().mean()
             )
+            stats["archetype_loss"] += float(archetype_loss.detach())
             n_batches += 1
 
     return {k: v / max(n_batches, 1) for k, v in stats.items()}

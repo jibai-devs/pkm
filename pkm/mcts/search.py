@@ -39,6 +39,12 @@ class _Node:
     )
 
     def __init__(self, state: SearchState):
+        # Deliberately no GameContext/tracker here. Every _Node past the
+        # root lives on a hypothetical determinized branch (search_step on
+        # an imagined action sequence), not real game history -- feeding
+        # that into the real DeckTracker would corrupt the agent's actual
+        # beliefs about the live game. Do not "fix" this by threading ctx
+        # through by habit; see pkm/heuristics/context.py's docstring.
         # skip forward through forced decisions
         for _ in range(_MAX_FORCED_SKIP):
             obs = state.raw_observation
@@ -90,7 +96,14 @@ class MCTS:
     # --- expansion ---
 
     def _expand(self, node: _Node) -> float:
-        """Enumerate actions + priors, return the value from node.player's view."""
+        """Enumerate actions + priors, return the value from node.player's view.
+
+        No GameContext here either, for the same reason as _Node.__init__:
+        `node` may be several imagined plies deep in a determinized branch.
+        MCTS may read a GameContext read-only, once, at the real root in
+        `choose()` (e.g. to bias sample_determinization) -- never inside
+        _expand/_simulate.
+        """
         d = encode_decision(node.state.observation)  # lazily validated + cached
         sel = node.obs["select"]
         n = len(sel["option"])

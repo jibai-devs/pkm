@@ -2,7 +2,10 @@
 # Create submission bundle for Kaggle
 # Usage: ./submit.sh [agent_name]
 #
-# The agent name determines which deck and weights to bundle.
+# The agent name determines which deck gets bundled as submission/deck.csv;
+# main.py falls back to it if no deck.csv is present. Run `pkm export --agent
+# <agent> pkm/policy.npz` first so the weights being bundled (pkm/policy.npz,
+# copied in via `cp -r pkm submission/` below) match this agent.
 
 set -e
 

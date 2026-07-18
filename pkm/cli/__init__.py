@@ -42,7 +42,7 @@ def train(
     weights: str | None = typer.Option(
         None,
         "--weights",
-        help="path to a JSON file of {term: weight} overrides -- see "
+        help="path to a JSON file of {term: weight} overrides — see "
         "pkm/rl/reward_terms.py for term names and defaults. Defaults to "
         "the agent's own reward_weights.json (auto-created there on first "
         "use) when --agent is given, otherwise the built-in defaults.",

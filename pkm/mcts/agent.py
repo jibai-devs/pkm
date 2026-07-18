@@ -4,6 +4,8 @@ import random
 from typing import Callable
 
 from pkm.agents.neural_agent import _find_weights
+from pkm.heuristics.context import GameContext
+from pkm.heuristics.deck_tracker import DeckTracker
 from pkm.rl.numpy_policy import NumpyPolicy
 
 from .determinize import infer_opponent_decklist
@@ -32,8 +34,13 @@ def make_mcts_agent(
         n_simulations=n_simulations,
         rng=random.Random(seed),
     )
+    ctx = GameContext(list(deck), DeckTracker(deck), opp_decklist=opp_decklist)
 
     def agent(obs: dict) -> list[int]:
+        ctx.tracker.observe(obs)
+        if ctx.tracker.is_search_reveal(obs):
+            ctx.tracker.record_search_reveal(obs)
+
         if obs["select"] is None:
             return deck
         forced = forced_picks(obs["select"])
@@ -45,6 +52,6 @@ def make_mcts_agent(
             return picks
         except Exception:
             # search must never crash the match; fall back to the raw policy
-            return policy.select(obs)
+            return policy.select(obs, ctx)
 
     return agent

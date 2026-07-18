@@ -16,6 +16,7 @@ from pkm.types.obs import Observation
 from pkm.rl.encoder import (
     MAX_HAND,
     N_BOARD_SLOTS,
+    OPT_FEATS,
     STATE_FEATS,
     encode_decision,
 )
@@ -51,7 +52,7 @@ def test_encoder_shapes():
         n = len(d.opt_type)
         assert n >= 1
         assert d.opt_card.shape == (n,)
-        assert d.opt_feats.shape == (n, 5)
+        assert d.opt_feats.shape == (n, OPT_FEATS)
         assert 0 <= d.min_count <= d.max_count <= n
 
 

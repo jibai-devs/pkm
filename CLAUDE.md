@@ -4,6 +4,29 @@ Full project guide (structure, RL training, decks, submission): @AGENTS.md
 
 ## Active Context
 
+- **Heuristics-integration architecture (Tasks 1-8) merged with the reward-shaping
+  heuristics** from `refactor-to-prepare-for-heuristics-integration`, on
+  `feature/heuristics-integration` (commits `73356e5`, `dc1e157`, `83265b5`).
+  Full architecture write-up: `docs/ARCHITECTURE.md`. Training/export/Kaggle-
+  submission runbook: `docs/TRAINING_AND_SUBMISSION.md`. New agent
+  `03_pult_munki` (Dragapult ex/Munkidori, **no Dusknoir** — the deck the
+  merged reward terms actually target, e.g. Xerosic's Machinations) has a real
+  1000-iter PPO checkpoint (eval-vs-random plateaus 85-100% from ~iter 250,
+  local only — not yet backed up to HF). Retrain-and-measure ablations for
+  Tasks 6/7/8 and Phase 2 expert iteration for this agent are both still
+  outstanding — see `AGENTS.md` → "What's Next".
+- **Critical, bit us once already:** `pkm/` must stay importable under Python
+  **3.11** (Kaggle's actual sandbox runtime) — this repo's own dev env is 3.12
+  via `uv`, so PEP 695 generic syntax (`def f[T](...)`, `type X = ...`) passes
+  every local check and then hard-`SyntaxError`s on Kaggle with zero local
+  signal. `pkm/types/obs.py` had exactly this bug from its first commit
+  (every submission before 2026-07-18 would have failed); fixed in commit
+  `83265b5`. Use `typing.TypeVar` instead, always. Full details:
+  `AGENTS.md` → "Kaggle Submission".
+- Kaggle CLI auth (`~/.kaggle/kaggle.json`) is currently 401ing on this
+  machine — needs a fresh token (kaggle.com → Account → API → Create New
+  Token) before `kaggle competitions submit`/`logs`/`submissions` work again;
+  the website upload flow is unaffected.
 - Vendored C++ engine in `engine/` (from `ptcg` @ `0a56d34`) builds `engine/build/cg.so`,
   ABI-identical to Kaggle's `libcg.so`. Swap via `PKM_ENGINE=vendored` (default `kaggle`);
   the seam is `pkm/engine/` and all engine imports go through it. `just engine-build` /

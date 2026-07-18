@@ -12,6 +12,7 @@ import typer
 import numpy as np
 import torch
 
+from .features import check_stamp_sidecar, stamp_json
 from .model import PolicyValueNet
 
 app = typer.Typer(help=__doc__)
@@ -19,10 +20,11 @@ app = typer.Typer(help=__doc__)
 
 def export_npz(model: PolicyValueNet, path: str) -> None:
     arrays = {k: v.detach().cpu().numpy() for k, v in model.state_dict().items()}
-    np.savez_compressed(path, **arrays)
+    np.savez_compressed(path, __feature_stamp__=np.array(stamp_json()), **arrays)
 
 
 def export_checkpoint(checkpoint_path: str, out_path: str) -> None:
+    check_stamp_sidecar(checkpoint_path)
     model = PolicyValueNet()
     model.load_state_dict(
         torch.load(checkpoint_path, map_location="cpu", weights_only=True)

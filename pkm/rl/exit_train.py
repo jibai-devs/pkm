@@ -28,9 +28,12 @@ from pkm.engine import (
 
 from pkm.agents.profile import AgentProfile
 from pkm.data import Deck
+from pkm.heuristics.context import GameContext
+from pkm.heuristics.deck_tracker import DeckTracker
 from pkm.mcts.search import MCTS, forced_picks
 from pkm.types.obs import Observation
 from pkm.rl.encoder import EncodedDecision, encode_decision
+from pkm.rl.features import write_stamp_sidecar
 from pkm.rl.model import OPT_ENC, PolicyValueNet
 from pkm.rl.numpy_policy import NumpyPolicy
 from pkm.rl.rollout import MAX_DECISIONS
@@ -73,11 +76,23 @@ def play_exit_game(
     if obs is None:
         raise RuntimeError(f"battle_start failed: errorPlayer={start.errorPlayer}")
 
+    # One GameContext per player, each owning its own DeckTracker over its
+    # own deck -- never reused across games (see pkm/heuristics/context.py).
+    contexts = (
+        GameContext(list(decks[0]), DeckTracker(decks[0])),
+        GameContext(list(decks[1]), DeckTracker(decks[1])),
+    )
+
     samples: tuple[list[ExitSample], list[ExitSample]] = ([], [])
     count = 0
     try:
         while obs["current"]["result"] < 0 and count < MAX_DECISIONS:
             p = obs["current"]["yourIndex"]
+            tracker = contexts[p].tracker
+            tracker.observe(obs)
+            if tracker.is_search_reveal(obs):
+                tracker.record_search_reveal(obs)
+
             forced = forced_picks(obs["select"])
             if forced is not None:
                 obs = battle_select(forced)
@@ -95,7 +110,7 @@ def play_exit_game(
                 weights = [agg[a] for a in actions]
                 picks = list(rng.choices(actions, weights=weights)[0])
 
-            d = encode_decision(Observation.model_validate(obs))
+            d = encode_decision(Observation.model_validate(obs), contexts[p])
             d.picks = list(picks)
             d.stopped = len(picks) < d.max_count
             samples[p].append(ExitSample(d, target))
@@ -118,7 +133,9 @@ def _first_step_logprobs(model: PolicyValueNet, d: EncodedDecision) -> torch.Ten
     board = torch.from_numpy(d.board_cards).unsqueeze(0)
     hand = torch.from_numpy(d.hand_cards).unsqueeze(0)
     feats = torch.from_numpy(d.state_feats).unsqueeze(0)
-    h = model.encode_state(board, hand, feats)
+    deck_ids = torch.from_numpy(d.deck_card_ids).unsqueeze(0)
+    deck_counts = torch.from_numpy(d.deck_card_counts).unsqueeze(0)
+    h = model.encode_state(board, hand, feats, deck_ids, deck_counts)
     opts = model.encode_options(
         torch.from_numpy(d.opt_type).unsqueeze(0),
         torch.from_numpy(d.opt_card).unsqueeze(0),
@@ -298,6 +315,7 @@ def train(
             flush=True,
         )
         torch.save(model.state_dict(), ckpt_dir / "exit_latest.pt")
+        write_stamp_sidecar(ckpt_dir / "exit_latest.pt")
 
     csv_f.close()
     log.close()

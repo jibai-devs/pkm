@@ -6,11 +6,15 @@ the bundle doesn't need torch.
 
 import numpy as np
 
-from pkm.types.obs import Observation
+from pkm.heuristics.context import GameContext
+from pkm.types.obs import N_POKEMON_SLOTS, Observation
 
 from .encoder import EncodedDecision, encode_decision
+from .features import check_stamp_json
 
 NEG_INF = -1e9
+_STAMP_KEY = "__feature_stamp__"
+N_MY_SLOTS = N_POKEMON_SLOTS // 2
 
 
 def _relu(x: np.ndarray) -> np.ndarray:
@@ -28,16 +32,35 @@ class NumpyPolicy:
     @classmethod
     def load(cls, path: str) -> "NumpyPolicy":
         with np.load(path) as z:
-            return cls({k: z[k] for k in z.files})
+            if _STAMP_KEY in z.files:
+                check_stamp_json(str(z[_STAMP_KEY]))
+            return cls({k: z[k] for k in z.files if k != _STAMP_KEY})
+
+    def _pool_cards(self, ids: np.ndarray) -> np.ndarray:
+        """Mean-pool a (K,) card-id array over its non-empty (id > 0)
+        entries -> (EMB_CARD,). Mirrors PolicyValueNet._pool_cards."""
+        card_emb = self.w["card_emb.weight"]
+        e = card_emb[ids]
+        mask = (ids > 0).astype(np.float32)[:, None]
+        return (e * mask).sum(0) / max(mask.sum(), 1.0)
+
+    def _pool_deck(self, ids: np.ndarray, counts: np.ndarray) -> np.ndarray:
+        """Task 7 deck ledger: h_memory = sum_c unseen_count[c] * card_emb[c].
+        Mirrors PolicyValueNet._pool_deck."""
+        card_emb = self.w["card_emb.weight"]
+        if len(ids) == 0:
+            return np.zeros(card_emb.shape[1], dtype=np.float32)
+        e = card_emb[ids]
+        return (e * counts[:, None]).sum(0)
 
     def _encode_state(self, d: EncodedDecision) -> np.ndarray:
         w = self.w
-        card_emb = w["card_emb.weight"]
-        board = card_emb[d.board_cards].reshape(-1)
-        hand_e = card_emb[d.hand_cards]
-        mask = (d.hand_cards > 0).astype(np.float32)[:, None]
-        hand = (hand_e * mask).sum(0) / max(mask.sum(), 1.0)
-        x = np.concatenate([board, hand, d.state_feats])
+        my_board = self._pool_cards(d.board_cards[:N_MY_SLOTS])
+        opp_board = self._pool_cards(d.board_cards[N_MY_SLOTS : 2 * N_MY_SLOTS])
+        stadium = w["card_emb.weight"][d.board_cards[-1]]
+        hand = self._pool_cards(d.hand_cards)
+        deck = self._pool_deck(d.deck_card_ids, d.deck_card_counts)
+        x = np.concatenate([my_board, opp_board, stadium, hand, deck, d.state_feats])
         h = _relu(_linear(w["state_fc1.weight"], w["state_fc1.bias"], x))
         return _relu(_linear(w["state_fc2.weight"], w["state_fc2.bias"], h))
 
@@ -71,6 +94,22 @@ class NumpyPolicy:
         h = self._encode_state(d)
         y = _relu(_linear(w["value_fc1.weight"], w["value_fc1.bias"], h))
         return float(np.tanh(_linear(w["value_fc2.weight"], w["value_fc2.bias"], y))[0])
+
+    def archetype_logits(self, d: EncodedDecision) -> np.ndarray:
+        """Mirrors PolicyValueNet.archetype_logits. Only needed for
+        inference (Task 8 §8.2 rule 1: re-injection is detached, so the
+        numpy mirror never needs gradient here, only a forward pass)."""
+        w = self.w
+        h = self._encode_state(d)
+        y = _relu(_linear(w["archetype_fc1.weight"], w["archetype_fc1.bias"], h))
+        return _linear(w["archetype_fc2.weight"], w["archetype_fc2.bias"], y)
+
+    def archetype_belief(self, d: EncodedDecision) -> np.ndarray:
+        """Mirrors PolicyValueNet.archetype_belief (softmax of the logits)."""
+        logits = self.archetype_logits(d)
+        logits = logits - logits.max()
+        p = np.exp(logits)
+        return p / p.sum()
 
     def priors(self, d: EncodedDecision) -> np.ndarray:
         """First-pick probabilities over the option list (no STOP)."""
@@ -134,7 +173,7 @@ class NumpyPolicy:
             available[idx] = False
         return picks, joint
 
-    def select(self, obs: dict) -> list[int]:
+    def select(self, obs: dict, ctx: GameContext | None = None) -> list[int]:
         """Full agent decision for an observation with a select block."""
         parsed = Observation.model_validate(obs)
         sel = parsed.select
@@ -142,4 +181,4 @@ class NumpyPolicy:
         forced = sel.forced_picks()
         if forced is not None:
             return forced
-        return self.act_greedy(encode_decision(parsed))
+        return self.act_greedy(encode_decision(parsed, ctx))

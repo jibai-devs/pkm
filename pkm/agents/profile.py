@@ -15,6 +15,8 @@ Directory layout::
 
 from pathlib import Path
 
+from pkm.rl.features import check_stamp_sidecar
+
 AGENTS_DIR = Path("agents")
 
 
@@ -38,9 +40,18 @@ class AgentProfile:
         (self.runs_dir / "exit").mkdir(parents=True, exist_ok=True)
 
     def latest_checkpoint(self, phase: str = "ppo") -> Path | None:
-        """Return the latest checkpoint for *phase* (``ppo`` or ``exit``), or None."""
+        """Return the latest checkpoint for *phase* (``ppo`` or ``exit``), or None.
+
+        Raises FeatureStampMismatch if the checkpoint's stamp sidecar
+        (written alongside it at save time) doesn't match the currently
+        registered feature list -- rather than silently handing back a
+        checkpoint whose weights are misaligned with today's encoder.
+        """
         p = self.checkpoint_dir / f"{phase}_latest.pt"
-        return p if p.is_file() else None
+        if not p.is_file():
+            return None
+        check_stamp_sidecar(p)
+        return p
 
     def ppo_init(self) -> str | None:
         """Checkpoint to resume PPO from, if one exists."""
