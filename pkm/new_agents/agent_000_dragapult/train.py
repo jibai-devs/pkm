@@ -313,8 +313,28 @@ def train(
 
     pool = None
     if cfg.train.num_workers and cfg.train.num_workers > 1:
+        import os
+
         from pkm.new_agents.agent_000_dragapult.parallel import ParallelRollout
 
+        w = cfg.train.num_workers
+        cores = os.cpu_count() or 0
+        per = games_per_update // w
+        rem = games_per_update % w
+        spread = f"{per}" if rem == 0 else f"{per}-{per + 1}"
+        idle = max(cores - w - 1, 0)  # -1 for the learner on the main process
+        print(
+            f"[parallel] {w} workers  |  {cores} cores "
+            f"({idle} idle during rollout)  |  {games_per_update} games/update "
+            f"= {spread} games/worker",
+            flush=True,
+        )
+        if per <= 2:
+            print(
+                "[parallel]  note: <=2 games/worker → high straggler variance; "
+                "raise --games or --workers for better utilization.",
+                flush=True,
+            )
         pool = ParallelRollout(cfg, cfg.train.num_workers, base_seed=cfg.train.seed)
     try:
         for _ in range(updates):
@@ -338,6 +358,28 @@ def train(
                 "sps": n_steps / t_total if t_total > 0 else 0.0,
                 "eta_s": (target - ts.update_idx) * t_total,
             }
+            # Parallel-efficiency diagnostics (only meaningful with a worker pool):
+            #  - rollout_util: how balanced the barrier is. mean/max worker busy
+            #    time; 1.0 = all workers finished together, 0.5 = the average
+            #    worker sat idle for half of t_rollout waiting on the straggler.
+            #  - core_util: fraction of the WHOLE cycle that workers spend doing
+            #    real work vs. idling — folds in the serial PPO update, during
+            #    which every worker is blocked. = worker_busy_sum / (W * t_total).
+            #  - serial_frac: share of the cycle where all workers are idle
+            #    (update + weight-broadcast overhead). Amdahl's serial fraction.
+            if pool is not None and "worker_busy_max" in roll_stats:
+                w = roll_stats.get("num_workers", 1)
+                busy_max = roll_stats["worker_busy_max"]
+                busy_sum = roll_stats["worker_busy_sum"]
+                time_stats["rollout_util"] = (
+                    roll_stats["worker_busy_mean"] / busy_max if busy_max > 0 else 0.0
+                )
+                time_stats["core_util"] = (
+                    busy_sum / (w * t_total) if t_total > 0 else 0.0
+                )
+                time_stats["serial_frac"] = (
+                    (t_total - t_rollout) / t_total if t_total > 0 else 0.0
+                )
             stats = {**roll_stats, **upd_stats, **time_stats}
             if eval_every and ts.update_idx % eval_every == 0:
                 from pkm.new_agents.agent_000_dragapult.eval import winrate_vs_random

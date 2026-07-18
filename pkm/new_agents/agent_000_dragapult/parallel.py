@@ -16,6 +16,7 @@ gets its own ``GameInitialize()`` and ``battle_ptr``.
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 import torch
@@ -43,7 +44,9 @@ def _worker(rank: int, cfg_dict: dict, cmd_q, res_q, base_seed: int) -> None:
                 break
             state_dict, n_games = cmd
             model.load_state_dict(state_dict)
+            t0 = time.perf_counter()
             steps, stats = collect_rollout(model, n_games, cfg)
+            stats["t_worker"] = time.perf_counter() - t0  # busy time (excl. barrier wait)
             res_q.put((rank, steps, stats, None))
     except Exception:  # propagate so the learner doesn't hang on res_q.get()
         import traceback
@@ -96,7 +99,7 @@ class ParallelRollout:
 
         games = sum(st.get("games", 0) for st in stats_list)
         d = max(games, 1)
-        return steps, {
+        out = {
             "games": games,
             "steps": len(steps),
             "p0_win": sum(
@@ -108,6 +111,26 @@ class ParallelRollout:
             )
             / d,
         }
+
+        # Per-worker load-balance diagnostics. Because collection is synchronous
+        # (a barrier at res_q), the learner waits for the SLOWEST worker; every
+        # worker that finished earlier is idle until then. worker_busy_* expose
+        # that spread so `train` can turn it into a utilization %.
+        busy = [st.get("t_worker", 0.0) for st in stats_list]
+        wgames = [st.get("games", 0) for st in stats_list]
+        if busy:
+            out.update(
+                {
+                    "num_workers": self.num_workers,
+                    "worker_busy_min": min(busy),
+                    "worker_busy_max": max(busy),  # the straggler that gates rollout
+                    "worker_busy_mean": sum(busy) / len(busy),
+                    "worker_busy_sum": sum(busy),  # total core-seconds of real work
+                    "worker_games_min": min(wgames),
+                    "worker_games_max": max(wgames),
+                }
+            )
+        return steps, out
 
     def close(self) -> None:
         for q in self.cmd_qs:

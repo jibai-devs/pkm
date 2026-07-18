@@ -41,6 +41,11 @@ SCALARS: dict[str, str] = {
     "time/update_s": "t_update",
     "time/total_s": "t_total",
     "time/steps_per_s": "sps",
+    "parallel/rollout_util": "rollout_util",
+    "parallel/core_util": "core_util",
+    "parallel/serial_frac": "serial_frac",
+    "parallel/worker_busy_max": "worker_busy_max",
+    "parallel/worker_busy_min": "worker_busy_min",
 }
 
 CSV_FIELDS = [
@@ -61,6 +66,11 @@ CSV_FIELDS = [
     "t_update",
     "t_total",
     "sps",
+    "rollout_util",
+    "core_util",
+    "serial_frac",
+    "worker_busy_min",
+    "worker_busy_max",
 ]
 
 
@@ -139,7 +149,8 @@ class ConsoleSink(MetricSink):
             "[dim]"
             f"{'upd':>9}  {'games':>5}  {'steps':>5}  {'pol':>8}  {'val':>7}  "
             f"{'ent':>5}  {'kl':>6}  {'clip':>5}  {'gnorm':>6}  {'evar':>6}  "
-            f"{'p0/p1':>7}  {'t/upd':>6}  {'sps':>5}  {'eta':>7}  eval"
+            f"{'p0/p1':>7}  {'t/upd':>6}  {'sps':>5}  {'util':>5}  {'core':>5}  "
+            f"{'eta':>7}  eval"
             "[/]"
         )
 
@@ -148,6 +159,16 @@ class ConsoleSink(MetricSink):
         ev_s = f"[green]{ev:.1%}[/]" if isinstance(ev, (int, float)) else "[dim]-[/]"
         eta = stats.get("eta_s")
         eta_s = _fmt_hms(eta) if isinstance(eta, (int, float)) else "-"
+        util = stats.get("rollout_util")
+        util_s = f"{util:>4.0%}" if isinstance(util, (int, float)) else "   -"
+        core = stats.get("core_util")
+        # Colour the whole-cycle core utilization: red when workers spend most of
+        # the cycle idle (straggler + serial update), green when well-fed.
+        if isinstance(core, (int, float)):
+            c = "green" if core >= 0.66 else "yellow" if core >= 0.4 else "red"
+            core_s = f"[{c}]{core:>4.0%}[/]"
+        else:
+            core_s = "   -"
         self.console.print(
             f"[bold cyan]{update:>4}[/]/[cyan]{total:<4}[/]  "
             f"[bold]{stats.get('games', 0):>5}[/]  "
@@ -162,6 +183,7 @@ class ConsoleSink(MetricSink):
             f"{stats.get('p0_win', 0):>3.0%}/{stats.get('p1_win', 0):<3.0%}  "
             f"[cyan]{stats.get('t_total', 0):>5.1f}s[/]  "
             f"{stats.get('sps', 0):>5.0f}  "
+            f"{util_s}  {core_s}  "
             f"[dim]{eta_s:>7}[/]  "
             f"{ev_s}"
         )
