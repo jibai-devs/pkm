@@ -427,30 +427,21 @@ def _to_search_state(raw) -> SearchState:
     ``pkm.engine.search_begin``/``search_step`` return ``pkm.types.obs.SearchState``
     (see ``pkm/engine/api.py``), a slotted, lazily-validating wrapper around
     ``{"observation": ..., "searchId": ...}`` — NOT a plain dict and NOT an object
-    exposing ``.searchId``/``.observation`` directly. Its real accessors are:
+    exposing ``.searchId``/``.observation`` directly. Its confirmed accessors are:
 
     - ``.search_id`` (snake_case property) -> the raw ``int`` search id.
     - ``.raw_observation`` (property) -> the raw observation ``dict`` (same shape
       accepted by this module's own :func:`to_observation`).
-    - ``.observation`` (property) -> a *pydantic* ``pkm.types.obs.Observation``,
-      a different typed model than this module's dataclass ``Observation``.
 
     We deliberately re-derive the typed observation via this module's own
     ``to_observation(raw_observation)`` rather than reusing the engine's pydantic
     ``.observation``, so callers of ``cabt.search_*`` get the same dataclass
     ``Observation``/``SelectData``/``Option`` types as ``cabt.battle_*``.
     """
-    if hasattr(raw, "search_id"):
-        # pkm.types.obs.SearchState: the real shape returned by pkm.engine.
-        sid = raw.search_id
-        obs = raw.raw_observation
-    elif hasattr(raw, "searchId"):
-        sid = raw.searchId
-        obs = raw.observation
-    else:
-        sid = raw["searchId"]
-        obs = raw["observation"]
-    return SearchState(observation=to_observation(obs), searchId=int(sid))
+    return SearchState(
+        observation=to_observation(raw.raw_observation),
+        searchId=int(raw.search_id),
+    )
 
 
 def search_begin(
