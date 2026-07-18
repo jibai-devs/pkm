@@ -13,6 +13,7 @@ the same `model.evaluate()` interface.
 from __future__ import annotations
 
 import random
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
@@ -150,7 +151,15 @@ def ppo_update(
     idx = np.arange(len(steps))
     adv_all = torch.tensor([s.adv for s in steps], dtype=torch.float32)
     adv_mean, adv_std = adv_all.mean().item(), adv_all.std().item() + 1e-8
-    stats = {"pol_loss": 0.0, "val_loss": 0.0, "entropy": 0.0, "n": 0}
+    stats = {
+        "pol_loss": 0.0,
+        "val_loss": 0.0,
+        "entropy": 0.0,
+        "approx_kl": 0.0,
+        "clip_frac": 0.0,
+        "grad_norm": 0.0,
+        "n": 0,
+    }
     rng = np.random.default_rng(tc.seed)
     for _ in range(tc.epochs_per_update):
         rng.shuffle(idx)
@@ -165,7 +174,8 @@ def ppo_update(
             )
             ent = policy.batched_entropy(logits, b["option_mask"]).mean()
             adv = (b["adv"] - adv_mean) / adv_std
-            ratio = (new_lp - b["old_logprob"]).exp()
+            logratio = new_lp - b["old_logprob"]
+            ratio = logratio.exp()
             unclipped = ratio * adv
             clipped = torch.clamp(ratio, 1 - tc.clip_eps, 1 + tc.clip_eps) * adv
             pol_loss = -torch.min(unclipped, clipped).mean()
@@ -173,17 +183,39 @@ def ppo_update(
             loss = pol_loss + tc.value_coef * val_loss - tc.entropy_coef * ent
             optimizer.zero_grad()
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), tc.max_grad_norm)
+            grad_norm = torch.nn.utils.clip_grad_norm_(
+                model.parameters(), tc.max_grad_norm
+            )
             optimizer.step()
+            with torch.no_grad():
+                # http://joschu.net/blog/kl-approx.html — low-variance, ≥0 KL est.
+                approx_kl = ((ratio - 1) - logratio).mean().item()
+                clip_frac = (ratio - 1).abs().gt(tc.clip_eps).float().mean().item()
             stats["pol_loss"] += pol_loss.item()
             stats["val_loss"] += val_loss.item()
             stats["entropy"] += ent.item()
+            stats["approx_kl"] += approx_kl
+            stats["clip_frac"] += clip_frac
+            stats["grad_norm"] += float(grad_norm)
             stats["n"] += 1
     n = max(stats["n"], 1)
+    # Explained variance of the value head over the whole batch (1.0 = perfect,
+    # 0.0 = no better than predicting the mean, <0 = worse). Diagnoses whether
+    # the critic is actually learning the return.
+    with torch.no_grad():
+        b_all = _minibatch(steps)
+        _, v_all = model(b_all)
+        ret_all = b_all["ret"]
+        var_ret = ret_all.var().item()
+        explained_var = 1.0 - (ret_all - v_all).var().item() / (var_ret + 1e-8)
     return {
         "pol_loss": stats["pol_loss"] / n,
         "val_loss": stats["val_loss"] / n,
         "entropy": stats["entropy"] / n,
+        "approx_kl": stats["approx_kl"] / n,
+        "clip_frac": stats["clip_frac"] / n,
+        "grad_norm": stats["grad_norm"] / n,
+        "explained_var": explained_var,
     }
 
 
@@ -286,14 +318,27 @@ def train(
         pool = ParallelRollout(cfg, cfg.train.num_workers, base_seed=cfg.train.seed)
     try:
         for _ in range(updates):
+            t0 = time.perf_counter()
             if pool is not None:
                 steps, roll_stats = pool.collect(ts.model, games_per_update)
             else:
                 steps, roll_stats = collect_rollout(ts.model, games_per_update, cfg)
+            t_rollout = time.perf_counter() - t0
+            t1 = time.perf_counter()
             upd_stats = ppo_update(ts.model, ts.optimizer, steps, cfg)
+            t_update = time.perf_counter() - t1
             ts.update_idx += 1
 
-            stats = {**roll_stats, **upd_stats}
+            t_total = time.perf_counter() - t0
+            n_steps = roll_stats.get("steps", 0)
+            time_stats = {
+                "t_rollout": t_rollout,
+                "t_update": t_update,
+                "t_total": t_total,
+                "sps": n_steps / t_total if t_total > 0 else 0.0,
+                "eta_s": (target - ts.update_idx) * t_total,
+            }
+            stats = {**roll_stats, **upd_stats, **time_stats}
             if eval_every and ts.update_idx % eval_every == 0:
                 from pkm.new_agents.agent_000_dragapult.eval import winrate_vs_random
 

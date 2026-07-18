@@ -61,7 +61,7 @@ have to pass all of these; defaults apply for anything you omit.)
 pkm new_agents 000_dragapult train \
     --updates 256 \
     --games 16 \
-    --workers 1 \
+    --workers 8 \
     --lr 0.0003 \
     --gamma 0.997 \
     --lam 0.95 \
@@ -87,7 +87,7 @@ pkm new_agents 000_dragapult train \
 |----------------------------|-------------------------------------------|----------------------------------------------------------------------------------------------------------|
 | `--updates`                | `256`                                     | Number of collect→improve cycles = **training length**.                                                  |
 | `--games`                  | `16`                                      | Self-play games collected per update = the **batch** (each game ≈ 215 decisions).                        |
-| `--workers`                | `1`                                       | Parallel rollout processes. **Speed only**, never changes what's learned. Try `8`–`12`.                  |
+| `--workers`                | `8`                                       | Parallel rollout processes (one engine each). **Speed only**, never changes what's learned. Raise toward your core count (~`12`); drop to `1` for the single-process path. |
 | `--lr`                     | `0.0003`                                  | Adam learning rate.                                                                                      |
 | `--gamma`                  | `0.997`                                   | Reward discount over the ~215-decision game horizon.                                                     |
 | `--lam`                    | `0.95`                                    | GAE λ — advantage estimator bias/variance trade-off.                                                     |
@@ -112,8 +112,9 @@ pkm new_agents 000_dragapult train \
 
 ## 4. A good real run (recommended starting point)
 
-The defaults are conservative (`--games 16 --workers 1`). For an actual run on a
-multi-core box, this is a better balance of stability, speed, and feedback:
+The default batch is small (`--games 16`). For an actual run on a multi-core box,
+a bigger batch (and more workers if you have the cores) is a better balance of
+stability, speed, and feedback:
 
 ```bash
 pkm new_agents 000_dragapult train \

@@ -28,11 +28,19 @@ SCALARS: dict[str, str] = {
     "loss/policy": "pol_loss",
     "loss/value": "val_loss",
     "policy/entropy": "entropy",
+    "policy/approx_kl": "approx_kl",
+    "policy/clip_frac": "clip_frac",
+    "policy/grad_norm": "grad_norm",
+    "policy/explained_var": "explained_var",
     "rollout/steps": "steps",
     "rollout/games": "games",
     "rollout/p0_win": "p0_win",
     "rollout/p1_win": "p1_win",
     "eval/win_rate": "eval_win_rate",
+    "time/rollout_s": "t_rollout",
+    "time/update_s": "t_update",
+    "time/total_s": "t_total",
+    "time/steps_per_s": "sps",
 }
 
 CSV_FIELDS = [
@@ -44,7 +52,15 @@ CSV_FIELDS = [
     "pol_loss",
     "val_loss",
     "entropy",
+    "approx_kl",
+    "clip_frac",
+    "grad_norm",
+    "explained_var",
     "eval_win_rate",
+    "t_rollout",
+    "t_update",
+    "t_total",
+    "sps",
 ]
 
 
@@ -103,24 +119,51 @@ def notify(observers: Sequence[MetricSink], method: str, *args: Any) -> None:
 # --------------------------------------------------------------------------- #
 
 
+def _fmt_hms(seconds: float) -> str:
+    """Compact H:MM:SS / M:SS for an ETA duration."""
+    s = int(seconds)
+    h, rem = divmod(s, 3600)
+    m, s = divmod(rem, 60)
+    return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
+
+
 class ConsoleSink(MetricSink):
-    """Print a rich-formatted one-line summary per update."""
+    """Print a rich-formatted one-line summary per update, under a column header."""
 
     def __init__(self, console: Any):
         self.console = console
 
+    def start(self, ctx: RunContext) -> None:
+        # Column header (matches the field order printed in `log`).
+        self.console.print(
+            "[dim]"
+            f"{'upd':>9}  {'games':>5}  {'steps':>5}  {'pol':>8}  {'val':>7}  "
+            f"{'ent':>5}  {'kl':>6}  {'clip':>5}  {'gnorm':>6}  {'evar':>6}  "
+            f"{'p0/p1':>7}  {'t/upd':>6}  {'sps':>5}  {'eta':>7}  eval"
+            "[/]"
+        )
+
     def log(self, update: int, total: int, stats: dict[str, Any]) -> None:
         ev = stats.get("eval_win_rate", "")
         ev_s = f"[green]{ev:.1%}[/]" if isinstance(ev, (int, float)) else "[dim]-[/]"
+        eta = stats.get("eta_s")
+        eta_s = _fmt_hms(eta) if isinstance(eta, (int, float)) else "-"
         self.console.print(
-            f"[bold cyan]{update:>4}[/]/[cyan]{total}[/]  "
-            f"games=[bold]{stats.get('games', 0):>3}[/]  "
-            f"steps=[bold]{stats.get('steps', 0):>5}[/]  "
-            f"pol=[yellow]{stats.get('pol_loss', 0):+.4f}[/]  "
-            f"val=[yellow]{stats.get('val_loss', 0):.4f}[/]  "
-            f"ent=[magenta]{stats.get('entropy', 0):.3f}[/]  "
-            f"p0/p1={stats.get('p0_win', 0):.0%}/{stats.get('p1_win', 0):.0%}  "
-            f"eval={ev_s}"
+            f"[bold cyan]{update:>4}[/]/[cyan]{total:<4}[/]  "
+            f"[bold]{stats.get('games', 0):>5}[/]  "
+            f"[bold]{stats.get('steps', 0):>5}[/]  "
+            f"[yellow]{stats.get('pol_loss', 0):>+8.4f}[/]  "
+            f"[yellow]{stats.get('val_loss', 0):>7.4f}[/]  "
+            f"[magenta]{stats.get('entropy', 0):>5.3f}[/]  "
+            f"{stats.get('approx_kl', 0):>6.4f}  "
+            f"{stats.get('clip_frac', 0):>5.2f}  "
+            f"{stats.get('grad_norm', 0):>6.3f}  "
+            f"{stats.get('explained_var', 0):>+6.2f}  "
+            f"{stats.get('p0_win', 0):>3.0%}/{stats.get('p1_win', 0):<3.0%}  "
+            f"[cyan]{stats.get('t_total', 0):>5.1f}s[/]  "
+            f"{stats.get('sps', 0):>5.0f}  "
+            f"[dim]{eta_s:>7}[/]  "
+            f"{ev_s}"
         )
 
 

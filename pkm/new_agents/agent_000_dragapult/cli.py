@@ -397,7 +397,7 @@ def smoke(
         help="Output/artifact root directory (checkpoints + logs).",
     ),
     workers: int = typer.Option(
-        1, help="Rollout workers (1 = verified single-process path)."
+        1, help="Parallel self-play workers (1 = single-process; smoke stays simple)."
     ),
     experiment: str = typer.Option(
         _SMOKE_EXPERIMENT, "--experiment", "-e", help=_EXPERIMENT_HELP
@@ -437,7 +437,7 @@ def train(
     updates: int = typer.Option(256, help="Number of PPO updates to run."),
     games: int = typer.Option(16, help="Self-play games collected per update."),
     workers: int = typer.Option(
-        1, help="Rollout workers (parallel.py path is unverified; 1 is safe)."
+        8, help="Parallel self-play workers (one engine/process; 1 = single-process)."
     ),
     lr: float = typer.Option(3e-4, help="Adam learning rate."),
     gamma: float = typer.Option(0.997, help="Discount factor."),
@@ -535,7 +535,9 @@ def train(
 def resume(
     updates: int = typer.Option(50, help="Additional PPO updates to run."),
     games: int = typer.Option(16, help="Self-play games collected per update."),
-    workers: int = typer.Option(1, help="Rollout workers."),
+    workers: int = typer.Option(
+        8, help="Parallel rollout workers (one engine per process)."
+    ),
     eval_every: int = typer.Option(
         16, help="Evaluate vs random every N updates (0 = never)."
     ),
