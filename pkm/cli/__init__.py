@@ -39,7 +39,14 @@ def train(
     games: int = typer.Option(8, help="games per iteration"),
     lr: float = typer.Option(3e-4, help="learning rate"),
     gamma: float = typer.Option(0.99, help="discount factor"),
-    shaping: float = typer.Option(0.2, help="reward shaping coefficient"),
+    weights: str | None = typer.Option(
+        None,
+        "--weights",
+        help="path to a JSON file of {term: weight} overrides -- see "
+        "pkm/rl/reward_terms.py for term names and defaults. Defaults to "
+        "the agent's own reward_weights.json (auto-created there on first "
+        "use) when --agent is given, otherwise the built-in defaults.",
+    ),
     pool_size: int = typer.Option(8, help="opponent checkpoint pool size"),
     eval_every: int = typer.Option(5, help="evaluate every N iterations"),
     eval_games: int = typer.Option(20, help="games for evaluation"),
@@ -52,6 +59,9 @@ def train(
         None, help="wandb project name (enables wandb logging)"
     ),
     wandb_run_name: str | None = typer.Option(None, help="wandb run name"),
+    workers: int = typer.Option(
+        1, help="parallel worker processes for self-play rollout (1 = sequential)"
+    ),
 ) -> None:
     """Phase 1: PPO self-play training."""
     from pkm.rl.train import main as _train_main
@@ -63,7 +73,7 @@ def train(
         games=games,
         lr=lr,
         gamma=gamma,
-        shaping=shaping,
+        weights=weights,
         pool_size=pool_size,
         eval_every=eval_every,
         eval_games=eval_games,
@@ -74,6 +84,7 @@ def train(
         seed=seed,
         wandb_project=wandb_project,
         wandb_run_name=wandb_run_name,
+        workers=workers,
     )
 
 
