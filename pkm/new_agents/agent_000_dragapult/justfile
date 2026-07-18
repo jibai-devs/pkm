@@ -70,10 +70,12 @@ status *args:
 viz out="viz_out":
     cd {{root}} && uv run python -m pkm.new_agents.agent_000_dragapult.viz {{out}}
 
-# Open every static view (both SVGs + the summary) in your default apps. The two
-# interactive servers block, so run them separately: `just viz-netron` / `viz-tb`.
-viz-open out="viz_out":
-    cd {{root}} && for f in torchview.svg torchviz.svg summary.txt; do xdg-open {{out}}/$f; done
+# Open the static views: both SVGs as tabs in a browser (xdg-open sends SVG to an
+# image editor by default), summary.txt to your default text app. Override the
+# browser: `just viz-open viz_out firefox`. Servers block — see viz-netron/viz-tb.
+viz-open out="viz_out" browser="brave":
+    cd {{root}} && {{browser}} {{out}}/torchview.svg {{out}}/torchviz.svg &
+    cd {{root}} && xdg-open {{out}}/summary.txt
 
 # Serve the exported ONNX graph interactively in Netron (http://localhost:PORT).
 viz-netron out="viz_out" port="8080":
