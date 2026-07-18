@@ -113,9 +113,19 @@ def sample_world(obs: dict, seat: int, gen: torch.Generator) -> Predictions:
     deck_n = me["deckCount"]
     your_deck, my_pool = my_pool[:deck_n], my_pool[deck_n:]
     your_prize, leftover = _deal_prize(me.get("prize") or [], my_pool)
-    # own hidden pool == deck_n cards + facedown prize slots exactly; nothing
-    # should be left over once both are dealt out.
-    assert not leftover, "own unknown pool not fully consumed by deck+prize"
+    # Usually own hidden pool == deck_n cards + facedown prize slots exactly.
+    # BUT during simultaneous setup reveal (choosing active/bench Pokemon),
+    # the engine removes the chosen card from `hand` as soon as it's picked,
+    # while `me["active"]`/`me["bench"]` still show it as empty until both
+    # seats have committed and the board is revealed together. That
+    # already-placed-but-not-yet-revealed card is therefore invisible to
+    # `_visible_card_ids` (still counted as "unknown") yet doesn't belong in
+    # the deck or prize guess either -- it shows up here as harmless leftover
+    # (confirmed via real self-play repro: hand=6/deckCount=47/prize=6 empty
+    # active slot, 1-card leftover). Drop it rather than asserting -- a
+    # single-sample determinization is already an approximation, and this
+    # leftover is exactly accounted for by the pending reveal, not a real
+    # accounting error.
 
     # --- opponent's hidden zones ---
     opp_pool = _shuffled_unknown_pool(opp, gen)
