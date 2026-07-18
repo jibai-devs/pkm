@@ -32,3 +32,6 @@ checkpoints/
 pkm/policy.npz
 replay.json
 runs/
+agents/*/train.log
+agents/*/train_stdout.log
+agents/*/train_stderr.log

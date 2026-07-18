@@ -2,33 +2,42 @@
 
 **Reminder: Update this file whenever something significant changes** — new training results, new agents, architecture changes, submission status, etc. Stale docs are worse than no docs.
 
-## Current Progress (as of Jul 2026)
+## Current Progress (as of 2026-07-18)
 
 | Phase | Status | Details |
 |-------|--------|---------|
 | Phase 1 — PPO self-play | **Done (200 iters)** | 80% win rate vs random. Agent: `00_basic` |
-| Phase 2 — Expert iteration | **Started (1 run)** | MCTS self-play + distillation. Agent: `00_basic` |
-| Agent profiles | **Done** | Per-agent directories for checkpoints, metrics, runs |
+| Phase 1 — PPO self-play | **Done (1000 iters)** | Eval-vs-random plateaus 85-100% from ~iter 250. Agent: `03_pult_munki` |
+| Phase 2 — Expert iteration | **Started (1 run)** | MCTS self-play + distillation. Agent: `00_basic`. **Not yet run for `03_pult_munki`.** |
+| Agent profiles | **Done** | Per-agent directories for checkpoints, metrics, runs. Agents: `00_basic`, `01_psychic`, `02_dragapult`, `03_pult_munki` |
+| Heuristics integration | **Done (Tasks 1-8)** | `GameContext`/`DeckTracker`, `FeatureSpec` registry, Tier-1 deterministic features, pooled deck-ledger, opponent-archetype auxiliary head. Task 9 (hard-rule forced picks) deliberately not built. Full write-up: `docs/ARCHITECTURE.md` |
+| Reward-shaping merge | **Done** | Deck-specific (Dreepy/Drakloak/Dragapult ex/Budew/Xerosic) reward terms merged from `refactor-to-prepare-for-heuristics-integration`, off by default (`pkm/rl/reward_terms.py`) |
 | Metrics & monitoring | **Done** | CSV logging + Plotly notebook |
-| Kaggle submission | **Ready** | `just build_submit 00_basic` exports weights + bundles |
+| Kaggle submission | **Working, verified** | `pkm export --agent <name> pkm/policy.npz` + `bash submit.sh <name>` — see `docs/TRAINING_AND_SUBMISSION.md` for the full runbook |
 
 ### What's Working
 - Pointer/scoring policy network handles variable-length action spaces
-- Submission `main.py` exposes the Kaggle agent protocol and defaults to the neural Dragapult policy
+- Submission `main.py` exposes the Kaggle agent protocol; deck-agnostic (bundled `deck.csv` decides which deck plays, `submit.sh` no longer hardcodes `02_dragapult`)
 - PPO self-play with checkpoint pool opponent sampling
-- Potential-based reward shaping (prize differential)
-- IS-MCTS with determinization for imperfect information
+- Potential-based reward shaping (prize differential) + a registry of deck-specific reward terms (`pkm/rl/reward_terms.py`), each off by default
+- Per-game memory (`GameContext`/`DeckTracker`) tracking own-deck card locations and deducing prize-pile contents by elimination
+- Declarative `FeatureSpec` registry (`pkm/rl/features.py`) — GLOBAL/PER_SLOT/PER_OPTION float features, ablation via `FeatureConfig`, checkpoint stamping to reject registry/weights mismatches
+- Tier-1 deterministic heuristics (`lethal_this_turn`, `type_effectiveness`, `retreat_viable`)
+- Pooled deck-ledger feature family (unseen-card-count-weighted sum through the network's own card embedding table, not a flat slot vector)
+- Detached opponent-archetype auxiliary head, re-injected as a belief feature one decision later
+- IS-MCTS with determinization for imperfect information; reads `GameContext` once at the real root only
 - Expert iteration (MCTS targets -> network training)
-- Numpy-only inference for Kaggle submission (no torch at eval time)
+- Numpy-only inference for Kaggle submission (no torch at eval time); parity with the torch model is a standing CI gate (`tests/test_numpy_torch_parity.py`)
 - CSV metric logging for all training runs
 
 ### What's Next
-1. **Hyperparameter sweep** — LR, games/iter, pool size, eval frequency
-2. **Longer exit training** — run 50+ iters of expert iteration from the PPO baseline
-3. **MCTS vs neural eval** — measure if MCTS agent beats raw policy head-to-head
-4. **Larger model** — wider MLP, more embedding dims, attention over options
-5. **Multi-deck training** — sample opponent decks from a pool for robustness
-6. **Submission** — `just build_submit` + `just upload` and check Kaggle leaderboard
+1. **Retrain-and-measure ablations still outstanding** — Tasks 6/7/8's win-rate/accuracy lift claims (Tier-1 features, deck ledger, archetype head) have never actually been measured on/vs-ablated. `FeatureConfig` supports this; nobody's run it yet.
+2. **Task 9 decision** — hard-rule extension to `forced_picks` was deliberately skipped (every candidate condition considered was either already covered or a policy judgment call in disguise). See `docs/superpowers/plans/2026-07-16-heuristics-integration-architecture.md`.
+3. **Phase 2 for `03_pult_munki`** — run expert iteration on top of its 1000-iter PPO checkpoint; never measured whether MCTS actually beats the raw policy head-to-head for this deck.
+4. **Kaggle CLI auth is broken on this machine** — `kaggle competitions submit`/`logs`/`submissions` all 401. `~/.kaggle/kaggle.json` needs a fresh token (kaggle.com → Account → API → Create New Token) before the CLI can be used again; the website upload flow still works.
+5. **Hyperparameter sweep** — LR, games/iter, pool size, eval frequency
+6. **Larger model** — wider MLP, more embedding dims, attention over options
+7. **Multi-deck training** — sample opponent decks from a pool for robustness (also unblocks the opponent-archetype head being anything but single-class)
 
 ## Build & Run
 ```bash
@@ -53,7 +62,13 @@ pytest tests/              # run tests
 - `pkm/agents/neural_agent.py` — greedy trained-policy agent (numpy inference, no torch)
 - `pkm/engine/` — the single engine seam: `loader.py` (backend switch, ctypes ABI, capabilities), `api.py` (all 13 typed engine functions incl. SearchBegin/SearchStep)
 - `pkm/rl/` — encoders, pointer-style policy/value net, PPO self-play, expert iteration
+  - `pkm/rl/features.py` — declarative `FeatureSpec` registry (GLOBAL/PER_SLOT/PER_OPTION), checkpoint stamping
+  - `pkm/rl/deterministic_features.py` — Tier-1 heuristics (`lethal_this_turn`, `type_effectiveness`, `retreat_viable`)
+  - `pkm/rl/reward_terms.py` — reward-shaping term registry (`POTENTIAL_TERMS`/`DIRECT_TERMS`/`DEFAULT_WEIGHTS`)
+- `pkm/heuristics/` — `GameContext` (per-game memory) + `DeckTracker` (own-deck card-location tracking, prize deduction)
 - `pkm/cli_deck.py` — deck management CLI (list, show, convert)
+- `docs/ARCHITECTURE.md` — full technical walkthrough of the heuristics-integration architecture (GameContext/registry/trunk/heads/reward-shaping/MCTS boundary)
+- `docs/TRAINING_AND_SUBMISSION.md` — runbook: start/background/monitor a training run, export, back up to HF, build + upload a Kaggle submission
 - `docs/ideas/` — architecture ideas and future design notes
   - `docs/ideas/agent-composition-and-refactor.md` — code map (net/policy/value/MCTS/training), composition modes (pipeline vs injection vs delegation), and the ranked refactor plan
 - `pkm/mcts/` — determinization + IS-MCTS over the search API
@@ -65,7 +80,8 @@ pytest tests/              # run tests
 - `deck/00_basic.csv` — starter 60-card deck
 - `deck/01_psychic.csv` — Psychic Toolbox (Slowking + Mega Kangaskhan ex)
 - `deck/02_dragapult.csv` — **default deck**: Dragapult ex / Dusknoir (Psychic/Dark)
-- `submit.sh` — creates `submission.tar.gz` for Kaggle
+- `deck/03_pult_munki.csv` — Dragapult ex / Munkidori, **no Dusknoir**, carries Xerosic's Machinations — the deck the merged reward-shaping terms actually target
+- `submit.sh` — creates a Kaggle submission bundle for any agent (`bash submit.sh <agent>`); no longer hardcoded to `02_dragapult`
 - `docs/RL_PLAN.md` — RL self-play design (Phase 1 PPO, Phase 2 IS-MCTS/ExIt)
 - `replay/` — replay viewer + data
   - `replay/02_vite_web_app/` — Bun + Vite replay viewer (vanilla JS)
@@ -220,10 +236,12 @@ determinism issue and our compromise): `docs/ENGINE.md`.**
 ## Weights on Hugging Face
 Published (public): **https://huggingface.co/TomatoCream/pkm-cabt-ppo**
 
-Holds `policy.npz` (numpy export), `ppo_latest.pt` for all three agents,
-`00_basic/exit_latest.pt`, each agent's `deck.csv`, and the training metrics.
-Checkpoints are gitignored, so this is the only durable copy — re-upload after a
-training run that you want to keep:
+Holds `policy.npz` (numpy export), `ppo_latest.pt` for the original three
+agents, `00_basic/exit_latest.pt`, each agent's `deck.csv`, and the training
+metrics. **`03_pult_munki`'s 1000-iter PPO checkpoint (2026-07-18) is not yet
+uploaded here** — it only exists locally in `agents/03_pult_munki/checkpoints/`
+(gitignored). Checkpoints are gitignored in general, so HF is the only
+durable copy — re-upload after a training run that you want to keep:
 ```bash
 hf upload TomatoCream/pkm-cabt-ppo <local_path> <path_in_repo> --repo-type model
 hf download TomatoCream/pkm-cabt-ppo policy.npz                 # fetch back
@@ -237,8 +255,39 @@ Note: the repo has no LICENSE, so the HF model card omits a license field —
 public but "all rights reserved" by default.
 
 ## Kaggle Submission
-- Bundle: `tar -czvf submission.tar.gz main.py deck.csv pkm/`
+- Full runbook (train → keep running → export → back up → build → upload):
+  **`docs/TRAINING_AND_SUBMISSION.md`**.
+- Bundle: `pkm export --agent <name> pkm/policy.npz && bash submit.sh <name>`
+  (`submit.sh <agent>` — the tar's `-C submission .` intentionally flattens
+  paths to `./main.py`/`./deck.csv`/`./pkm/...`, not `submission/...`, because
+  Kaggle extracts straight into `/kaggle_simulations/agent/` and expects
+  `main.py` at that top level.)
 - Max size: 197.7 MiB
 - Daily limit: 5 submissions
 - Only latest 2 are active
 - Files land in `/kaggle_simulations/agent/`
+
+### Critical: the sandbox runs Python 3.11, this repo's dev env runs 3.12
+Kaggle's submission sandbox executes `main.py` (and everything it imports
+under `pkm/`) with **Python 3.11**. This project's own dev environment (`uv
+sync`, `just test`, everything in this doc) runs **3.12** — so a Python
+3.12-only construct will pass every local check and then hard-`SyntaxError`
+the instant Kaggle tries to import it, with **zero local signal**.
+
+This already happened once: `pkm/types/obs.py` used PEP 695 generic-function
+syntax (`def _as_enum[E: IntEnum](...)`) from its very first commit, so
+**every submission ever built from this codebase failed identically** until
+it was caught (2026-07-18, via a failed validation episode's traceback) and
+fixed by rewriting it with a plain `typing.TypeVar` instead. Full context:
+`docs/ARCHITECTURE.md`, commit `83265b5`.
+
+**Do not use, anywhere under `pkm/`:**
+- `def f[T](...)` / `class C[T]:` (PEP 695 generic syntax) — use
+  `T = TypeVar("T")` instead.
+- `type Alias = ...` (PEP 695 type-alias statement) — use
+  `Alias: TypeAlias = ...` or a plain assignment instead.
+
+If you're unsure whether something's 3.11-safe, the cheapest real check on
+this machine is running the bare system `python` (3.11, no `uv run`) against
+the specific import chain `main.py` pulls in — it reproduces the sandbox's
+parse behavior exactly, which `uv run`'s 3.12 venv does not.
