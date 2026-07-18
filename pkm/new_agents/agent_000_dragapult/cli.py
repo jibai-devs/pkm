@@ -433,7 +433,7 @@ def smoke(
 
 @app.command()
 def train(
-    updates: int = typer.Option(200, help="Number of PPO updates to run."),
+    updates: int = typer.Option(256, help="Number of PPO updates to run."),
     games: int = typer.Option(16, help="Self-play games collected per update."),
     workers: int = typer.Option(
         1, help="Rollout workers (parallel.py path is unverified; 1 is safe)."
@@ -455,10 +455,10 @@ def train(
         1.0, help="Scale on the shaping term (0.0 == terminal)."
     ),
     eval_every: int = typer.Option(
-        10, help="Evaluate vs random every N updates (0 = never)."
+        16, help="Evaluate vs random every N updates (0 = never)."
     ),
-    eval_games: int = typer.Option(100, help="Games per evaluation."),
-    ckpt_every: int = typer.Option(50, help="Checkpoint snapshot every N updates."),
+    eval_games: int = typer.Option(128, help="Games per evaluation."),
+    ckpt_every: int = typer.Option(64, help="Checkpoint snapshot every N updates."),
     data_dir: Path = typer.Option(
         DATA_DIR,
         "--output-dir",
@@ -536,9 +536,9 @@ def resume(
     games: int = typer.Option(16, help="Self-play games collected per update."),
     workers: int = typer.Option(1, help="Rollout workers."),
     eval_every: int = typer.Option(
-        10, help="Evaluate vs random every N updates (0 = never)."
+        16, help="Evaluate vs random every N updates (0 = never)."
     ),
-    eval_games: int = typer.Option(100, help="Games per evaluation."),
+    eval_games: int = typer.Option(128, help="Games per evaluation."),
     data_dir: Path = typer.Option(
         DATA_DIR,
         "--output-dir",
@@ -644,7 +644,7 @@ def sweep(
     updates: int = typer.Option(15, help="PPO updates per trial (keep short)."),
     games: int = typer.Option(32, help="Self-play games per update."),
     workers: int = typer.Option(8, help="Rollout workers per trial."),
-    eval_games: int = typer.Option(100, help="Games per evaluation (the objective)."),
+    eval_games: int = typer.Option(128, help="Games per evaluation (the objective)."),
     study: str = typer.Option(
         "dragapult_ppo", help="Optuna study name (sqlite, resumable)."
     ),

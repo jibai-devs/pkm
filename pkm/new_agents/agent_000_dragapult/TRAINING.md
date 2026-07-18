@@ -59,7 +59,7 @@ have to pass all of these; defaults apply for anything you omit.)
 
 ```bash
 pkm new_agents 000_dragapult train \
-    --updates 200 \
+    --updates 256 \
     --games 16 \
     --workers 1 \
     --lr 0.0003 \
@@ -71,9 +71,9 @@ pkm new_agents 000_dragapult train \
     --epochs 4 \
     --minibatch-size 64 \
     --seed 0 \
-    --eval-every 10 \
-    --eval-games 100 \
-    --ckpt-every 50 \
+    --eval-every 16 \
+    --eval-games 128 \
+    --ckpt-every 64 \
     --output-dir pkm_data/new_agents/agent_000_dragapult \
     --no-resume \
     --tb \
@@ -85,7 +85,7 @@ pkm new_agents 000_dragapult train \
 
 | Flag                       | Default                                   | What it controls                                                                                         |
 |----------------------------|-------------------------------------------|----------------------------------------------------------------------------------------------------------|
-| `--updates`                | `200`                                     | Number of collect→improve cycles = **training length**.                                                  |
+| `--updates`                | `256`                                     | Number of collect→improve cycles = **training length**.                                                  |
 | `--games`                  | `16`                                      | Self-play games collected per update = the **batch** (each game ≈ 215 decisions).                        |
 | `--workers`                | `1`                                       | Parallel rollout processes. **Speed only**, never changes what's learned. Try `8`–`12`.                  |
 | `--lr`                     | `0.0003`                                  | Adam learning rate.                                                                                      |
@@ -97,9 +97,9 @@ pkm new_agents 000_dragapult train \
 | `--epochs`                 | `4`                                       | Optimizer passes over each collected batch.                                                              |
 | `--minibatch-size`         | `64`                                      | SGD minibatch size, in decisions.                                                                        |
 | `--seed`                   | `0`                                       | RNG seed (weights, sampling, worker seeding).                                                            |
-| `--eval-every`             | `10`                                      | Evaluate vs random every N updates (`0` = never).                                                        |
-| `--eval-games`             | `100`                                     | Games per evaluation.                                                                                    |
-| `--ckpt-every`             | `50`                                      | Write a numbered `ckpt_<N>.pt` snapshot every N updates. (`latest.pt` is *always* written every update.) |
+| `--eval-every`             | `16`                                      | Evaluate vs random every N updates (`0` = never).                                                        |
+| `--eval-games`             | `128`                                     | Games per evaluation.                                                                                    |
+| `--ckpt-every`             | `64`                                      | Write a numbered `ckpt_<N>.pt` snapshot every N updates. (`latest.pt` is *always* written every update.) |
 | `--output-dir` / `-o`      | `pkm_data/new_agents/agent_000_dragapult` | Artifact root (checkpoints, logs, TB, wandb, sweeps).                                                    |
 | `--resume` / `--no-resume` | `--no-resume`                             | Continue from `latest.pt` instead of starting fresh (or use the `resume` command).                       |
 | `--tb` / `--no-tb`         | `--tb`                                    | Log to TensorBoard under `<output>/runs/`.                                                               |
@@ -145,7 +145,7 @@ Default output root (override with `--output-dir` / `-o`):
 pkm_data/new_agents/agent_000_dragapult/        # NOTE: this is a git submodule
 ├── checkpoints/
 │   ├── latest.pt        # rewritten after EVERY update (atomic) — the resume point
-│   └── ckpt_<N>.pt      # permanent snapshot every --ckpt-every updates (default 50)
+│   └── ckpt_<N>.pt      # permanent snapshot every --ckpt-every updates (default 64)
 ├── logs/
 │   └── train.csv        # one row per update (columns = the metrics in §7)
 ├── runs/                # TensorBoard event files, one subdir per run
@@ -251,7 +251,7 @@ pkm new_agents 000_dragapult sweep --trials 30 --updates 15 --games 32 --workers
 | `--updates`    | `15`            | PPO updates **per trial** — keep short. |
 | `--games`      | `32`            | Games per update within a trial.        |
 | `--workers`    | `8`             | Rollout workers per trial.              |
-| `--eval-games` | `100`           | Games used to score each trial.         |
+| `--eval-games` | `128`           | Games used to score each trial.         |
 | `--study`      | `dragapult_ppo` | Study name (SQLite file).               |
 | `--seed`       | `0`             | Base seed (offset per trial).           |
 

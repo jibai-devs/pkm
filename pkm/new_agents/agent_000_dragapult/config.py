@@ -71,7 +71,7 @@ class RunConfig:
 
     name: str = "agent_000_dragapult"
     feature_version: str = FEATURE_VERSION
-    checkpoint_every_updates: int = 50
+    checkpoint_every_updates: int = 64
     keep_last: int = 5
 
 
