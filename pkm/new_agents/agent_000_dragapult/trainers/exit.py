@@ -75,7 +75,12 @@ def _play_game(model, cfg, gen) -> tuple[list[ExItSample], int]:
 class ExItTrainer:
     def collect(self, model, n_games, cfg, gen=None):
         model.eval()
-        gen = gen or torch.Generator().manual_seed(cfg.train.seed)
+        # gen=None rides the process-global torch RNG (mirrors PPO's
+        # collect_rollout/sample_action): each worker seeds it distinctly via
+        # torch.manual_seed(base_seed+rank) in parallel._worker and it
+        # advances across updates, so determinization + π-sampling are NOT
+        # identically reseeded every call. An explicit gen (e.g. from tests)
+        # is passed through unchanged for determinism.
         samples: list[ExItSample] = []
         results = []
         for _ in range(n_games):
