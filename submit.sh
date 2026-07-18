@@ -1,4 +1,4 @@
-#!/run/current-system/sw/bin/bash
+#!/usr/bin/env bash
 # Create submission bundle for Kaggle
 # Usage: ./submit.sh [agent_name]
 #
@@ -10,6 +10,10 @@
 set -e
 
 AGENT="${1:-02_dragapult}"
+if [ ! -f "deck/${AGENT}.csv" ]; then
+    echo "No deck/${AGENT}.csv found for agent '${AGENT}'" >&2
+    exit 1
+fi
 TS=$(date +%Y%m%d_%H%M%S)
 OUT="submissions/submission_${AGENT}_${TS}.tar.gz"
 

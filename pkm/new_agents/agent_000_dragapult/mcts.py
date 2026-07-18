@@ -1,0 +1,174 @@
+"""PUCT MCTS over the engine's search_* forward model, guided by model.evaluate.
+
+Node = one engine search node (searchId + observation). Value is backed up
+negamax (sign flips when the child's acting seat differs). v1 uses single-sample
+determinization (K=1) and lets the engine resolve chance inside search_step
+(no explicit chance nodes) — see docs/specs §5.2, §5.3, §7.
+
+**Branching-tree variant (per Task 5's characterization,
+`SEARCH_STEP_BRANCHES=True`):** `cabt.search_step(node.search_id, [a])` returns
+a distinct, persistent child `searchId` per call from the same parent -- the
+engine's search API is a real tree, not a single mutable cursor. So children
+are memoized (keyed by the submitted select -- see below) on the `_Node`
+itself and simulations descend via repeated `search_step` calls, never
+re-rooting. The re-root-and-replay alternative (for a
+`SEARCH_STEP_BRANCHES=False` engine) is intentionally not implemented
+(YAGNI): it does not match the observed engine.
+
+**Multi-count decisions (found empirically, not in the brief):** the engine's
+own `search_step` validates ``select.minCount <= len(select) <=
+select.maxCount`` (`pkm/engine/api.py`); submitting a single index is only
+valid where ``maxCount == 1``. Deeper nodes (discards, energy attachment,
+prize picks, ...) can require ``maxCount > 1``, and this is reachable well
+within the range of simulation counts Task 8 will use (confirmed empirically
+-- see task-7-report.md). Each simulation therefore selects
+``k = clamp(maxCount, minCount, n_opts)`` distinct option indices by PUCT
+score (mirrors `policy.py`'s existing ``select_count``/without-replacement
+convention for multi-count decisions) and submits all ``k`` together in one
+`search_step` call; children are keyed by the sorted tuple of chosen indices,
+and every chosen index's `N`/`W` is updated on backup (marginal per-option
+visit/value stats). At a single-count node this reduces exactly to the
+brief's one-index-per-call behaviour.
+"""
+
+from __future__ import annotations
+
+import math
+
+import numpy as np
+import torch
+
+from pkm.new_agents.agent_000_dragapult import cabt
+from pkm.new_agents.agent_000_dragapult.determinize import DETERMINIZERS
+from pkm.new_agents.agent_000_dragapult.features import featurize
+from pkm.new_agents.agent_000_dragapult.model import collate
+from pkm.new_agents.agent_000_dragapult.policy import select_count
+
+
+class _Node:
+    __slots__ = ("search_id", "obs", "seat", "n_opts", "P", "N", "W", "children", "terminal_v")
+
+    def __init__(self, state: cabt.SearchState):
+        self.search_id = state.searchId
+        self.obs = state.observation
+        self.seat = self.obs.current.yourIndex if self.obs.current else 0
+        self.n_opts = len(self.obs.select.option) if self.obs.select else 0
+        self.P = np.zeros(self.n_opts, dtype=np.float32)
+        self.N = np.zeros(self.n_opts, dtype=np.float32)
+        self.W = np.zeros(self.n_opts, dtype=np.float32)
+        self.children: dict[tuple[int, ...], "_Node"] = {}
+        self.terminal_v: float | None = None
+
+
+def _evaluate(node: _Node, model) -> float:
+    """Fill node.P from priors; return the node's value estimate in [-1, 1]."""
+    if node.obs.current is not None and node.obs.current.result >= 0:
+        # Terminal: +1 if the node's own seat is the winner, else -1. Matches
+        # the task brief's terminal-value convention exactly (result codes
+        # other than a decisive 0/1 -- e.g. a draw -- are not exercised by
+        # this engine's search nodes in practice; see task-7-report.md).
+        node.terminal_v = 1.0 if node.obs.current.result == node.seat else -1.0
+        return node.terminal_v
+    f = featurize(node.obs)
+    b = collate([f])
+    with torch.no_grad():
+        priors, value = model.evaluate(b)  # softmax over options, scalar value
+    p = priors[0, : node.n_opts].cpu().numpy().astype(np.float32)
+    s = p.sum()
+    node.P = p / s if s > 0 else np.full(node.n_opts, 1.0 / max(node.n_opts, 1), np.float32)
+    return float(value[0])
+
+
+def _select(node: _Node, c_puct: float) -> tuple[int, ...]:
+    """PUCT-score the node's options and pick the ``k`` best (without replacement).
+
+    ``k`` matches this decision's own ``minCount``/``maxCount`` (usually 1);
+    for ``k > 1`` this greedily takes the top-``k`` PUCT scores as the search
+    analogue of `policy.py`'s sampling-time ``select_count``/without-replacement
+    convention for multi-count decisions.
+    """
+    sqrt_total = math.sqrt(max(node.N.sum(), 1.0))
+    q = np.where(node.N > 0, node.W / np.maximum(node.N, 1), 0.0)
+    u = c_puct * node.P * sqrt_total / (1.0 + node.N)
+    scores = q + u
+    sel = node.obs.select
+    k = select_count(sel.minCount, sel.maxCount, node.n_opts) if sel else 1
+    k = max(1, min(k, node.n_opts))
+    top_k = np.argpartition(-scores, k - 1)[:k] if k < node.n_opts else np.arange(node.n_opts)
+    return tuple(sorted(int(i) for i in top_k))
+
+
+def search(root_obs: dict, seat: int, model, cfg, gen: torch.Generator) -> np.ndarray:
+    """Run PUCT MCTS from `root_obs` (acting seat `seat`); return the root visit policy.
+
+    Owns the engine search lifecycle only (`search_begin`/`search_step` per
+    simulation, `search_end` in a `finally`); the caller owns `battle_start`/
+    `battle_finish` around this call.
+    """
+    determinize = DETERMINIZERS[cfg.train.determinization]
+    world = determinize(root_obs, seat, gen)
+    root_state = cabt.search_begin(
+        root_obs,
+        your_deck=world.your_deck,
+        your_prize=world.your_prize,
+        opponent_deck=world.opponent_deck,
+        opponent_prize=world.opponent_prize,
+        opponent_hand=world.opponent_hand,
+        opponent_active=world.opponent_active,
+    )
+    root = _Node(root_state)
+    c_puct = cfg.train.mcts_c_puct
+
+    try:
+        _evaluate(root, model)
+        for _ in range(cfg.train.mcts_simulations):
+            path: list[tuple[_Node, tuple[int, ...]]] = []
+            node = root
+            leaf_v = 0.0
+            # descend to a leaf, expanding exactly one new node per simulation
+            while True:
+                if node.n_opts == 0 or node.terminal_v is not None:
+                    break
+                picks = _select(node, c_puct)
+                path.append((node, picks))
+                if picks in node.children:
+                    node = node.children[picks]
+                    continue
+                child = _Node(cabt.search_step(node.search_id, list(picks)))
+                node.children[picks] = child
+                leaf_v = _evaluate(child, model)
+                node = child
+                break
+
+            if not path:
+                # Root itself has no legal options or is already terminal --
+                # no simulation can proceed; every further iteration would be
+                # identical, so stop early rather than spin.
+                break
+
+            v = node.terminal_v if node.terminal_v is not None else leaf_v
+            # Negamax backup keyed on SEAT (PTCG has multi-decision turns
+            # where the same seat acts consecutively, so depth parity would
+            # be wrong): +v for edges whose parent's acting seat equals the
+            # leaf's seat, -v otherwise. A multi-count decision's visit/value
+            # stats are attributed marginally to every option in the picked
+            # slate (see module docstring).
+            for parent, picks in reversed(path):
+                signed = v if parent.seat == node.seat else -v
+                for a in picks:
+                    parent.N[a] += 1
+                    parent.W[a] += signed
+    finally:
+        cabt.search_end()
+
+    if root.n_opts == 0 or root.N.sum() == 0:
+        # No sims expanded (terminal/optionless root, or the loop above broke
+        # on its first iteration) -- fall back to uniform over root options.
+        return np.full(root.n_opts, 1.0 / max(root.n_opts, 1), dtype=np.float32)
+
+    tau = cfg.train.mcts_temperature
+    if tau > 0:
+        counts = root.N ** (1.0 / tau)
+    else:
+        counts = (root.N == root.N.max()).astype(np.float32)
+    return (counts / counts.sum()).astype(np.float32)

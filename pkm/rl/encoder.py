@@ -18,19 +18,7 @@ from pkm.data.card_data import Attack, CardData, get_card_by_id
 from pkm.heuristics.context import GameContext
 from pkm.rl.features import (
     NORM,
-    OPT_ABILITY,
-    OPT_ATTACH,
-    OPT_ATTACK,
-    OPT_CARD,
-    OPT_DISCARD,
-    OPT_ENERGY,
-    OPT_ENERGY_CARD,
-    OPT_EVOLVE,
     OPT_FEATS,  # noqa: F401 -- re-exported for pkm.rl.model
-    OPT_PLAY,
-    OPT_RETREAT,
-    OPT_SKILL,
-    OPT_TOOL_CARD,
     STATE_FEATS,
     FeatureConfig,
     assemble_global,
@@ -45,22 +33,15 @@ from pkm.types.obs import (
     NUM_ATTACKS,
     NUM_CARDS,
     NUM_OPT_TYPES,
+    AreaType,
     GameState,
     Observation,
     Option,
+    OptionType,
     PokemonRef,
     Select,
 )
 
-# AreaType values (see docs / official api.py)
-AREA_DECK = 1
-AREA_HAND = 2
-AREA_DISCARD = 3
-AREA_ACTIVE = 4
-AREA_BENCH = 5
-AREA_PRIZE = 6
-AREA_STADIUM = 7
-AREA_LOOKING = 12
 
 # CardType values (see obs_data_structure/OBSERVATION_SCHEMA.md)
 CARD_TYPE_ITEM = 1
@@ -83,7 +64,6 @@ PHANTOM_DIVE_ATTACK_ID = 154
 ENERGY_TYPE_COLORLESS = 0
 ENERGY_TYPE_FIRE = 2
 ENERGY_TYPE_PSYCHIC = 5
-
 
 @dataclass
 class EncodedDecision:
@@ -108,6 +88,21 @@ class EncodedDecision:
     value: float = 0.0
     # filled by return computation
     potential: float = 0.0
+    board_setup_potential: float = 0.0
+    budew_setup_potential: float = 0.0
+    dreepy_line_field_potential: float = 0.0
+    energy_penalty: float = 0.0
+    budew_bonus: float = 0.0
+    wrong_type_energy_penalty: float = 0.0
+    dragapult_attack_bonus: float = 0.0
+    dreepy_spread_penalty: float = 0.0
+    xerosic_bonus: float = 0.0
+    budew_bench_setup_bonus: float = 0.0
+    dreepy_evolve_bonus: float = 0.0
+    dreepy_bench_charge_bonus: float = 0.0
+    dreepy_active_charge_bonus: float = 0.0
+    wasted_resources_penalty: float = 0.0
+    phantom_dive_bonus: float = 0.0
     advantage: float = 0.0
     ret: float = 0.0
     # Task 8: ground-truth opponent-archetype label for the auxiliary head's
@@ -184,21 +179,21 @@ def _card_id_at(
         return 0
     players = state.players
     try:
-        if area == AREA_DECK:
+        if area == AreaType.DECK:
             c = (select.deck or [])[index]
-        elif area == AREA_HAND:
+        elif area == AreaType.HAND:
             c = (players[player_index].hand or [])[index]
-        elif area == AREA_DISCARD:
+        elif area == AreaType.TRASH:
             c = players[player_index].discard[index]
-        elif area == AREA_ACTIVE:
+        elif area == AreaType.ACTIVE:
             c = players[player_index].active[index]
-        elif area == AREA_BENCH:
+        elif area == AreaType.BENCH:
             c = players[player_index].bench[index]
-        elif area == AREA_PRIZE:
+        elif area == AreaType.PRIZE:
             c = players[player_index].prize[index]
-        elif area == AREA_STADIUM:
+        elif area == AreaType.STADIUM:
             c = state.stadium[index]
-        elif area == AREA_LOOKING:
+        elif area == AreaType.LOOKING:
             c = (state.looking or [])[index]
         else:
             return 0
@@ -213,9 +208,9 @@ def _pokemon_at(
     if index is None:
         return None
     try:
-        if area == AREA_ACTIVE:
+        if area == AreaType.ACTIVE:
             return state.players[player_index].active[index]
-        if area == AREA_BENCH:
+        if area == AreaType.BENCH:
             return state.players[player_index].bench[index]
     except (TypeError, IndexError, AttributeError):
         pass
@@ -251,9 +246,9 @@ def encode_options(
         card2_id = 0
         attack_id = 0
 
-        if t == OPT_CARD:
+        if t == OptionType.CARD:
             card_id = _card_id_at(state, select, pi, area, index)
-        elif t == OPT_TOOL_CARD:
+        elif t == OptionType.TOOL_CARD:
             p = _pokemon_at(state, pi, area, index)
             if p:
                 card2_id = p.id
@@ -261,7 +256,7 @@ def encode_options(
                 ti = o.toolIndex
                 if ti is not None and ti < len(tools):
                     card_id = tools[ti].id
-        elif t in (OPT_ENERGY_CARD, OPT_ENERGY):
+        elif t in (OptionType.ENERGY_CARD, OptionType.ENERGY):
             p = _pokemon_at(state, pi, area, index)
             if p:
                 card2_id = p.id
@@ -269,21 +264,21 @@ def encode_options(
                 ei = o.energyIndex
                 if ei is not None and ei < len(ecards):
                     card_id = ecards[ei].id
-        elif t == OPT_PLAY:
-            card_id = _card_id_at(state, select, you, AREA_HAND, index)
-        elif t in (OPT_ATTACH, OPT_EVOLVE):
+        elif t == OptionType.PLAY:
+            card_id = _card_id_at(state, select, you, AreaType.HAND, index)
+        elif t in (OptionType.ATTACH, OptionType.EVOLVE):
             card_id = _card_id_at(state, select, you, area, index)
             p = _pokemon_at(state, you, o.inPlayArea, o.inPlayIndex)
             if p:
                 card2_id = p.id
-        elif t in (OPT_ABILITY, OPT_DISCARD):
+        elif t in (OptionType.ABILITY, OptionType.DISCARD):
             card_id = _card_id_at(state, select, pi, area, index)
-        elif t == OPT_ATTACK:
+        elif t == OptionType.ATTACK:
             attack_id = o.attackId or 0
             active = state.players[you].active_pokemon
             if active:
                 card_id = active.id
-        elif t == OPT_SKILL:
+        elif t == OptionType.SKILL:
             card_id = o.cardId or 0
 
         opt_card[i] = card_id if 0 <= card_id < NUM_CARDS else 0
@@ -366,7 +361,7 @@ def dragapult_backup_potential(obs: Observation) -> float:
         return 0.0
     # Same "trust the engine's own legality check" trick as elsewhere:
     # able to attack right now iff an attack option is actually offered.
-    can_attack = any(o.type == OPT_ATTACK for o in sel.option)
+    can_attack = any(o.type == OptionType.ATTACK for o in sel.option)
     if not can_attack:
         return 0.0
     has_charged_drakloak = any(
@@ -426,9 +421,9 @@ def _active_energy_already_sufficient(obs: Observation) -> bool:
     offered = {
         o.attackId
         for o in sel.option
-        if o.type == OPT_ATTACK and o.attackId is not None
+        if o.type == OptionType.ATTACK and o.attackId is not None
     }
-    can_retreat = any(o.type == OPT_RETREAT for o in sel.option)
+    can_retreat = any(o.type == OptionType.RETREAT for o in sel.option)
     return required <= offered and can_retreat
 
 
@@ -510,7 +505,7 @@ def budew_first_turn_attack_bonus(obs: Observation, picks: list[int]) -> float:
     if active is None or active.id != BUDEW_CARD_ID:
         return 0.0
     attacked = any(
-        sel.option[i].type == OPT_ATTACK for i in picks if 0 <= i < len(sel.option)
+        sel.option[i].type == OptionType.ATTACK for i in picks if 0 <= i < len(sel.option)
     )
     return 1.0 if attacked else 0.0
 
@@ -553,9 +548,9 @@ def xerosic_machinations_bonus(obs: Observation, picks: list[int]) -> float:
         if i < 0 or i >= len(sel.option):
             continue
         opt = sel.option[i]
-        if opt.type != OPT_PLAY:
+        if opt.type != OptionType.PLAY:
             continue
-        card_id = _card_id_at(state, sel, you, AREA_HAND, opt.index)
+        card_id = _card_id_at(state, sel, you, AreaType.HAND, opt.index)
         if card_id != XEROSIC_MACHINATIONS_CARD_ID:
             continue
         if opp_hand_count >= 7:
@@ -572,7 +567,7 @@ def _resolve_energy_attach(
     (target, card); otherwise None. Shared by the two checks below that both
     need to know "which Pokemon is this energy landing on, and which card."
     """
-    if opt.type != OPT_ATTACH:
+    if opt.type != OptionType.ATTACH:
         return None
     state = obs.current
     sel = obs.select
@@ -627,7 +622,7 @@ def dragapult_ex_attack_bonus(obs: Observation, picks: list[int]) -> float:
     if active is None or active.id != DRAGAPULT_EX_CARD_ID:
         return 0.0
     attacked = any(
-        sel.option[i].type == OPT_ATTACK for i in picks if 0 <= i < len(sel.option)
+        sel.option[i].type == OptionType.ATTACK for i in picks if 0 <= i < len(sel.option)
     )
     return 1.0 if attacked else 0.0
 
@@ -643,7 +638,7 @@ def phantom_dive_attack_bonus(obs: Observation, picks: list[int]) -> float:
     if sel is None:
         return 0.0
     used = any(
-        sel.option[i].type == OPT_ATTACK
+        sel.option[i].type == OptionType.ATTACK
         and sel.option[i].attackId == PHANTOM_DIVE_ATTACK_ID
         for i in picks
         if 0 <= i < len(sel.option)
@@ -731,7 +726,7 @@ def dreepy_evolve_bonus(obs: Observation, picks: list[int]) -> float:
         if i < 0 or i >= len(sel.option):
             continue
         opt = sel.option[i]
-        if opt.type != OPT_EVOLVE:
+        if opt.type != OptionType.EVOLVE:
             continue
         card_id = _card_id_at(state, sel, you, opt.area, opt.index)
         if card_id != DRAKLOAK_CARD_ID:
@@ -836,7 +831,7 @@ def drakloak_backup_ready_bonus(obs: Observation, picks: list[int]) -> float:
     if active is None or active.id != DRAGAPULT_EX_CARD_ID:
         return 0.0
     phantom_dive_ready = any(
-        o.type == OPT_ATTACK and o.attackId == PHANTOM_DIVE_ATTACK_ID
+        o.type == OptionType.ATTACK and o.attackId == PHANTOM_DIVE_ATTACK_ID
         for o in sel.option
     )
     if not phantom_dive_ready:
@@ -872,7 +867,7 @@ def wasted_resources_attack_penalty(obs: Observation, picks: list[int]) -> float
     you = state.yourIndex
     me = state.players[you]
     attacked = any(
-        sel.option[i].type == OPT_ATTACK for i in picks if 0 <= i < len(sel.option)
+        sel.option[i].type == OptionType.ATTACK for i in picks if 0 <= i < len(sel.option)
     )
     if not attacked:
         return 0.0
@@ -882,9 +877,9 @@ def wasted_resources_attack_penalty(obs: Observation, picks: list[int]) -> float
     if bench_count >= 2:
         return 0.0
     for o in sel.option:
-        if o.type != OPT_PLAY:
+        if o.type != OptionType.PLAY:
             continue
-        card_id = _card_id_at(state, sel, you, AREA_HAND, o.index)
+        card_id = _card_id_at(state, sel, you, AreaType.HAND, o.index)
         card = get_card_by_id(card_id) if card_id else None
         if card is not None and card.card_type in (CARD_TYPE_ITEM, CARD_TYPE_SUPPORTER):
             return -1.0

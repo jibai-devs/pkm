@@ -27,7 +27,7 @@ import json
 
 from pkm.types.obs import Observation, SearchState
 
-from .loader import Battle, StartData, lib
+from .loader import Battle, StartData, get_lib
 
 
 def to_observation(obs: dict) -> Observation:
@@ -42,7 +42,7 @@ def to_observation(obs: dict) -> Observation:
 
 
 def _get_battle_data() -> dict:
-    sd = lib.GetBattleData(Battle.battle_ptr)
+    sd = get_lib().GetBattleData(Battle.battle_ptr)
     Battle.obs = json.loads(sd.json.decode())
     Battle.obs["search_begin_input"] = ctypes.string_at(sd.data, sd.count).decode(
         "ascii"
@@ -56,7 +56,7 @@ def battle_start(deck0: list[int], deck1: list[int]) -> tuple[dict | None, Start
         raise ValueError("The deck must contain 60 cards.")
     cards = deck0 + deck1
     arg = (ctypes.c_int * len(cards))(*cards)
-    start_data = lib.BattleStart(arg)
+    start_data = get_lib().BattleStart(arg)
     Battle.battle_ptr = start_data.battlePtr
     if Battle.battle_ptr is None or Battle.battle_ptr == 0:
         return (None, start_data)
@@ -70,7 +70,7 @@ def battle_select(select_list: list[int]) -> dict:
     ):
         raise ValueError("select_list is not list[int]")
     arg = (ctypes.c_int * len(select_list))(*select_list)
-    err = lib.Select(Battle.battle_ptr, arg, len(select_list))
+    err = get_lib().Select(Battle.battle_ptr, arg, len(select_list))
     if err != 0:
         if err == 30:
             raise ValueError("battle_ptr broken.")
@@ -80,12 +80,12 @@ def battle_select(select_list: list[int]) -> dict:
 
 def battle_finish() -> None:
     """End the battle and free its memory."""
-    lib.BattleFinish(Battle.battle_ptr)
+    get_lib().BattleFinish(Battle.battle_ptr)
 
 
 def visualize_data() -> str:
     """Return the visualizer data blob for the current battle."""
-    return lib.VisualizeData(Battle.battle_ptr).decode()
+    return get_lib().VisualizeData(Battle.battle_ptr).decode()
 
 
 # --- card / attack metadata --------------------------------------------------
@@ -93,12 +93,12 @@ def visualize_data() -> str:
 
 def all_cards() -> list[dict]:
     """All card metadata from the engine (raw)."""
-    return json.loads(lib.AllCard())
+    return json.loads(get_lib().AllCard())
 
 
 def all_attacks() -> list[dict]:
     """All attack metadata from the engine (raw)."""
-    return json.loads(lib.AllAttack())
+    return json.loads(get_lib().AllAttack())
 
 
 # --- search (forward simulation) ---------------------------------------------
@@ -109,7 +109,7 @@ _agent_ptr: int | None = None
 def _get_agent_ptr() -> int:
     global _agent_ptr
     if _agent_ptr is None:
-        _agent_ptr = lib.AgentStart()
+        _agent_ptr = get_lib().AgentStart()
     return _agent_ptr
 
 
@@ -187,7 +187,7 @@ def search_begin(
     else:
         opponent_active = []
 
-    raw = lib.SearchBegin(
+    raw = get_lib().SearchBegin(
         _get_agent_ptr(),
         sbi.encode("ascii"),
         len(sbi),
@@ -211,7 +211,7 @@ def search_begin(
 
 def search_step(search_id: int, select: list[int]) -> SearchState:
     """Advance the search by applying option indices at the given node."""
-    raw = lib.SearchStep(
+    raw = get_lib().SearchStep(
         _get_agent_ptr(),
         search_id,
         (ctypes.c_int * len(select))(*select),
@@ -229,9 +229,9 @@ def search_step(search_id: int, select: list[int]) -> SearchState:
 
 def search_end() -> None:
     """End the current search; its memory is reused by the next search."""
-    lib.SearchEnd(_get_agent_ptr())
+    get_lib().SearchEnd(_get_agent_ptr())
 
 
 def search_release(search_id: int) -> None:
     """Free a specific search node."""
-    lib.SearchRelease(_get_agent_ptr(), search_id)
+    get_lib().SearchRelease(_get_agent_ptr(), search_id)

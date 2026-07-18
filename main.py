@@ -17,16 +17,16 @@ def _module_dir() -> Path:
 
 
 def _resolve_deck() -> Deck:
-    """Load the bundled deck, with the repository's Dragapult deck as fallback."""
+    """Load the bundled deck, with the repository's pult_munki deck as fallback."""
     module_dir = _module_dir()
     candidates = (
         module_dir / "deck.csv",
-        module_dir / "deck" / "02_dragapult.csv",
+        module_dir / "deck" / "03_pult_munki.csv",
     )
     for candidate in candidates:
         if candidate.is_file():
             return Deck.from_csv(candidate)
-    raise FileNotFoundError("No 02_dragapult deck found")
+    raise FileNotFoundError("No 03_pult_munki deck found")
 
 
 DECK = _resolve_deck().card_ids

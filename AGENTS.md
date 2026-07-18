@@ -60,11 +60,15 @@ pytest tests/              # run tests
 - `pkm/agents/base.py` — `make_agent(deck, strategy_fn)` factory
 - `pkm/agents/random_agent.py` — random legal move agent
 - `pkm/agents/neural_agent.py` — greedy trained-policy agent (numpy inference, no torch)
+- `pkm/agents/singaporean_middleman.py` — decision-routing agent; dispatches each
+  turn to sub-agents (heuristics/neural/random). Current Kaggle submission agent
+- `pkm/heuristics/` — hand-written strategy helpers (`deck_tracker.py`: deck/prize tracking)
 - `pkm/engine/` — the single engine seam: `loader.py` (backend switch, ctypes ABI, capabilities), `api.py` (all 13 typed engine functions incl. SearchBegin/SearchStep)
 - `pkm/rl/` — encoders, pointer-style policy/value net, PPO self-play, expert iteration
   - `pkm/rl/features.py` — declarative `FeatureSpec` registry (GLOBAL/PER_SLOT/PER_OPTION), checkpoint stamping
   - `pkm/rl/deterministic_features.py` — Tier-1 heuristics (`lethal_this_turn`, `type_effectiveness`, `retreat_viable`)
-  - `pkm/rl/reward_terms.py` — reward-shaping term registry (`POTENTIAL_TERMS`/`DIRECT_TERMS`/`DEFAULT_WEIGHTS`)
+  - `pkm/rl/reward_terms.py` — reward-shaping term registry (`POTENTIAL_TERMS`/`DIRECT_TERMS`/`DEFAULT_WEIGHTS`), per-agent weights JSON
+  - `pkm/rl/parallel_rollout.py` — `ProcessPoolExecutor` self-play (`pkm train --workers N`)
 - `pkm/heuristics/` — `GameContext` (per-game memory) + `DeckTracker` (own-deck card-location tracking, prize deduction)
 - `pkm/cli_deck.py` — deck management CLI (list, show, convert)
 - `docs/ARCHITECTURE.md` — full technical walkthrough of the heuristics-integration architecture (GameContext/registry/trunk/heads/reward-shaping/MCTS boundary)
@@ -81,10 +85,9 @@ pytest tests/              # run tests
 - `deck/01_psychic.csv` — Psychic Toolbox (Slowking + Mega Kangaskhan ex)
 - `deck/02_dragapult.csv` — **default deck**: Dragapult ex / Dusknoir (Psychic/Dark)
 - `deck/03_pult_munki.csv` — Dragapult ex / Munkidori, **no Dusknoir**, carries Xerosic's Machinations — the deck the merged reward-shaping terms actually target
-- `submit.sh` — creates a Kaggle submission bundle for any agent (`bash submit.sh <agent>`); no longer hardcoded to `02_dragapult`
+- `submit.sh` — creates a Kaggle submission bundle for any agent (`bash submit.sh <agent>`); no longer hardcoded to `02_dragapult`; validates `deck/<agent>.csv` exists first
 - `docs/RL_PLAN.md` — RL self-play design (Phase 1 PPO, Phase 2 IS-MCTS/ExIt)
 - `replay/` — replay viewer + data
-  - `replay/02_vite_web_app/` — Bun + Vite replay viewer (vanilla JS)
   - `replay/05_vite_react_app/` — Bun + Vite + React/TS replay viewer
   - `replay/replay.json` — sample replay log
   - `replay/cards.json` — card database with attack metadata
@@ -200,11 +203,15 @@ commit `0a56d34`, Competition-Use-Only license). It compiles to `engine/build/cg
 which is ABI-identical (same 13 exported symbols) to the Kaggle-bundled `libcg.so`.
 
 `pkm/engine/loader.py` picks which build backs the process, precedence:
-`PKM_ENGINE_LIB=/abs/path` > `PKM_ENGINE=vendored` > default `kaggle`. **Default must
+`PKM_ENGINE_LIB=/abs/path` > `PKM_ENGINE=local-nix` (nix build) / `local` (cmake) /
+`vendored` (deprecated alias: nix-then-cmake) > default `kaggle`. **Default must
 stay `kaggle`** — the submission sandbox has no `engine/`. The switch covers the
 direct engine paths (search, card data, RL/MCTS rollouts); `pkm/rl/play.py` and the
 TUI still run matches through `kaggle_environments.make()`, which always uses the
-bundled engine.
+bundled engine. The engine loads **lazily on first use** (`loader.get_lib()`), so
+the backend can be picked at runtime (`loader.set_backend(...)` / the agent CLIs'
+`--engine` flag) and non-engine commands skip the load; only `kaggle` pulls in
+`kaggle_environments`, so `local*` starts fast.
 
 ```bash
 just engine-build         # nix devshell: cmake+ninja (libc++) -> engine/build/cg.so

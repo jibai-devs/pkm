@@ -1,0 +1,114 @@
+# agent_000_dragapult — self-contained PPO self-play trainer.
+# All recipes run from the repo root so `python -m` resolves the `pkm` package.
+# Artifacts land in <repo>/pkm_data/new_agents/agent_000_dragapult/experiments/<exp>/.
+
+root := justfile_directory() / "../../.."
+cli  := "uv run pkm new_agents 000_dragapult"
+
+# Every run belongs to a named *experiment* (its own artifact subdirectory), so
+# the same agent can hold many runs side by side. Override per-recipe with
+# `exp=...`, e.g. `just train exp=hi-lr updates=200`. Names must be filesystem
+# safe (letters/digits/'.'/'_'/'-', no spaces). Default: 000_default.
+exp := "000_default"
+
+# List available recipes.
+default:
+    @just --list --unsorted
+
+# Show config, engine backend, and artifact paths for experiment `exp`.
+info exp=exp:
+    cd {{root}} && {{cli}} info --experiment {{exp}}
+
+# Training/eval recipes default to the fast local-nix engine (no kaggle_environments
+# import). Override per-recipe: `just train engine=kaggle` / `engine=local`.
+
+# Tiny end-to-end sanity run (2 updates x 2 games). Writes to the 000_smoke experiment.
+smoke exp="000_smoke" workers="1" engine="local-nix":
+    cd {{root}} && {{cli}} smoke --experiment {{exp}} --workers {{workers}} --engine {{engine}}
+
+# PPO self-play training. e.g. `just train exp=hi-lr updates=200 games=16 workers=8`.
+# Prompts before overwriting an experiment's existing checkpoint (pass force=--force to skip).
+train exp=exp updates="256" games="16" workers="8" engine="local-nix" force="":
+    cd {{root}} && {{cli}} train --experiment {{exp}} --updates {{updates}} --games {{games}} --workers {{workers}} --engine {{engine}} {{force}}
+
+# PPO self-play tuned to shrink the serial update (minibatch 256, epochs 2), which
+# dominates the cycle at 79K params — see the util/core columns. First arg picks
+# `train` (fresh; injects the fast flags) or `resume` (config incl. minibatch/epochs
+# is restored from the checkpoint, so the flags must NOT be re-passed). e.g.
+# `just train-fast train fast1 200 16` then `just train-fast resume fast1 100 16`.
+train-fast mode="train" exp=exp updates="256" games="16" workers="8" engine="local-nix" force="":
+    cd {{root}} && {{cli}} {{mode}} --experiment {{exp}} --updates {{updates}} --games {{games}} --workers {{workers}} {{ if mode == "train" { "--minibatch-size 256 --epochs 2" } else { "" } }} --engine {{engine}} {{ if mode == "train" { force } else { "" } }}
+
+# PPO self-play with the winning hyperparameters from the Optuna sweep
+# (study=dragapult_ppo, trial 13, curve_auc 91.8%): lr 1.48e-3, entropy 9.66e-3,
+# clip 0.144, epochs 5, minibatch 32, gamma 0.964, lam 0.917. Same mode contract as
+# train-fast: `train` (fresh; injects the tuned flags) or `resume` (config restored
+# from the checkpoint, so the flags must NOT be re-passed). e.g.
+# `just train-opt-00 train opt00 200 16` then `just train-opt-00 resume opt00 100 16`.
+train-opt-00 mode="train" exp=exp updates="256" games="16" workers="8" engine="local-nix" force="":
+    cd {{root}} && {{cli}} {{mode}} --experiment {{exp}} --updates {{updates}} --games {{games}} --workers {{workers}} {{ if mode == "train" { "--lr 0.001476395812742625 --entropy-coef 0.009663651584975216 --clip-eps 0.14448934467726907 --epochs 5 --minibatch-size 32 --gamma 0.9644139546520633 --lam 0.917435752072244" } else { "" } }} --engine {{engine}} {{ if mode == "train" { force } else { "" } }}
+
+# MCTS expert-iteration self-play. Same mode contract as train-fast: `train`
+# (fresh; injects --method exit + MCTS knobs) or `resume` (config restored from
+# the checkpoint, so the flags must NOT be re-passed). e.g.
+# `just train-exit train exit0 100 8` then `just train-exit resume exit0 50 8`.
+train-exit mode="train" exp=exp updates="128" games="8" workers="8" engine="local-nix" force="":
+    cd {{root}} && {{cli}} {{mode}} --experiment {{exp}} --updates {{updates}} --games {{games}} --workers {{workers}} {{ if mode == "train" { "--method exit --mcts-simulations 32" } else { "" } }} --engine {{engine}} {{ if mode == "train" { force } else { "" } }}
+
+# Resume experiment `exp` from its checkpoints/latest.pt for more updates.
+resume exp=exp updates="50" games="16" workers="8" engine="local-nix":
+    cd {{root}} && {{cli}} resume --experiment {{exp}} --updates {{updates}} --games {{games}} --workers {{workers}} --engine {{engine}}
+
+# Win-rate of experiment `exp`'s latest checkpoint vs the random baseline.
+eval exp=exp games="100" engine="local-nix":
+    cd {{root}} && {{cli}} eval --experiment {{exp}} --games {{games}} --engine {{engine}}
+
+# Launch TensorBoard over experiment `exp`'s runs/ dir.
+tensorboard exp=exp port="6006":
+    cd {{root}} && uv run tensorboard --logdir=pkm_data/new_agents/agent_000_dragapult/experiments/{{exp}}/runs --port {{port}}
+
+# Optuna hyperparameter sweep. e.g. `just sweep exp=sweep1 objective=curve_auc study=s1`.
+sweep exp=exp trials="30" updates="15" games="32" workers="8" objective="curve_auc" study="dragapult_ppo" engine="local-nix":
+    cd {{root}} && {{cli}} sweep --experiment {{exp}} --trials {{trials}} --updates {{updates}} --games {{games}} --workers {{workers}} --objective {{objective}} --study {{study}} --engine {{engine}}
+
+# Backfill TensorBoard from experiment `exp`'s train.csv (-> runs/csv-import/).
+import-csv exp=exp:
+    cd {{root}} && {{cli}} import-csv --experiment {{exp}}
+
+# Pack experiment `exp`'s latest weights into a Kaggle submission bundle (.tar.gz).
+pack exp=exp:
+    cd {{root}} && {{cli}} pack --experiment {{exp}}
+
+# Upload experiment `exp`'s newest packed bundle to Kaggle. e.g. `just submit message="v1"`.
+submit exp=exp message="agent_000_dragapult":
+    cd {{root}} && {{cli}} submit --experiment {{exp}} --message "{{message}}"
+
+# Poll Kaggle for submission status + score. `just status --watch` to poll.
+status *args:
+    cd {{root}} && {{cli}} status {{args}}
+
+# --- model visualization ------------------------------------------------------
+
+# Viz artifacts live with the weights/logs under the agent's pkm_data root (not in
+# the repo tree). Architecture-only, so agent-level — not per-experiment.
+vizdir := "pkm_data/new_agents/agent_000_dragapult/viz"
+
+# Render the model 5 ways into out/ (torchinfo, torchview, torchviz, onnx, tb).
+# Synthetic batch — no engine/checkpoint; draws the architecture, not weights.
+viz out=vizdir:
+    cd {{root}} && uv run python -m pkm.new_agents.agent_000_dragapult.viz {{out}}
+
+# Open the static views: both SVGs as tabs in a browser (xdg-open sends SVG to an
+# image editor by default), summary.txt to your default text app. Override the
+# browser: `just viz-open {{vizdir}} firefox`. Servers block — see viz-netron/viz-tb.
+viz-open out=vizdir browser="brave":
+    cd {{root}} && {{browser}} {{out}}/torchview.svg {{out}}/torchviz.svg &
+    cd {{root}} && xdg-open {{out}}/summary.txt
+
+# Serve the exported ONNX graph interactively in Netron (http://localhost:PORT).
+viz-netron out=vizdir port="8080":
+    cd {{root}} && uv run netron --host 127.0.0.1 --port {{port}} {{out}}/model.onnx
+
+# TensorBoard Graphs tab for the exported model graph (http://localhost:PORT).
+viz-tb out=vizdir port="6006":
+    cd {{root}} && uv run tensorboard --logdir {{out}}/tb --port {{port}}

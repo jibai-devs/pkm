@@ -25,18 +25,31 @@ from .api import (
     visualize_data,
 )
 from .loader import (
-    ENGINE_BACKEND,
-    ENGINE_LIB_PATH,
     Battle,
     EngineCapabilities,
     SerialData,
     StartData,
     available_backends,
     capabilities,
+    get_lib,
     kaggle_available,
-    lib,
+    set_backend,
     vendored_built,
 )
+
+# ``lib`` / ``ENGINE_BACKEND`` / ``ENGINE_LIB_PATH`` are resolved lazily (they
+# would otherwise force an engine load at import); forward them to the loader's
+# own PEP 562 ``__getattr__`` on first access.
+_LAZY = ("lib", "ENGINE_BACKEND", "ENGINE_LIB_PATH")
+
+
+def __getattr__(name: str):
+    if name in _LAZY:
+        from . import loader
+
+        return getattr(loader, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "ENGINE_BACKEND",
@@ -52,8 +65,10 @@ __all__ = [
     "battle_select",
     "battle_start",
     "capabilities",
+    "get_lib",
     "kaggle_available",
     "lib",
+    "set_backend",
     "search_begin",
     "search_end",
     "search_release",

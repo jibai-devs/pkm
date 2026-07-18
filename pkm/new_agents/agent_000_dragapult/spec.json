@@ -1,0 +1,62 @@
+{
+  "agent": "agent_000_dragapult",
+  "source": {
+    "num_cards": 1267,
+    "num_attacks": 1556
+  },
+  "constants": {
+    "n_energy_types": 12,
+    "n_card_types": 7,
+    "n_special_conditions": 5,
+    "bench_max": 5,
+    "board_slots": 12
+  },
+  "vocab": {
+    "distinct_ids": [
+      2,
+      5,
+      7,
+      10,
+      112,
+      119,
+      120,
+      121,
+      131,
+      132,
+      133,
+      140,
+      235,
+      1071,
+      1079,
+      1086,
+      1097,
+      1121,
+      1152,
+      1182,
+      1198,
+      1213,
+      1225,
+      1227,
+      1246,
+      1260
+    ],
+    "vocab_size": 27,
+    "unk_row": 26,
+    "deck_size": 60
+  },
+  "global_max": {
+    "max_hp": 380,
+    "max_retreat_cost": 4,
+    "max_attacks_per_card": 2,
+    "max_damage": 350,
+    "max_energies_per_attack": 5
+  },
+  "own_max": {
+    "max_hp": 320,
+    "max_retreat_cost": 3,
+    "max_attacks_per_card": 2,
+    "max_damage": 200,
+    "max_energies_per_attack": 3,
+    "num_own_attacks": 13
+  }
+}

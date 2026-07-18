@@ -7,13 +7,18 @@
     treefmt-nix.url = "github:numtide/treefmt-nix";
   };
 
-  outputs = { self, nixpkgs, flake-utils, treefmt-nix, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    treefmt-nix,
+    ...
+  }:
+    flake-utils.lib.eachDefaultSystem (
+      system: let
         pkgs = nixpkgs.legacyPackages.${system};
         treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
-      in
-      {
+      in {
         formatter = treefmtEval.config.build.wrapper;
 
         checks = {
@@ -27,6 +32,14 @@
             pkgs.ruff
             pkgs.pyright
             pkgs.cacert
+            pkgs.just
+            # prebuilt cabt/kaggle wheels (libcg.so, numpy) need a system C++ runtime
+            pkgs.stdenv.cc.cc.lib
+          ];
+
+          # expose libstdc++.so.6 / libgcc_s for ctypes-loaded native libs
+          LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
+            pkgs.stdenv.cc.cc.lib
           ];
 
           shellHook = ''
