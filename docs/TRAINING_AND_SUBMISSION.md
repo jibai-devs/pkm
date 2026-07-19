@@ -270,10 +270,15 @@ restriction was stale given `main.py`/`neural_agent.py` are already
 deck-agnostic; removed in this session so other agents, like this one,
 can actually be submitted.)
 
-**Sanity check before uploading** — confirm the bundled agent is actually
-callable the way kaggle will call it (use a local scratch dir, not `/tmp` —
-this is a Windows checkout and `/tmp` isn't guaranteed to map anywhere
-useful):
+**Sanity check before uploading — do not skip this.** It would have caught
+the 2026-07-19 bug where `submit.sh` never bundled `staples.json` (needed at
+*import* time by `pkm/rl/features.py`, transitively pulled in by nearly
+everything) — every submission built after the opponent-archetype classifier
+landed failed identically on Kaggle until this step actually got run
+against a real bundle (see `AGENTS.md` → "Kaggle Submission" for the full
+story). Confirm the bundled agent is actually callable the way kaggle will
+call it (use a local scratch dir, not `/tmp` — this is a Windows checkout
+and `/tmp` isn't guaranteed to map anywhere useful):
 ```bash
 mkdir -p .submission_check
 tar -xzf submissions/submission_03_pult_munki_*.tar.gz -C .submission_check

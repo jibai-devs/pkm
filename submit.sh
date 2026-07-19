@@ -35,6 +35,14 @@ Deck.from_csv('deck/${AGENT}.csv').to_csv('submission/deck.csv')
 # Copy agent code
 cp -r pkm submission/
 
+# staples.json: pkm/archetype/archetypes.py resolves this two directories
+# above itself (repo root in dev, sandbox root on Kaggle) -- required at
+# *import* time (pkm/rl/features.py's NUM_TRACKED_ARCHETYPES is computed at
+# module load, not lazily), so its absence breaks importing pkm at all, not
+# just the archetype classifier specifically. Missing here since the
+# archetype classifier landed (a836ebd) until caught 2026-07-19.
+cp staples.json submission/
+
 # Create tar.gz
 tar -czvf "$OUT" -C submission .
 

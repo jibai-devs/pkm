@@ -312,3 +312,33 @@ If you're unsure whether something's 3.11-safe, the cheapest real check on
 this machine is running the bare system `python` (3.11, no `uv run`) against
 the specific import chain `main.py` pulls in — it reproduces the sandbox's
 parse behavior exactly, which `uv run`'s 3.12 venv does not.
+
+### Critical (fixed 2026-07-19): `submit.sh` didn't bundle `staples.json`
+Same severity class as the PEP 695 bug above — **every submission built via
+`submit.sh` since the opponent-archetype classifier landed (`a836ebd`) failed
+identically on Kaggle**, regardless of agent or deck, caught the same way
+(a failed validation episode's traceback, saved as `error.txt`).
+
+Root cause: `pkm/rl/features.py` computes `NUM_TRACKED_ARCHETYPES =
+len(get_archetypes())` at **module import time** (not lazily), and
+`get_archetypes()` reads `staples.json` from `pkm/archetype/archetypes.py`'s
+`STAPLES_JSON_PATH = Path(__file__).resolve().parents[2] / "staples.json"`
+— two directories above itself, correctly resolving to the sandbox root
+(`/kaggle_simulations/agent/`) on Kaggle, same as repo root in dev. The path
+logic was always right; `submit.sh` just never copied `staples.json` into
+the bundle. Since `pkm.rl.features` is imported transitively by nearly
+everything (`pkm.mcts.search` → `pkm.rl.encoder` → `pkm.rl.features`), this
+broke *importing `pkm` at all* — not just the archetype classifier
+specifically — with `FileNotFoundError:
+'/kaggle_simulations/agent/staples.json'`.
+
+Fixed by adding `cp staples.json submission/` to `submit.sh`. Verified for
+real (not just by reasoning about it): extracted a rebuilt bundle to an
+isolated scratch directory, confirmed `pkm.archetype.archetypes.__file__`
+resolved to the *extracted* copy (not the dev repo, which would have given
+a false pass), and confirmed the exact import chain from the traceback now
+succeeds with `NUM_TRACKED_ARCHETYPES == 25`.
+
+**Any submission tar built before this fix is broken and should be
+discarded, not uploaded** — that includes `submissions/submission_03_pult_munki_20260718_223836.tar.gz`
+(pre-dates the fix).
