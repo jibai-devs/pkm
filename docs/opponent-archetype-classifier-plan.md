@@ -58,6 +58,27 @@ Resolution-report completeness, tooltip-distribution parsing (against literal st
 Two additive, independently-toggleable integration points. **Before touching either**, read `pkm/rl/rollout.py` and `pkm/rl/play.py` in full to find every call site of `encode_state`/`encode_decision` (not yet inspected this session) — all must thread an optional `belief` parameter.
 
 ### 2a — Belief vector into the state encoder
+
+**Status: encoder/`TorchPolicy` plumbing done and unit-tested since Parts
+1-2 shipped (`a836ebd`); actually exercised during a real PPO training run
+for the first time on 2026-07-19.** The gap: `TorchPolicy(model,
+archetype_classifier=...)` and `compute_belief` were only ever driven
+directly in `tests/test_archetype_integration.py` — `pkm/rl/train.py` never
+constructed a classifier or passed one to any `TorchPolicy` it built, so
+every training run to date (including the original `03_pult_munki` 1000-iter
+run) saw an all-zero belief feature regardless of the dim-4→26 resize having
+already happened. Closed by threading an optional `archetype_classifier`
+through `play_one` (`pkm/rl/rollout.py`) → `_play_chunk`/`collect_parallel`
+(`pkm/rl/parallel_rollout.py`) → `train()`, surfaced as `pkm train
+--archetype-belief [--archetype-weights pkm/archetype.npz]` (opt-in, off by
+default). Attached only to the trainee's `TorchPolicy`, never a frozen
+opponent's (self-mirror or Part 3c pool bot) — verified by
+`tests/test_rl.py::test_play_one_classifier_reaches_trainee_not_opponent`
+(a monkeypatch spy on `TorchPolicy.__init__`). Smoke-tested standalone,
+combined with `--archetype-pool`, and under `--workers 2` (confirms
+`NumpyArchetypeClassifier` — plain numpy arrays, no torch/file-handle state —
+pickles cleanly across worker processes).
+
 - `pkm/rl/encoder.py`: add `NUM_ARCHETYPES`/`BELIEF_DIM` constants (from `pkm.data.archetypes`), extend `STATE_FEATS` by `BELIEF_DIM`, add an optional `belief: np.ndarray | None = None` param to `encode_state`/`encode_decision` (default → zero vector, so existing callers are unaffected unless they opt in). `pkm/rl/model.py` needs **no changes** — `STATE_IN` derives from `STATE_FEATS` automatically.
 - New `pkm/rl/belief.py`: `compute_belief(obs, classifier) -> np.ndarray`, built on the same "what's visible" logic already implemented in `pkm/mcts/determinize.py` (`_visible_counter`) — reuse/import it rather than re-deriving visibility rules in two places.
 - Test updates: `tests/test_rl.py::test_encoder_shapes` gets its expected `STATE_FEATS` constant bumped (mechanical, not weakened); add `test_encoder_belief_default_zero` and `test_encoder_belief_injection`.
@@ -330,7 +351,11 @@ as separate entry points rather than one replacing the other outright.
 0. Prep: inspect `pkm/rl/rollout.py`, `pkm/rl/play.py`, `pkm/rl/logging.py`; confirm `.gitignore` covers generated dataset/checkpoint paths.
 1. Part 1 data plumbing: `card_aliases.py` + `archetypes.py`, iterate resolution report to near-zero unresolved.
 2. Part 1 classifier: `archetype_gen.py` → `archetype_model.py`/`archetype_train.py` → `numpy_archetype.py`/`archetype_export.py`; run full Part 1 verification before proceeding.
-3. Part 2a encoder integration behind opt-in `belief` param; ablation (a) vs (b).
+3. ~~Part 2a encoder integration behind opt-in `belief` param~~ **Done** —
+   encoder/`TorchPolicy` integration shipped with Parts 1-2 (`a836ebd`);
+   train-time wiring (`pkm train --archetype-belief`) closed 2026-07-19 (see
+   status note above — no training run had actually exercised this until
+   then). Ablation (a) vs (b) still not run.
 4. Part 2b MCTS determinization biasing behind opt-in `archetype_weights_path`; ablation (a) vs (c) vs (d), plus value-calibration check.
 5. If ablations are neutral-or-positive with no regressions for Part 2: confirm final Kaggle bundle size with `pkm/archetype.npz` added, then proceed to Part 3 (below) before finalizing defaults/docs.
 6. ~~Part 3a: source + build the remaining 12 pool decklists~~ **Done (2026-07-19)** — all 25 are legal 60-card decks with near-zero unresolved-card notes (worst case 3/60).
@@ -344,15 +369,17 @@ as separate entry points rather than one replacing the other outright.
    the frozen-pool retrain in Milestone 8 underperforms.
 8. **Run the retrain, then flip defaults + update docs.** Run the full
    retrain of `03_pult_munki` with `pkm train --agent 03_pult_munki
-   --archetype-pool` (fresh run, not resumed — its existing checkpoint
-   predates the belief-feature resize and can't load) — the "full retrain in
-   a follow-up" `a836ebd`'s commit message deferred, now meaningful because
-   real opponent diversity exists to retrain against. If that goes well,
-   turn belief-in-encoder (2a) and determinization-biasing (2b) on by
-   default for new training runs. Update
-   `docs/ideas/multi-phase-policy-and-opponent-modeling.md` to reflect what
-   was actually built, `docs/ideas/rl-improvements.md` (mark "Multi-deck
-   training" done), and `AGENTS.md`.
+   --archetype-pool --archetype-belief` (fresh run, not resumed — its
+   existing checkpoint predates the belief-feature resize and can't load) —
+   the "full retrain in a follow-up" `a836ebd`'s commit message deferred, now
+   meaningful because both real opponent diversity (Part 3c) and a live
+   belief signal (Part 2a) exist to retrain with/against. If that goes well,
+   turn both on by default for new training runs, and revisit
+   determinization-biasing (2b, MCTS-only — irrelevant to this Phase-1 PPO
+   retrain since `03_pult_munki` hasn't run Phase 2 expert iteration yet).
+   Update `docs/ideas/multi-phase-policy-and-opponent-modeling.md` to reflect
+   what was actually built, `docs/ideas/rl-improvements.md` (mark
+   "Multi-deck training" done), and `AGENTS.md`.
 
 ## Critical files
 - `staples.json`, `pkm/data/card_data.py` — source data + card DB to match against

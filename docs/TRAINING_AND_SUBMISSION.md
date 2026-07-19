@@ -73,11 +73,12 @@ To create a fresh one for a *new* agent, `write_default_weights_file()` (same
 module) writes `DEFAULT_WEIGHTS` verbatim as a starting point — every term at
 `0.0` except `shaping`.
 
-### Cross-archetype opponent sampling (Part 3c)
+### Cross-archetype opponent sampling (Part 3c) + belief injection (Part 2a)
 
 ```bash
 pkm train --agent 03_pult_munki --iterations 200 --games 16 --eval-every 10 \
-           --archetype-pool --archetype-pool-prob 0.2
+           --archetype-pool --archetype-pool-prob 0.2 \
+           --archetype-belief
 ```
 
 `--archetype-pool` loads every trained `agents/pool_*/checkpoints/ppo_latest.pt`
@@ -86,10 +87,23 @@ one per `staples.json` archetype (`AGENTS.md` → "Opponent pool decklists" /
 "Pool bots"). `--archetype-pool-prob` (default 0.2) is the fraction of games
 played against a random one of them **on its own deck**, instead of the
 existing `--pool-size`/self-checkpoint-pool behavior (which still applies to
-the remaining fraction, unchanged). Off by default — omit both flags for the
-old single-deck-mirror-only behavior. Requires the pool bots to already be
+the remaining fraction, unchanged). Requires the pool bots to already be
 trained (`agents/pool_*/checkpoints/` present); an untrained pool profile is
 skipped, not an error, so a partial pool works fine too.
+
+`--archetype-belief` (default classifier path `pkm/archetype.npz`, override
+with `--archetype-weights <path>`) loads the standalone opponent-archetype
+classifier once and attaches it to the trainee's `TorchPolicy` for the whole
+run — that's what actually populates the encoder's `opponent_archetype_belief`
+feature with a real prediction instead of zeros. **This had never happened in
+any training run before 2026-07-19** — the encoder/network side of Part 2a
+shipped with Parts 1-2, but `train.py` never constructed a classifier to feed
+it, so the dim-4→26 resize alone didn't mean the feature carried information.
+
+Both flags are independent and off by default — omit either (or both) for the
+old single-deck-mirror-only, zero-belief behavior. The `03_pult_munki` retrain
+this doc keeps pointing at should use both together (see the note above about
+why it must be a fresh run, not a resume).
 
 ---
 

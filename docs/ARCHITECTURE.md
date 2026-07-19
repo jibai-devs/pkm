@@ -377,6 +377,18 @@ via `--archetype-pool [--archetype-pool-prob 0.2]`, off by default, so
 `pool_prob`'s pre-existing meaning (fraction of games vs a past checkpoint of
 *this same* deck) is unchanged when unset.
 
+**Belief-in-encoder actually wired into training, same date.** §4's
+`opponent_archetype_belief` GLOBAL feature and `TorchPolicy(model,
+archetype_classifier=...)` (§2 above) existed since Parts 1-2 shipped, but
+were only ever exercised directly in `tests/test_archetype_integration.py`
+— `train.py` never built a classifier or passed one to any `TorchPolicy`,
+so every real training run to date saw an all-zero belief regardless of the
+dim-4→26 resize. `play_one` now takes an optional `archetype_classifier`,
+threaded from `train()` through both the sequential and `parallel_rollout.py`
+paths, and attached only to the trainee's `TorchPolicy` — never a frozen
+opponent's, mirror or Part 3c pool bot alike. Opt-in via `--archetype-belief
+[--archetype-weights pkm/archetype.npz]`, off by default.
+
 CLI entrypoints (both must stay in sync — see §8's note on why there are two):
 
 ```
@@ -501,6 +513,7 @@ this case.
 | `pkm/rl/ppo.py` | `compute_returns` (GAE + shaping), `ppo_update` |
 | `pkm/rl/rollout.py` | `play_game`, `TorchPolicy` (per-decision `GameContext` wiring + reward-term population), `GameSpec`/`make_game_specs`/`play_one` (opponent matchmaking incl. Part 3c cross-archetype sampling) |
 | `pkm/rl/opponent_pool.py` | `load_pool_bots()` — loads trained `agents/pool_*/` checkpoints for Part 3c |
+| `pkm/rl/parallel_rollout.py` | `ProcessPoolExecutor` self-play (`_play_chunk`/`collect_parallel`); threads `archetype_classifier` to workers alongside model state/deck |
 | `pkm/rl/exit_train.py` | Phase 2 expert-iteration game loop (separate from `rollout.py`, no reward shaping — trains off MCTS visit-count targets) |
 | `pkm/rl/train.py` | Phase 1 PPO training loop + its own CLI (`python -m pkm.rl.train`) |
 | `pkm/cli/__init__.py` | The real `pkm` CLI (`pkm train`, `pkm play`, `pkm export`, ...) |
