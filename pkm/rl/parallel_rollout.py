@@ -19,7 +19,7 @@ from concurrent.futures import ProcessPoolExecutor
 import torch
 
 from .model import PolicyValueNet
-from .rollout import GameResult, GameSpec, play_one
+from .rollout import GameResult, GameSpec, TorchPolicy, play_game, play_one
 
 
 def init_worker() -> None:
@@ -90,6 +90,71 @@ def collect_parallel(
         for chunk in chunks
     ]
     results: list[GameResult | None] = [None] * len(specs)
+    for future in futures:
+        for idx, result in future.result():
+            results[idx] = result
+    assert all(r is not None for r in results)
+    return results  # type: ignore[return-value]
+
+
+PopGame = tuple[list[int], dict, list[int], dict, tuple[bool, bool]]
+
+
+def _play_pop_chunk(
+    indexed_games: list[
+        tuple[int, list[int], dict, list[int], dict, tuple[bool, bool]]
+    ],
+) -> list[tuple[int, GameResult]]:
+    """Population-training counterpart to `_play_chunk`. Population training
+    has no single shared "current model" opponent pair -- every roster
+    member is its own live model -- so each entry carries *both* sides' own
+    deck + state_dict directly, and a worker rebuilds exactly the two models
+    it needs per game (deliberately decoupled from PopulationMember/PopSpec
+    in population_train.py, which import from here, not the reverse)."""
+    model_a = PolicyValueNet()
+    model_b = PolicyValueNet()
+    results = []
+    for idx, deck_a, state_a, deck_b, state_b, collect in indexed_games:
+        model_a.load_state_dict(state_a)
+        model_a.eval()
+        model_b.load_state_dict(state_b)
+        model_b.eval()
+        result = play_game(
+            (TorchPolicy(model_a), TorchPolicy(model_b)),
+            (deck_a, deck_b),
+            collect=collect,
+        )
+        results.append((idx, result))
+    return results
+
+
+def _chunk_pop_games(
+    games: list[PopGame], num_workers: int
+) -> list[list[tuple[int, list[int], dict, list[int], dict, tuple[bool, bool]]]]:
+    """Same round-robin chunking as `_chunk_specs`, generalized to the plain
+    (deck_a, state_a, deck_b, state_b, collect) tuples population training
+    hands in instead of a `GameSpec`."""
+    if not games:
+        return []
+    n = min(num_workers, len(games))
+    chunks: list[
+        list[tuple[int, list[int], dict, list[int], dict, tuple[bool, bool]]]
+    ] = [[] for _ in range(n)]
+    for i, g in enumerate(games):
+        chunks[i % n].append((i, *g))
+    return chunks
+
+
+def collect_pop_parallel(
+    executor: ProcessPoolExecutor,
+    num_workers: int,
+    games: list[PopGame],
+) -> list[GameResult]:
+    """Play every (deck_a, state_a, deck_b, state_b, collect) tuple in
+    `games` across the pool; returns results in the same order as `games`."""
+    chunks = _chunk_pop_games(games, num_workers)
+    futures = [executor.submit(_play_pop_chunk, chunk) for chunk in chunks]
+    results: list[GameResult | None] = [None] * len(games)
     for future in futures:
         for idx, result in future.result():
             results[idx] = result

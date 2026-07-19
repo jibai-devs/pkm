@@ -120,6 +120,54 @@ def train(
     )
 
 
+@app.command(name="population-train")
+def population_train_cmd(
+    iterations: int = typer.Option(100, help="number of iterations"),
+    games_per_pairing: int = typer.Option(
+        2, help="anchor games per pool-bot pairing per iteration"
+    ),
+    lr: float = typer.Option(3e-4, help="learning rate"),
+    gamma: float = typer.Option(0.99, help="discount factor"),
+    lam: float = typer.Option(0.95, help="GAE lambda"),
+    update_every: int = typer.Option(
+        3,
+        help="max iterations a member's trajectories buffer before a forced "
+        "PPO update, even under min-samples",
+    ),
+    min_samples: int = typer.Option(
+        512, help="min buffered samples before a member's PPO update fires early"
+    ),
+    anchor: str = typer.Option("03_pult_munki", help="anchor agent profile name"),
+    pool_glob: str = typer.Option(
+        "pool_*", help="glob under agents/ for pool-bot profiles"
+    ),
+    eval_every: int = typer.Option(10, help="evaluate + checkpoint every N iterations"),
+    eval_games: int = typer.Option(20, help="games for evaluation"),
+    workers: int = typer.Option(
+        1, help="parallel worker processes for self-play rollout (1 = sequential)"
+    ),
+    seed: int = typer.Option(0, help="random seed"),
+) -> None:
+    """Milestone 9: simultaneous population training (anchor + pool bots)."""
+    from pkm.rl.population_train import population_train as _population_train
+
+    _population_train(
+        iterations=iterations,
+        games_per_pairing=games_per_pairing,
+        lr=lr,
+        gamma=gamma,
+        lam=lam,
+        update_every=update_every,
+        min_samples=min_samples,
+        anchor=anchor,
+        pool_glob=pool_glob,
+        eval_every=eval_every,
+        eval_games=eval_games,
+        workers=workers,
+        seed=seed,
+    )
+
+
 @app.command(name="exit-train")
 def exit_train(
     agent: str | None = typer.Option(

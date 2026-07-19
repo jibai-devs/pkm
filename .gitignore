@@ -28,7 +28,7 @@ result.html
 .direnv/
 
 # Training artifacts
-checkpoints/
+checkpoints*/
 pkm/policy.npz
 pkm/archetype.npz
 agents/*/policy.npz
