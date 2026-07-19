@@ -87,6 +87,9 @@ class StateEncoder(nn.Module):
         d_global: int = D_GLOBAL,
         d_state: int = D_STATE,
         n_heads: int = N_HEADS,
+        n_layers: int = 1,
+        ff_mult: int = 4,
+        dropout: float = 0.0,
     ):
         super().__init__()
         self.d_state = d_state  # exposed so consumers (heads/MCTS) can size off it
@@ -99,6 +102,22 @@ class StateEncoder(nn.Module):
         # produces NaN in the attention forward OR backward pass.
         self.cls = nn.Parameter(torch.randn(1, 1, d_entity) * CLS_INIT_STD)
         self.attn = nn.MultiheadAttention(d_entity, n_heads, batch_first=True)
+        # Depth: (n_layers - 1) extra pre-LN transformer blocks (residual +
+        # LayerNorm + FFN) stacked after the base attention. Empty when
+        # n_layers == 1, so the module's parameters are then IDENTICAL to the
+        # original v1 encoder and old checkpoints load unchanged.
+        self.extra_layers = nn.ModuleList(
+            nn.TransformerEncoderLayer(
+                d_entity,
+                n_heads,
+                dim_feedforward=ff_mult * d_entity,
+                dropout=dropout,
+                activation="relu",
+                batch_first=True,
+                norm_first=True,  # pre-LN: stable to train at depth
+            )
+            for _ in range(max(0, n_layers - 1))
+        )
         self.global_mlp = nn.Sequential(nn.Linear(G + 2 * _VOCAB, d_global), nn.ReLU())
         self.head = nn.Sequential(nn.Linear(d_entity + d_global, d_state), nn.ReLU())
 
@@ -111,6 +130,10 @@ class StateEncoder(nn.Module):
         cls_pad = torch.zeros(bsz, 1, dtype=torch.bool, device=h.device)
         pad = torch.cat([cls_pad, b["entity_mask"] == 0], dim=1)  # CLS never padded
         out, _ = self.attn(seq, seq, seq, key_padding_mask=pad)  # [B,13,d_entity]
+        # Extra depth (empty for n_layers == 1). CLS is never padded, so every
+        # row keeps >=1 valid key and no fully-masked-row NaN can arise.
+        for layer in self.extra_layers:
+            out = layer(out, src_key_padding_mask=pad)  # [B,13,d_entity]
         board = out[:, 0]  # CLS output = board summary
         ent = out[:, 1:]  # [B,12,d_entity] per-entity
         g_in = torch.cat([b["globals"], b["hand_hist"], b["discard_hist"]], dim=-1)

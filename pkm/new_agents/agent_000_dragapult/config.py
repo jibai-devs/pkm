@@ -40,6 +40,45 @@ class ModelConfig:
     d_opt: int = 64
     d_ctx: int = 16
     d_atk: int = 32  # attack (move) embedding dim
+    # --- trunk depth ---
+    # Number of entity-attention layers in the encoder. 1 == the original v1
+    # architecture (a single nn.MultiheadAttention, no residual/LayerNorm) and is
+    # bit-for-bit checkpoint-compatible. >1 stacks (n_layers-1) extra pre-LN
+    # transformer layers (residual + LayerNorm + FFN) on top for real depth.
+    n_layers: int = 1
+    ff_mult: int = 4  # FFN width = ff_mult * d_entity in the extra layers
+    dropout: float = 0.0  # dropout in the extra transformer layers
+
+
+# Named size presets for one-word scaling from the CLI (`--model <name>`).
+# "small" IS the original v1 net (unchanged defaults). Individual `--d-*`/`--n-*`
+# override flags win over a preset's value. d_ctx/d_atk keep their ModelConfig
+# defaults unless explicitly overridden.
+MODEL_PRESETS: dict[str, dict[str, int]] = {
+    "small":  {"d_card": 32, "d_entity": 64,  "d_global": 64,  "d_state": 128, "n_heads": 4, "d_opt": 64,  "n_layers": 1},  # noqa: E241
+    "medium": {"d_card": 48, "d_entity": 128, "d_global": 96,  "d_state": 256, "n_heads": 8, "d_opt": 128, "n_layers": 2},  # noqa: E241
+    "large":  {"d_card": 64, "d_entity": 192, "d_global": 128, "d_state": 384, "n_heads": 8, "d_opt": 192, "n_layers": 3},  # noqa: E241
+    "xl":     {"d_card": 64, "d_entity": 256, "d_global": 192, "d_state": 512, "n_heads": 8, "d_opt": 256, "n_layers": 4},  # noqa: E241
+}
+
+
+def build_model_config(
+    preset: str = "small", overrides: dict[str, int | None] | None = None
+) -> "ModelConfig":
+    """Resolve a `ModelConfig` from a named size preset plus per-field overrides.
+
+    `overrides` maps a `ModelConfig` field name to a value; `None` values are
+    ignored (so unset CLI flags fall through to the preset). Any field not named
+    by the preset or overrides keeps its `ModelConfig` default.
+    """
+    if preset not in MODEL_PRESETS:
+        raise ValueError(
+            f"unknown model preset {preset!r}; choose from {sorted(MODEL_PRESETS)}"
+        )
+    fields = dict(MODEL_PRESETS[preset])
+    if overrides:
+        fields.update({k: v for k, v in overrides.items() if v is not None})
+    return ModelConfig(**fields)
 
 
 @dataclass(frozen=True)
@@ -133,6 +172,9 @@ def build_model(cfg: Config | ModelConfig | None = None) -> PolicyValueModel:
         d_global=mc.d_global,
         d_state=mc.d_state,
         n_heads=mc.n_heads,
+        n_layers=mc.n_layers,
+        ff_mult=mc.ff_mult,
+        dropout=mc.dropout,
     )
     return PolicyValueModel(
         encoder=encoder,

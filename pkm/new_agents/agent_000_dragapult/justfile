@@ -28,8 +28,8 @@ smoke exp="000_smoke" workers="1" engine="local-nix":
 
 # PPO self-play training. e.g. `just train exp=hi-lr updates=200 games=16 workers=8`.
 # Prompts before overwriting an experiment's existing checkpoint (pass force=--force to skip).
-train exp=exp updates="256" games="16" workers="8" engine="local-nix" force="":
-    cd {{root}} && {{cli}} train --experiment {{exp}} --updates {{updates}} --games {{games}} --workers {{workers}} --engine {{engine}} {{force}}
+train exp=exp updates="256" games="16" workers="8" model="small" engine="local-nix" force="":
+    cd {{root}} && {{cli}} train --experiment {{exp}} --updates {{updates}} --games {{games}} --workers {{workers}} --model {{model}} --engine {{engine}} {{force}}
 
 # PPO self-play tuned to shrink the serial update (minibatch 256, epochs 2), which
 # dominates the cycle at 79K params — see the util/core columns. First arg picks
@@ -54,8 +54,8 @@ train-opt-00 mode="train" exp=exp updates="256" games="16" workers="8" engine="l
 # contract as train-opt-00: `train` (fresh; injects the tuned + reward flags) or
 # `resume` (config incl. reward weights restored from the checkpoint, so the flags
 # must NOT be re-passed). e.g. `just train-heuristic train heur01 200 16`.
-train-heuristic mode="train" exp="000_heuristic" updates="256" games="16" workers="8" engine="local-nix" force="":
-    cd {{root}} && {{cli}} {{mode}} --experiment {{exp}} --updates {{updates}} --games {{games}} --workers {{workers}} {{ if mode == "train" { "--lr 0.001476395812742625 --entropy-coef 0.009663651584975216 --clip-eps 0.14448934467726907 --epochs 5 --minibatch-size 32 --gamma 0.9644139546520633 --lam 0.917435752072244 --shaping heuristic --reward-weight shaping=0.2 --reward-weight board_setup=0.2 --reward-weight budew_setup=0.2 --reward-weight dreepy_field=0.2 --reward-weight energy_penalty=0.2 --reward-weight budew_bonus=0.3 --reward-weight wrong_type_penalty=0.2 --reward-weight dragapult_bonus=0.3 --reward-weight dreepy_spread=0.1 --reward-weight xerosic=0.2 --reward-weight budew_bench_setup=0.2 --reward-weight dreepy_evolve=0.3 --reward-weight dreepy_bench_charge=0.2 --reward-weight dreepy_active_charge=0.3 --reward-weight wasted_resources=0.2 --reward-weight phantom_dive=0.5" } else { "" } }} --engine {{engine}} {{ if mode == "train" { force } else { "" } }}
+train-heuristic mode="train" exp="000_heuristic" updates="256" games="16" workers="8" model="small" engine="local-nix" force="":
+    cd {{root}} && {{cli}} {{mode}} --experiment {{exp}} --updates {{updates}} --games {{games}} --workers {{workers}} {{ if mode == "train" { "--model " + model + " --lr 0.001476395812742625 --entropy-coef 0.009663651584975216 --clip-eps 0.14448934467726907 --epochs 5 --minibatch-size 32 --gamma 0.9644139546520633 --lam 0.917435752072244 --shaping heuristic --reward-weight shaping=0.2 --reward-weight board_setup=0.2 --reward-weight budew_setup=0.2 --reward-weight dreepy_field=0.2 --reward-weight energy_penalty=0.2 --reward-weight budew_bonus=0.3 --reward-weight wrong_type_penalty=0.2 --reward-weight dragapult_bonus=0.3 --reward-weight dreepy_spread=0.1 --reward-weight xerosic=0.2 --reward-weight budew_bench_setup=0.2 --reward-weight dreepy_evolve=0.3 --reward-weight dreepy_bench_charge=0.2 --reward-weight dreepy_active_charge=0.3 --reward-weight wasted_resources=0.2 --reward-weight phantom_dive=0.5" } else { "" } }} --engine {{engine}} {{ if mode == "train" { force } else { "" } }}
 
 # MCTS expert-iteration self-play. Same mode contract as train-fast: `train`
 # (fresh; injects --method exit + MCTS knobs) or `resume` (config restored from

@@ -4,6 +4,15 @@ Full project guide (structure, RL training, decks, submission): @AGENTS.md
 
 ## Active Context
 
+- **Training/sweep workflow:** always run training runs and Optuna sweeps inside the
+  shared **`pkm-train`** tmux session — `tmux new-session -d -s pkm-train` (once),
+  launch with `tmux send-keys -t pkm-train "cd <repo> && ./…/train.sh" Enter`, watch
+  with `tmux attach -t pkm-train` (detach `Ctrl-b d`). Keeps long runs alive across
+  detach and in one predictable place. Per-experiment run/sweep scripts live under
+  `pkm/new_agents/agent_000_dragapult/scripts/<NNN_name>/` (e.g. `001_complexity_large/`).
+- **Network size is configurable:** `train`/`sweep` take `--model {small,medium,large,xl}`
+  (small = v1, checkpoint-compatible) plus per-dim overrides `--n-layers/--d-state/
+  --d-entity/--n-heads/--d-opt/--d-card`. Dims are in the config hash + every checkpoint.
 - **Heuristics-integration architecture (Tasks 1-8) merged with the reward-shaping
   heuristics** from `refactor-to-prepare-for-heuristics-integration`, on
   `feature/heuristics-integration` (commits `73356e5`, `dc1e157`, `83265b5`).

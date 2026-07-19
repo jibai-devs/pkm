@@ -223,8 +223,22 @@ def _build_config(
     mcts_c_puct: float = 1.25,
     mcts_temperature: float = 1.0,
     determinization: str = "sample",
+    model_preset: str = "small",
+    model_overrides: dict[str, int | None] | None = None,
 ) -> Config:
-    from pkm.new_agents.agent_000_dragapult.config import Config, RunConfig, TrainConfig
+    from pkm.new_agents.agent_000_dragapult.config import (
+        Config,
+        RunConfig,
+        TrainConfig,
+        build_model_config,
+    )
+
+    # Network architecture: a size preset (small=v1) with per-dim overrides.
+    try:
+        model = build_model_config(model_preset, model_overrides)
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/]")
+        raise typer.Exit(2) from exc
 
     # Start from the default weights and overlay any CLI overrides, so unset
     # terms keep their documented defaults rather than dropping to 0.0.
@@ -254,7 +268,7 @@ def _build_config(
         determinization=determinization,
     )
     run = dataclasses.replace(RunConfig(), checkpoint_every_updates=ckpt_every)
-    return Config(train=train, run=run)
+    return Config(model=model, train=train, run=run)
 
 
 def _config_table(cfg: Config) -> Table:
@@ -262,7 +276,13 @@ def _config_table(cfg: Config) -> Table:
     t.add_column(style="dim")
     t.add_column(style="bold")
     tc = cfg.train
+    mc = cfg.model
     for k, v in [
+        (
+            "model",
+            f"{mc.n_layers}L · d_state={mc.d_state} d_entity={mc.d_entity} "
+            f"heads={mc.n_heads} d_opt={mc.d_opt} d_card={mc.d_card}",
+        ),
         ("workers", tc.num_workers),
         ("lr", tc.lr),
         ("gamma", tc.gamma),
@@ -512,6 +532,30 @@ def train(
         "e.g. --reward-weight dragapult_bonus=0.3. Only used when "
         "--shaping heuristic.",
     ),
+    model: str = typer.Option(
+        "small",
+        "--model",
+        help="Network size preset: small (v1, default), medium, large, xl. "
+        "Override individual dims with the --d-*/--n-layers/--n-heads flags.",
+    ),
+    n_layers: Optional[int] = typer.Option(
+        None, help="Override: entity-attention layers in the trunk (1 = v1 depth)."
+    ),
+    d_state: Optional[int] = typer.Option(
+        None, help="Override: state (trunk output) embedding dim."
+    ),
+    d_entity: Optional[int] = typer.Option(
+        None, help="Override: per-entity embedding dim (attention width)."
+    ),
+    n_heads: Optional[int] = typer.Option(
+        None, help="Override: attention heads (must divide d_entity)."
+    ),
+    d_opt: Optional[int] = typer.Option(
+        None, help="Override: option embedding / scorer width."
+    ),
+    d_card: Optional[int] = typer.Option(
+        None, help="Override: card embedding dim."
+    ),
     method: str = typer.Option("ppo", help="Training method: 'ppo' or 'exit'."),
     mcts_simulations: int = typer.Option(
         32, help="MCTS simulations per move (exit)."
@@ -588,6 +632,15 @@ def train(
         mcts_c_puct=mcts_c_puct,
         mcts_temperature=mcts_temperature,
         determinization=determinization,
+        model_preset=model,
+        model_overrides={
+            "n_layers": n_layers,
+            "d_state": d_state,
+            "d_entity": d_entity,
+            "n_heads": n_heads,
+            "d_opt": d_opt,
+            "d_card": d_card,
+        },
         ckpt_every=ckpt_every,
     )
     _run_training(
@@ -766,6 +819,13 @@ def sweep(
         "dragapult_ppo", help="Optuna study name (sqlite, resumable)."
     ),
     seed: int = typer.Option(0, help="Base RNG seed (offset per trial)."),
+    model: str = typer.Option(
+        "small",
+        "--model",
+        help="Network size preset every trial trains at: small (v1, default), "
+        "medium, large, xl. Architecture is fixed across the sweep; only the "
+        "hyperparameters (and, with --tune-rewards, reward weights) are searched.",
+    ),
     tune_rewards: bool = typer.Option(
         False,
         "--tune-rewards",
@@ -870,6 +930,7 @@ def sweep(
             seed=seed + trial.number,
             shaping=shaping,
             reward_weights=reward_weights,
+            model_preset=model,
             ckpt_every=updates,
         )
         trial_dir = p["sweeps"] / study / f"trial_{trial.number}"
@@ -897,7 +958,7 @@ def sweep(
     console.print(
         f"[bold]sweep[/] study=[cyan]{study}[/] trials={trials} "
         f"updates/trial={updates} games={games} workers={workers} "
-        f"objective=[cyan]{objective}[/] "
+        f"objective=[cyan]{objective}[/] model=[cyan]{model}[/] "
         f"rewards=[cyan]{'heuristic (tuned)' if tune_rewards else 'prize_potential'}[/]"
     )
     console.print(f"[dim]storage ->[/] {storage}\n")
