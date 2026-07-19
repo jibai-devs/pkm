@@ -347,19 +347,35 @@ for each iteration:
     for each of games_per_iter:
         opponent = current model, or sampled from a checkpoint pool
                    (pool_prob chance, prevents self-play cycling)
+                   — or, if --archetype-pool is set, a Part 3b pool bot on
+                   its own deck (archetype_pool_prob chance, rolled first;
+                   see below and §10)
         play_game(...) → per-player trajectories of EncodedDecisions
         compute_returns(trajectory, terminal_reward, weights=effective_weights)
             → fills .advantage / .ret via GAE(λ) on top of the shaped rewards
         dec.true_archetype = archetype_index(deck_path)  for every decision
-                              (single fixed deck per run today — see §10)
+                              (still the trainee's own fixed deck label,
+                              regardless of opponent — see §10)
     ppo_update(model, optimizer, all_collected_decisions)
         policy_loss (PPO clip) + value_coef·value_loss − entropy_coef·entropy
             + archetype_coef · CE(archetype_logits, true_archetype)
         (archetype_coef defaults 0.1; masked out entirely for unlabeled
-         decisions — none exist today since every run is single-deck)
+         decisions — none exist today since every run trains one deck)
     pool.append(current weights); trim to pool_size
     every eval_every iters: eval vs random, checkpoint + write_stamp_sidecar
 ```
+
+**Cross-archetype opponent sampling (Part 3c, `docs/opponent-archetype-classifier-plan.md`
+Part 3, 2026-07-19).** `GameSpec` (`pkm/rl/rollout.py`) gained an optional
+`opponent_deck` field (`None` = mirror `deck`, the only value every pre-3c
+`GameSpec` ever had). `make_game_specs` rolls `archetype_pool_prob` *before*
+the existing `pool_prob` check: when it hits, the opponent is a
+`pkm/rl/opponent_pool.py:load_pool_bots()` entry — a trained Part 3b pool
+bot's weights *and its own deck* — instead of a past checkpoint of the
+trainee's deck. `play_one` sends each side its own deck accordingly. Opt-in
+via `--archetype-pool [--archetype-pool-prob 0.2]`, off by default, so
+`pool_prob`'s pre-existing meaning (fraction of games vs a past checkpoint of
+*this same* deck) is unchanged when unset.
 
 CLI entrypoints (both must stay in sync — see §8's note on why there are two):
 
@@ -398,6 +414,15 @@ updated `pkm/rl/train.py`'s signature (`shaping` → `weights`) but missed that
 `shaping=` keyword, which would have thrown at the first real `pkm train`
 invocation. Fixed in commit `73356e5`; flagging here so the next signature
 change checks both files.
+
+**Hit again, 2026-07-19, Part 3c:** adding `--archetype-pool`/
+`--archetype-pool-prob` to `pkm/rl/train.py`'s CLI only made them work via
+`python -m pkm.rl.train` — the real `pkm train --help` didn't show them at
+all (no error, just silently absent) until the same two options were added
+to `pkm/cli/__init__.py`'s shim and threaded through its call to
+`pkm.rl.train.main(...)`. Two occurrences now; treat "add the flag in both
+files" as a hard rule for any future `pkm train`/`pkm exit-train` CLI change,
+not a one-off fix.
 
 ---
 
@@ -442,11 +467,17 @@ this case.
   ("always take the kill" isn't a certainty). See
   `docs/superpowers/plans/2026-07-16-heuristics-integration-architecture.md`
   for the full reasoning and reopening options.
-- **Single-deck training only** — `archetype_index(deck_path)` stamps every
-  decision in a run with one fixed label since self-play always mirrors
-  `deck_path` against itself; the archetype head is real machinery but
-  degenerately single-class until multi-deck opponent sampling
-  (`AGENTS.md` → "What's Next") lands.
+- **Every decision in a run still gets one fixed archetype label** —
+  `archetype_index(deck_path)` labels every collected decision with the
+  trainee's own deck, regardless of who the opponent was; the archetype head
+  (§4.2) is real machinery but degenerately single-class *for this label*
+  until multi-deck **self** play exists (not planned — the trainee always
+  trains one deck per run by design). What Part 3c (above) *does* add is
+  opponent diversity — `--archetype-pool` lets the opponent be one of 25 real
+  archetypes instead of always a past checkpoint of the same deck — but
+  that's who you play against, not a change to whose label gets stamped.
+  Opt-in, not yet exercised for a real training run (`AGENTS.md` → "What's
+  Next").
 - **`opp_decklist` and `archetype_belief` don't talk to each other** — MCTS's
   determinization and the trunk's learned belief are two independent "what
   might the opponent have" mechanisms today. Explicitly deferred: building a
@@ -468,7 +499,8 @@ this case.
 | `pkm/rl/model.py` | `PolicyValueNet` — trunk, policy/value/archetype heads |
 | `pkm/rl/numpy_policy.py` | Torch-free mirror of `model.py`'s forward pass (Kaggle inference) |
 | `pkm/rl/ppo.py` | `compute_returns` (GAE + shaping), `ppo_update` |
-| `pkm/rl/rollout.py` | `play_game`, `TorchPolicy` (per-decision `GameContext` wiring + reward-term population) |
+| `pkm/rl/rollout.py` | `play_game`, `TorchPolicy` (per-decision `GameContext` wiring + reward-term population), `GameSpec`/`make_game_specs`/`play_one` (opponent matchmaking incl. Part 3c cross-archetype sampling) |
+| `pkm/rl/opponent_pool.py` | `load_pool_bots()` — loads trained `agents/pool_*/` checkpoints for Part 3c |
 | `pkm/rl/exit_train.py` | Phase 2 expert-iteration game loop (separate from `rollout.py`, no reward shaping — trains off MCTS visit-count targets) |
 | `pkm/rl/train.py` | Phase 1 PPO training loop + its own CLI (`python -m pkm.rl.train`) |
 | `pkm/cli/__init__.py` | The real `pkm` CLI (`pkm train`, `pkm play`, `pkm export`, ...) |
@@ -484,4 +516,7 @@ checkpoint-stamping/auxiliary-head design, still the source of truth for the
 `docs/superpowers/plans/2026-07-16-heuristics-integration-architecture.md`
 (Tasks 1–8 implementation plan + session status),
 `docs/superpowers/plans/2026-07-18-merge-architecture-with-heuristics.md`
-(the reward-shaping merge, §6/§7/§8 above).
+(the reward-shaping merge, §6/§7/§8 above),
+`docs/opponent-archetype-classifier-plan.md` (the archetype belief head, its
+Kaggle-checkpoint-invalidation breakage, and Part 3's pool decks/pool
+bots/cross-archetype sampling referenced in §7/§10 above).

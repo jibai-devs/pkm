@@ -41,6 +41,15 @@ pkm train --agent 03_pult_munki --iterations 200 --games 16 --eval-every 10
   `agents/<name>/checkpoints/ppo_latest.pt` if one exists — you don't need a
   separate "resume" command, `just resume` is literally the same recipe as
   `just train`.
+  **Exception, `03_pult_munki` specifically (as of 2026-07-19):** its
+  existing `ppo_latest.pt` predates the opponent-archetype belief-feature
+  resize (stamped `opponent_archetype_belief` dim=4, current registry expects
+  dim=26) — `profile.ppo_init()`/`check_stamp_sidecar` will raise
+  `FeatureStampMismatch` rather than silently resume from an incompatible
+  checkpoint. Move or delete `agents/03_pult_munki/checkpoints/` first (or
+  train under a fresh agent name) to start the required full retrain from
+  scratch. See `docs/opponent-archetype-classifier-plan.md` Part 3 and
+  `docs/ARCHITECTURE.md` §10.
 
 (with `just` installed, this is `just train agent=03_pult_munki iterations=200 games=16`.)
 
@@ -63,6 +72,24 @@ agent-default lookup.
 To create a fresh one for a *new* agent, `write_default_weights_file()` (same
 module) writes `DEFAULT_WEIGHTS` verbatim as a starting point — every term at
 `0.0` except `shaping`.
+
+### Cross-archetype opponent sampling (Part 3c)
+
+```bash
+pkm train --agent 03_pult_munki --iterations 200 --games 16 --eval-every 10 \
+           --archetype-pool --archetype-pool-prob 0.2
+```
+
+`--archetype-pool` loads every trained `agents/pool_*/checkpoints/ppo_latest.pt`
+(`pkm/rl/opponent_pool.py:load_pool_bots()`) — 25 pool bots as of 2026-07-19,
+one per `staples.json` archetype (`AGENTS.md` → "Opponent pool decklists" /
+"Pool bots"). `--archetype-pool-prob` (default 0.2) is the fraction of games
+played against a random one of them **on its own deck**, instead of the
+existing `--pool-size`/self-checkpoint-pool behavior (which still applies to
+the remaining fraction, unchanged). Off by default — omit both flags for the
+old single-deck-mirror-only behavior. Requires the pool bots to already be
+trained (`agents/pool_*/checkpoints/` present); an untrained pool profile is
+skipped, not an error, so a partial pool works fine too.
 
 ---
 
