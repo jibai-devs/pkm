@@ -139,9 +139,12 @@ replay-react file="":
 fetch-cards *ARGS:
     python3 replay/fetch_card_images.py --out pkm_data/replay/cards --cards-json replay/cards.json {{ARGS}}
 
-# Run the image-based replay viewer (07) on http://localhost:5175
+# Run the image-based replay viewer (07, real card art) on http://localhost:5175.
+# Installs deps on first run; card art loads from pkm_data/replay/cards (run
+# `just fetch-cards` once) with automatic CDN fallback. Optionally load another
+# replay: just replay-cards file=/foo.json . Backend/reveal toggles live in the header.
 replay-cards file="":
-    cd replay/07_vite_react_cards && VITE_REPLAY={{file}} bun run dev
+    cd replay/07_vite_react_cards && bun install && VITE_REPLAY={{file}} bun run dev
 
 # --- submission ---------------------------------------------------------------
 
