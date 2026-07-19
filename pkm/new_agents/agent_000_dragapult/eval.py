@@ -99,3 +99,26 @@ def winrate_vs_random(
     """Convenience: greedy agent from `model` vs a RandomAgent baseline."""
     agent = DragapultAgent(model=model, greedy=True)
     return evaluate(agent, RandomAgent(seed=seed), n_games=n_games)
+
+
+@torch.no_grad()
+def winrate_vs_agent(
+    model: torch.nn.Module, opponent: AgentFn, n_games: int = 100
+) -> dict[str, float]:
+    """Win-rate of greedy `model` vs an arbitrary opponent agent callable."""
+    return evaluate(DragapultAgent(model=model, greedy=True), opponent, n_games=n_games)
+
+
+@torch.no_grad()
+def winrate_vs_checkpoint(
+    model: torch.nn.Module, opponent_path: str, n_games: int = 100
+) -> dict[str, float]:
+    """Win-rate of greedy `model` vs a greedy agent loaded from another checkpoint
+    (a training ``ckpt_N.pt`` or a packed ``weights.pt``).
+
+    This is the *discriminating* eval: unlike vs-random (which saturates near
+    100% once the agent is any good), pitting two trained policies against each
+    other ranks them on a signal that isn't pinned to the random-opponent ceiling.
+    """
+    opp = DragapultAgent.from_checkpoint(opponent_path, greedy=True)
+    return winrate_vs_agent(model, opp, n_games=n_games)

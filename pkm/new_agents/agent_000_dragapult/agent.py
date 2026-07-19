@@ -59,6 +59,13 @@ class DragapultAgent:
             mc = blob.get("model_config")
             model = build_model(ModelConfig(**mc)) if mc else PolicyValueModel()
             model.load_state_dict(blob["state_dict"])
+        elif isinstance(blob, dict) and "model" in blob and "config" in blob:
+            # Training checkpoint (TrainState blob): rebuild from its stored config
+            # so any architecture loads. Lets eval point straight at a ckpt_N.pt.
+            from pkm.new_agents.agent_000_dragapult.config import Config, build_model
+
+            model = build_model(Config.from_dict(blob["config"]))
+            model.load_state_dict(blob["model"])
         else:
             # Legacy format: a bare state_dict (default/small architecture).
             model = PolicyValueModel()

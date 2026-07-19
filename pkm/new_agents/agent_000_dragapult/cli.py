@@ -224,7 +224,7 @@ def _build_config(
     mcts_temperature: float = 1.0,
     determinization: str = "sample",
     model_preset: str = "small",
-    model_overrides: dict[str, int | None] | None = None,
+    model_overrides: dict[str, int | float | None] | None = None,
 ) -> Config:
     from pkm.new_agents.agent_000_dragapult.config import (
         Config,
@@ -558,6 +558,9 @@ def train(
     d_card: Optional[int] = typer.Option(
         None, help="Override: card embedding dim."
     ),
+    dropout: Optional[float] = typer.Option(
+        None, help="Override: dropout in the extra transformer layers (regularization)."
+    ),
     device: str = typer.Option(
         "cpu",
         "--device",
@@ -657,6 +660,7 @@ def train(
             "n_heads": n_heads,
             "d_opt": d_opt,
             "d_card": d_card,
+            "dropout": dropout,
         },
         ckpt_every=ckpt_every,
     )
@@ -749,9 +753,16 @@ def resume(
 
 @app.command()
 def eval(
-    games: int = typer.Option(100, help="Number of games vs the random baseline."),
+    games: int = typer.Option(100, help="Number of games vs the opponent."),
     checkpoint: Optional[Path] = typer.Option(
-        None, help="Checkpoint (defaults to checkpoints/latest.pt)."
+        None, help="Checkpoint under test (defaults to checkpoints/latest.pt)."
+    ),
+    opponent: Optional[Path] = typer.Option(
+        None,
+        "--opponent",
+        help="Opponent checkpoint for a head-to-head (a ckpt_N.pt or a packed "
+        "weights.pt). Omit to play the random baseline. Head-to-head is the "
+        "discriminating eval — it isn't pinned to the ~100%% random ceiling.",
     ),
     seed: int = typer.Option(0, help="Baseline RNG seed."),
     data_dir: Path = typer.Option(
@@ -767,7 +778,10 @@ def eval(
 ) -> None:
     """Report a checkpoint's win-rate vs the random baseline (alternating seats)."""
     _select_engine(engine)
-    from pkm.new_agents.agent_000_dragapult.eval import winrate_vs_random
+    from pkm.new_agents.agent_000_dragapult.eval import (
+        winrate_vs_checkpoint,
+        winrate_vs_random,
+    )
     from pkm.new_agents.agent_000_dragapult.train import TrainState
 
     data_dir = _resolve_experiment(data_dir, experiment)
@@ -775,11 +789,23 @@ def eval(
     if not ckpt.exists():
         console.print(f"[red]no checkpoint at[/] {ckpt}")
         raise typer.Exit(1)
-    console.print(f"[dim]evaluating[/] {ckpt} [dim]over[/] {games} [dim]games…[/]")
     model = TrainState.load(ckpt).model
-    ev = winrate_vs_random(model, n_games=games, seed=seed)
+    if opponent is not None:
+        if not opponent.exists():
+            console.print(f"[red]no opponent checkpoint at[/] {opponent}")
+            raise typer.Exit(1)
+        console.print(
+            f"[dim]head-to-head[/] {ckpt.name} [dim]vs[/] {opponent.name} "
+            f"[dim]over[/] {games} [dim]games…[/]"
+        )
+        ev = winrate_vs_checkpoint(model, str(opponent), n_games=games)
+        title = f"vs {opponent.name}"
+    else:
+        console.print(f"[dim]evaluating[/] {ckpt} [dim]vs random over[/] {games} [dim]games…[/]")
+        ev = winrate_vs_random(model, n_games=games, seed=seed)
+        title = "vs random"
 
-    t = Table(title="vs random", title_style="bold")
+    t = Table(title=title, title_style="bold")
     t.add_column("metric", style="dim")
     t.add_column("value", justify="right", style="bold")
     t.add_row("win rate", f"[green]{ev['win_rate']:.1%}[/]")

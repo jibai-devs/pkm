@@ -89,7 +89,7 @@ def resolve_device(name: str = "cpu") -> str:
 
 
 def build_model_config(
-    preset: str = "small", overrides: dict[str, int | None] | None = None
+    preset: str = "small", overrides: dict[str, int | float | None] | None = None
 ) -> "ModelConfig":
     """Resolve a `ModelConfig` from a named size preset plus per-field overrides.
 
@@ -101,10 +101,10 @@ def build_model_config(
         raise ValueError(
             f"unknown model preset {preset!r}; choose from {sorted(MODEL_PRESETS)}"
         )
-    fields = dict(MODEL_PRESETS[preset])
+    fields: dict[str, int | float] = dict(MODEL_PRESETS[preset])
     if overrides:
         fields.update({k: v for k, v in overrides.items() if v is not None})
-    return ModelConfig(**fields)
+    return ModelConfig(**fields)  # type: ignore[arg-type]  # dropout is float, dims int
 
 
 @dataclass(frozen=True)
