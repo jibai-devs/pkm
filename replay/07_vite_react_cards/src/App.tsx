@@ -6,6 +6,7 @@ import { LogPanel } from "./components/LogPanel";
 import { StatsPanel } from "./components/StatsPanel";
 import { Timeline } from "./components/Timeline";
 import { CardDb, loadCardDb } from "./data/cardDb";
+import { defaultBackend, type CardBackend } from "./data/cardArt";
 import { computeDiff } from "./data/diff";
 import {
   loadReplay,
@@ -78,6 +79,8 @@ function initialStep(): number {
 
 function Viewer({ replay, db, source, error, onPickFile }: ViewerProps) {
   const pb = usePlayback(replay.steps.length, initialStep());
+  const [backend, setBackend] = useState<CardBackend>(defaultBackend());
+  const [reveal, setReveal] = useState<"realistic" | "full-info">("realistic");
   const stats = useMemo(() => computeStats(replay), [replay]);
 
   const step = useMemo(() => mergeStep(replay, pb.index), [replay, pb.index]);
@@ -145,13 +148,14 @@ function Viewer({ replay, db, source, error, onPickFile }: ViewerProps) {
         <div className="topline">
           <h1>{replay.title || replay.name || "PTCG Replay"}</h1>
           <FilePicker source={source} error={error} onPickFile={onPickFile} />
+          <ViewControls backend={backend} setBackend={setBackend} reveal={reveal} setReveal={setReveal} />
         </div>
         <Timeline pb={pb} turn={step.current?.turn ?? null} />
       </header>
 
       <main className="main">
         <ErrorBoundary resetKey={pb.index}>
-          <Board step={step} db={db} diff={diff} />
+          <Board step={step} db={db} diff={diff} backend={backend} reveal={reveal} />
         </ErrorBoundary>
         <aside className="sidebar">
           <LogPanel step={step} db={db} />
@@ -193,6 +197,34 @@ function FilePicker({
       />
       <span className="source-name" title={source}>{source}</span>
       {error && <span className="source-err">{error}</span>}
+    </div>
+  );
+}
+
+function ViewControls({
+  backend, setBackend, reveal, setReveal,
+}: {
+  backend: CardBackend;
+  setBackend: (b: CardBackend) => void;
+  reveal: "realistic" | "full-info";
+  setReveal: (r: "realistic" | "full-info") => void;
+}) {
+  return (
+    <div className="view-controls">
+      <label className="ctl">
+        Art
+        <select value={backend} onChange={(e) => setBackend(e.target.value as CardBackend)}>
+          <option value="local">local</option>
+          <option value="cdn">cdn</option>
+        </select>
+      </label>
+      <label className="ctl">
+        Hidden
+        <select value={reveal} onChange={(e) => setReveal(e.target.value as "realistic" | "full-info")}>
+          <option value="realistic">realistic</option>
+          <option value="full-info">reveal all</option>
+        </select>
+      </label>
     </div>
   );
 }

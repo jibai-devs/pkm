@@ -245,3 +245,7 @@ body {
 .hand-fan .card:hover { transform: translateY(-10px); z-index: 5; }
 .stadium-strip { display: flex; align-items: center; justify-content: center; gap: 14px;
   padding: 6px; border-top: 1px dashed rgba(255,255,255,.2); border-bottom: 1px dashed rgba(255,255,255,.2); }
+
+.view-controls { display: flex; gap: 12px; align-items: center; margin-left: auto; }
+.view-controls .ctl { display: flex; gap: 5px; align-items: center; font-size: 11px; opacity: .85; }
+.view-controls select { font-size: 11px; }
