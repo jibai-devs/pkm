@@ -47,10 +47,12 @@ User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Geck
 ## Usage
 
 ```bash
-# all 1267 cards → replay/card_images/
-python3 replay/fetch_card_images.py
+# via just target (recommended, uses default out / cards.json paths)
+just fetch-cards                  # all 1267 cards → pkm_data/replay/cards
+just fetch-cards --ids 121 1231   # specific cards only
 
-# a subset / custom album / custom out dir
+# direct script invocation
+python3 replay/fetch_card_images.py              # → replay/card_images/
 python3 replay/fetch_card_images.py --ids 1231 1079 120 --out /tmp/cards
 python3 replay/fetch_card_images.py --start 1 --end 100 --album bqucewmzuceknw
 python3 replay/fetch_card_images.py --delay 0.3 --retries 5
