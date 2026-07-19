@@ -95,6 +95,7 @@ def train(
     eval_games: int = 100,
     observers: Sequence[MetricSink] = (),
     run_name: str | None = None,
+    device: str = "cpu",
 ) -> TrainState:
     """Run ``updates`` PPO self-play updates.
 
@@ -111,6 +112,24 @@ def train(
         model = build_model(cfg)
         opt = torch.optim.Adam(model.parameters(), lr=cfg.train.lr)
         ts = TrainState(cfg=cfg, model=model, optimizer=opt)
+
+    # Device: the learner (model + optimizer + PPO update) runs on `dev`; rollout
+    # workers always get CPU weights (parallel.py .cpu()'s the state_dict), since
+    # self-play is CPU-bound engine work. Only the batched update benefits from GPU.
+    from pkm.new_agents.agent_000_dragapult.config import resolve_device
+
+    dev = resolve_device(device)
+    ts.model.to(dev)
+    # On resume the optimizer state loaded on CPU must follow the params to `dev`.
+    for st in ts.optimizer.state.values():
+        for k, v in st.items():
+            if torch.is_tensor(v):
+                st[k] = v.to(dev)
+    print(
+        f"[device] learner on {dev}"
+        + ("" if dev == "cpu" else " (rollout workers + eval stay on CPU)"),
+        flush=True,
+    )
 
     start_idx = ts.update_idx
     target = start_idx + updates
@@ -203,7 +222,16 @@ def train(
             if eval_every and ts.update_idx % eval_every == 0:
                 from pkm.new_agents.agent_000_dragapult.eval import winrate_vs_random
 
-                ev = winrate_vs_random(ts.model, n_games=eval_games)
+                # Eval runs on CPU (batch-1 inference; DragapultAgent would also
+                # move the model to CPU in place). On GPU, hand it a CPU clone so
+                # the learner's device/optimizer are left untouched.
+                eval_model = ts.model
+                if dev != "cpu":
+                    eval_model = build_model(ts.cfg)
+                    eval_model.load_state_dict(
+                        {k: v.detach().cpu() for k, v in ts.model.state_dict().items()}
+                    )
+                ev = winrate_vs_random(eval_model, n_games=eval_games)
                 stats["eval_win_rate"] = ev["win_rate"]
 
             # notify() isolates ordinary sink errors but re-raises StopTraining

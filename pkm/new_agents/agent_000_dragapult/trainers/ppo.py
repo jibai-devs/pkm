@@ -18,6 +18,8 @@ from pkm.new_agents.agent_000_dragapult.config import Config
 from pkm.new_agents.agent_000_dragapult.features import Features, featurize
 from pkm.new_agents.agent_000_dragapult.model import collate
 from pkm.new_agents.agent_000_dragapult.shaping import assign_targets
+from pkm.rl import encoder as H
+from pkm.types.obs import Observation
 
 
 @dataclass
@@ -32,6 +34,49 @@ class Step:
     reward: float = 0.0  # filled by the shaper (shaping.assign_targets)
     adv: float = 0.0
     ret: float = 0.0
+    # Heuristic scalars, filled by `_fill_heuristics` during rollout and read by
+    # the "heuristic" shaper (see shaping.py). Names match reward_terms.ALL_TERMS
+    # attrs. All default to 0.0, so a step never touched by _fill_heuristics
+    # (any shaping other than "heuristic") contributes nothing.
+    potential: float = 0.0  # prize differential (POTENTIAL term "shaping")
+    board_setup_potential: float = 0.0
+    budew_setup_potential: float = 0.0
+    dreepy_line_field_potential: float = 0.0
+    energy_penalty: float = 0.0
+    budew_bonus: float = 0.0
+    wrong_type_energy_penalty: float = 0.0
+    dragapult_attack_bonus: float = 0.0
+    dreepy_spread_penalty: float = 0.0
+    xerosic_bonus: float = 0.0
+    budew_bench_setup_bonus: float = 0.0
+    dreepy_evolve_bonus: float = 0.0
+    dreepy_bench_charge_bonus: float = 0.0
+    dreepy_active_charge_bonus: float = 0.0
+    wasted_resources_penalty: float = 0.0
+    phantom_dive_bonus: float = 0.0
+
+
+def _fill_heuristics(step: "Step", parsed: Observation, picks: list[int]) -> None:
+    """Compute every deck-specific heuristic on the live observation + picks and
+    stash the scalars on `step`. Mirrors pkm/rl/rollout.py's collection block;
+    the "heuristic" shaper combines them into rewards via the reward_terms
+    registry. Only called when cfg.train.shaping == "heuristic"."""
+    step.potential = H.prize_potential(parsed)
+    step.board_setup_potential = H.dragapult_backup_potential(parsed)
+    step.budew_setup_potential = H.budew_active_second_potential(parsed)
+    step.dreepy_line_field_potential = H.dreepy_line_field_potential(parsed)
+    step.energy_penalty = H.energy_overattach_penalty(parsed, picks)
+    step.budew_bonus = H.budew_first_turn_attack_bonus(parsed, picks)
+    step.wrong_type_energy_penalty = H.wrong_type_energy_penalty(parsed, picks)
+    step.dragapult_attack_bonus = H.dragapult_ex_attack_bonus(parsed, picks)
+    step.phantom_dive_bonus = H.phantom_dive_attack_bonus(parsed, picks)
+    step.dreepy_spread_penalty = H.dreepy_energy_spread_penalty(parsed, picks)
+    step.xerosic_bonus = H.xerosic_machinations_bonus(parsed, picks)
+    step.budew_bench_setup_bonus = H.budew_turn_bench_setup_bonus(parsed, picks)
+    step.dreepy_evolve_bonus = H.dreepy_evolve_bonus(parsed, picks)
+    step.dreepy_bench_charge_bonus = H.dreepy_line_bench_charge_bonus(parsed, picks)
+    step.dreepy_active_charge_bonus = H.dreepy_line_active_charge_bonus(parsed, picks)
+    step.wasted_resources_penalty = H.wasted_resources_attack_penalty(parsed, picks)
 
 
 # --------------------------------------------------------------------------- #
@@ -44,6 +89,7 @@ def play_game(
 ) -> tuple[list[Step], int]:
     """Play one self-play game; return (recorded steps, result)."""
     steps: list[Step] = []
+    dev = next(model.parameters()).device  # cpu for rollout workers; gpu if single-process --device cuda
     obs, _ = battle_start(deck.DECK_60, deck.DECK_60)
     n_iter = 0
     while obs["current"]["result"] < 0 and n_iter < 100000:
@@ -57,22 +103,25 @@ def play_game(
             obs = battle_select([])
             n_iter += 1
             continue
-        b = collate([f])
+        b = {k: v.to(dev) for k, v in collate([f]).items()}
         with torch.no_grad():
             logits, value = model(b)
         k = policy.select_count(f.min_count, f.max_count, n)
-        valid = torch.zeros(logits.shape[1], dtype=torch.bool)
+        valid = torch.zeros(logits.shape[1], dtype=torch.bool, device=logits.device)
         valid[:n] = True
         picks, logprob = policy.sample_action(logits[0], valid, k, gen=gen)
-        steps.append(
-            Step(
-                features=f,
-                action=picks,
-                logprob=logprob,
-                value=float(value[0]),
-                seat=obs["current"]["yourIndex"],
-            )
+        step = Step(
+            features=f,
+            action=picks,
+            logprob=logprob,
+            value=float(value[0]),
+            seat=obs["current"]["yourIndex"],
         )
+        if cfg.train.shaping == "heuristic":
+            # The heuristics want a pkm.types.obs.Observation (not cabt's own
+            # type), parsed straight from the wire dict as pkm/rl/rollout does.
+            _fill_heuristics(step, Observation.model_validate(obs), picks)
+        steps.append(step)
         obs = battle_select(picks)
         n_iter += 1
     result = obs["current"]["result"]
@@ -133,6 +182,7 @@ def ppo_update(
 ) -> dict[str, float]:
     model.train()
     tc = cfg.train
+    dev = next(model.parameters()).device  # learner device (cpu unless --device cuda)
     idx = np.arange(len(steps))
     adv_all = torch.tensor([s.adv for s in steps], dtype=torch.float32)
     adv_mean, adv_std = adv_all.mean().item(), adv_all.std().item() + 1e-8
@@ -153,6 +203,7 @@ def ppo_update(
             if not mb:
                 continue
             b = _minibatch(mb)
+            b = {k: v.to(dev) for k, v in b.items()}
             logits, value = model(b)
             new_lp = policy.batched_action_logprob(
                 logits, b["option_mask"], b["actions"], b["action_len"]
@@ -188,9 +239,18 @@ def ppo_update(
     # 0.0 = no better than predicting the mean, <0 = worse). Diagnoses whether
     # the critic is actually learning the return.
     with torch.no_grad():
-        b_all = _minibatch(steps)
-        _, v_all = model(b_all)
-        ret_all = b_all["ret"]
+        # Forward in minibatch-sized chunks, not one giant batch: a full-update
+        # batch (~1e4 steps) is fine in CPU RAM but OOMs a GPU (each option/entity
+        # tensor times thousands of steps). Concatenate the per-chunk values.
+        v_parts, ret_parts = [], []
+        for start in range(0, len(steps), tc.minibatch_size):
+            mb = steps[start : start + tc.minibatch_size]
+            b = {k: v.to(dev) for k, v in _minibatch(mb).items()}
+            _, v = model(b)
+            v_parts.append(v)
+            ret_parts.append(b["ret"])
+        v_all = torch.cat(v_parts)
+        ret_all = torch.cat(ret_parts)
         var_ret = ret_all.var().item()
         explained_var = 1.0 - (ret_all - v_all).var().item() / (var_ret + 1e-8)
     return {

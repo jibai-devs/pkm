@@ -135,6 +135,14 @@ replay:
 replay-react file="":
     cd replay/05_vite_react_app && VITE_REPLAY={{file}} bun run dev
 
+# Download all card face images into pkm_data/replay/cards (skips existing)
+fetch-cards *ARGS:
+    python3 replay/fetch_card_images.py --out pkm_data/replay/cards --cards-json replay/cards.json {{ARGS}}
+
+# Run the image-based replay viewer (07) on http://localhost:5175
+replay-cards file="":
+    cd replay/07_vite_react_cards && VITE_REPLAY={{file}} bun run dev
+
 # --- submission ---------------------------------------------------------------
 
 # export freshest weights and build submissions/submission_<agent>_<ts>.tar.gz
