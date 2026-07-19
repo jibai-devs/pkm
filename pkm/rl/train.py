@@ -20,6 +20,7 @@ from pkm.data import Deck
 
 from .features import archetype_index, write_stamp_sidecar
 from .model import PolicyValueNet
+from .opponent_pool import PoolBot, load_pool_bots
 from .ppo import ppo_update
 from .reward_terms import DEFAULT_WEIGHTS, load_weights, write_default_weights_file
 from .rollout import (
@@ -78,6 +79,8 @@ def train(
     weights: dict[str, float] | None = None,
     pool_size: int = 8,
     pool_prob: float = 0.4,
+    archetype_pool: list[PoolBot] | None = None,
+    archetype_pool_prob: float = 0.0,
     eval_every: int = 5,
     eval_games: int = 20,
     checkpoint_dir: str = "checkpoints",
@@ -101,6 +104,14 @@ def train(
     # loss is real machinery, but degenerately single-class until that
     # roadmap item lands.
     archetype_label = archetype_index(deck_path)
+    # Part 3c: (deck, state_dict) pairs for make_game_specs' cross-archetype
+    # sampling; None when archetype_pool wasn't loaded (default, backward
+    # compatible with the pre-3c self-mirror-only behavior).
+    archetype_pool_pairs = (
+        [(bot.deck, bot.state_dict) for bot in archetype_pool]
+        if archetype_pool
+        else None
+    )
     model = PolicyValueNet()
     if init_checkpoint:
         model.load_state_dict(
@@ -132,6 +143,8 @@ def train(
                 "weights": effective_weights,
                 "pool_size": pool_size,
                 "pool_prob": pool_prob,
+                "archetype_pool_size": len(archetype_pool) if archetype_pool else 0,
+                "archetype_pool_prob": archetype_pool_prob,
                 "games_per_iter": games_per_iter,
                 "seed": seed,
                 "deck": deck_path,
@@ -157,7 +170,14 @@ def train(
             w = losses = d = 0
             total_decisions = 0
 
-            specs = make_game_specs(games_per_iter, pool, pool_prob, rng)
+            specs = make_game_specs(
+                games_per_iter,
+                pool,
+                pool_prob,
+                rng,
+                archetype_pool=archetype_pool_pairs,
+                archetype_pool_prob=archetype_pool_prob,
+            )
             if executor is not None:
                 results = collect_parallel(
                     executor, workers, model.state_dict(), deck, specs
@@ -237,9 +257,7 @@ def train(
             log.scalar("game/decisions", total_decisions, it)
             log.scalar("time/iter_s", dt, it)
             if row["eval_win_rate"]:
-                log.scalar(
-                    "eval/win_rate_vs_random", float(row["eval_win_rate"]), it
-                )
+                log.scalar("eval/win_rate_vs_random", float(row["eval_win_rate"]), it)
     finally:
         if executor is not None:
             executor.shutdown()
@@ -274,6 +292,19 @@ def main(
         "use) when --agent is given, otherwise the built-in defaults.",
     ),
     pool_size: int = typer.Option(8, help="opponent checkpoint pool size"),
+    use_archetype_pool: bool = typer.Option(
+        False,
+        "--archetype-pool",
+        help="sample cross-archetype opponents from trained agents/pool_*/ "
+        "bots (Part 3c) in addition to the self-checkpoint pool above; "
+        "requires deck/pool_*.csv + agents/pool_*/checkpoints/ppo_latest.pt "
+        "(see pkm/rl/opponent_pool.py)",
+    ),
+    archetype_pool_prob: float = typer.Option(
+        0.2,
+        help="fraction of games played against a random pool bot on its own "
+        "deck, when --archetype-pool is set",
+    ),
     eval_every: int = typer.Option(5, help="evaluate every N iterations"),
     eval_games: int = typer.Option(20, help="games for evaluation"),
     checkpoint_dir: str = typer.Option("checkpoints", help="checkpoint directory"),
@@ -281,7 +312,9 @@ def main(
     log_dir: str = typer.Option("runs/ppo", help="TensorBoard log directory"),
     init: str | None = typer.Option(None, help="checkpoint to resume from"),
     seed: int = typer.Option(0, help="random seed"),
-    wandb_project: str | None = typer.Option(None, help="wandb project name (enables wandb logging)"),
+    wandb_project: str | None = typer.Option(
+        None, help="wandb project name (enables wandb logging)"
+    ),
     wandb_run_name: str | None = typer.Option(None, help="wandb run name"),
     workers: int = typer.Option(
         1, help="parallel worker processes for self-play rollout (1 = sequential)"
@@ -308,6 +341,8 @@ def main(
         gamma=gamma,
         weights=load_weights(weights),
         pool_size=pool_size,
+        archetype_pool=load_pool_bots() if use_archetype_pool else None,
+        archetype_pool_prob=archetype_pool_prob,
         eval_every=eval_every,
         eval_games=eval_games,
         checkpoint_dir=checkpoint_dir,

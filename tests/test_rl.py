@@ -22,8 +22,9 @@ from pkm.rl.encoder import (
 )
 from pkm.rl.model import PolicyValueNet
 from pkm.rl.numpy_policy import NumpyPolicy
+from pkm.rl.opponent_pool import load_pool_bots
 from pkm.rl.ppo import compute_returns
-from pkm.rl.rollout import TorchPolicy, play_game
+from pkm.rl.rollout import GameSpec, TorchPolicy, make_game_specs, play_game, play_one
 
 
 def _collect_decisions(n_decisions: int = 40) -> list:
@@ -84,6 +85,64 @@ def test_compute_returns_terminal():
     traj = result.trajectories[0]
     compute_returns(traj, result.rewards[0])
     assert all(np.isfinite(d.advantage) and np.isfinite(d.ret) for d in traj)
+
+
+def test_make_game_specs_no_archetype_pool_unchanged():
+    """archetype_pool_prob=0 (default) must never touch opponent_deck --
+    mechanical backward-compat guard for pre-3c callers."""
+    rng = random.Random(0)
+    pool = [{}] * 3
+    specs = make_game_specs(50, pool, pool_prob=0.5, rng=rng)
+    assert all(s.opponent_deck is None for s in specs)
+
+
+def test_make_game_specs_cross_archetype_pool():
+    rng = random.Random(0)
+    deck_a = Deck.from_csv("deck/00_basic.csv").card_ids
+    deck_b = Deck.from_csv("deck/01_psychic.csv").card_ids
+    archetype_pool = [(deck_a, {"a": 1}), (deck_b, {"b": 2})]
+    specs = make_game_specs(
+        200,
+        pool=[{}],
+        pool_prob=0.0,
+        rng=rng,
+        archetype_pool=archetype_pool,
+        archetype_pool_prob=1.0,
+    )
+    assert len(specs) == 200
+    for s in specs:
+        assert s.opponent_deck in (deck_a, deck_b)
+        assert s.opponent_state in ({"a": 1}, {"b": 2})
+        assert s.collect == (s.side == 0, s.side == 1)
+
+
+def test_play_one_cross_archetype_deck():
+    """play_one must send each side its own deck, not silently mirror the
+    trainee's deck onto a cross-archetype opponent (Part 3c)."""
+    torch.manual_seed(0)
+    random.seed(0)
+    current_model = PolicyValueNet()
+    current_model.eval()
+    opponent_model = PolicyValueNet()
+    deck = Deck.from_csv("deck/00_basic.csv").card_ids
+    opponent_deck = Deck.from_csv("deck/01_psychic.csv").card_ids
+    spec = GameSpec(
+        opponent_state=opponent_model.state_dict(),
+        side=0,
+        collect=(True, True),
+        opponent_deck=opponent_deck,
+    )
+    result = play_one(current_model, opponent_model, deck, spec)
+    assert result.decisions > 0
+    assert result.rewards in {(1.0, -1.0), (-1.0, 1.0), (0.0, 0.0)}
+
+
+def test_load_pool_bots_skips_untrained_profiles(tmp_path):
+    """A pool-bot profile dir with no ppo_latest.pt yet must be skipped, not
+    raise -- lets population sourcing proceed incrementally."""
+    (tmp_path / "pool_untrained" / "checkpoints").mkdir(parents=True)
+    bots = load_pool_bots(agents_dir=str(tmp_path))
+    assert bots == []
 
 
 def test_numpy_policy_matches_torch():

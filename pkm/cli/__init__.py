@@ -50,6 +50,19 @@ def train(
         "use) when --agent is given, otherwise the built-in defaults.",
     ),
     pool_size: int = typer.Option(8, help="opponent checkpoint pool size"),
+    use_archetype_pool: bool = typer.Option(
+        False,
+        "--archetype-pool",
+        help="sample cross-archetype opponents from trained agents/pool_*/ "
+        "bots (Part 3c) in addition to the self-checkpoint pool above; "
+        "requires deck/pool_*.csv + agents/pool_*/checkpoints/ppo_latest.pt "
+        "(see pkm/rl/opponent_pool.py)",
+    ),
+    archetype_pool_prob: float = typer.Option(
+        0.2,
+        help="fraction of games played against a random pool bot on its own "
+        "deck, when --archetype-pool is set",
+    ),
     eval_every: int = typer.Option(5, help="evaluate every N iterations"),
     eval_games: int = typer.Option(20, help="games for evaluation"),
     checkpoint_dir: str = typer.Option("checkpoints", help="checkpoint directory"),
@@ -77,6 +90,8 @@ def train(
         gamma=gamma,
         weights=weights,
         pool_size=pool_size,
+        use_archetype_pool=use_archetype_pool,
+        archetype_pool_prob=archetype_pool_prob,
         eval_every=eval_every,
         eval_games=eval_games,
         checkpoint_dir=checkpoint_dir,

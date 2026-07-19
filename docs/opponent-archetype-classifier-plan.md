@@ -170,17 +170,45 @@ iterations, well under `03_pult_munki`'s 1000) using `pkm/rl/train.py`
 (`pkm/rl/export.py`) into `agents/pool/<archetype_id>_<slug>/checkpoints/`.
 
 ### 3c — Cross-archetype opponent sampling
-Extend `GameSpec` (`pkm/rl/rollout.py`) with an optional opponent-deck field;
-extend `pkm/rl/train.py`'s existing checkpoint-pool sampling
-(`pool`/`pool_prob`) so a configurable fraction of games draw both an
-*opponent deck* and its matching Part 3b pool-bot policy, instead of always
-mirroring `deck_path` against itself or a same-deck past checkpoint. Opt-in,
-defaulting to today's single-deck behavior when the cross-archetype pool
-isn't supplied — consistent with how 2a/2b were landed. This is the concrete,
-scoped-down version of the generalized opponent pool sketched in
-`docs/ideas/general-agent-architecture.md` (checkpoint pool + random + other
-profile policies) and closes `docs/ideas/rl-improvements.md`'s "Multi-deck
-training" item.
+
+**Status: implementation done (2026-07-19); the actual `03_pult_munki`
+retrain against the pool has not been run yet (Milestone 8).**
+
+`GameSpec` (`pkm/rl/rollout.py`) gained an optional `opponent_deck` field
+(default `None` = mirror `deck`, so every pre-3c `GameSpec` construction is
+unaffected). `make_game_specs` gained `archetype_pool`/`archetype_pool_prob`
+params: when given a list of `(deck, state_dict)` pairs, `archetype_pool_prob`
+of games draw both an opponent deck and its matching policy instead of
+self-mirroring — rolled *before* the existing `pool_prob` check, so
+`pool_prob`'s meaning is unchanged when `archetype_pool_prob` is 0 (default).
+`play_one` now sends each side its own deck instead of always `(deck, deck)`.
+New `pkm/rl/opponent_pool.py:load_pool_bots()` scans `agents/pool_*/` for
+trained checkpoints (skips untrained profiles rather than erroring; raises
+`FeatureStampMismatch` via `check_stamp_sidecar` for a stale one, same
+fail-loud convention as `AgentProfile.latest_checkpoint`). `pkm/rl/train.py`
+wires it behind `--archetype-pool [--archetype-pool-prob 0.2]`, opt-in,
+defaulting to today's single-deck behavior — consistent with how 2a/2b were
+landed. This is the concrete, scoped-down version of the generalized
+opponent pool sketched in `docs/ideas/general-agent-architecture.md`
+(checkpoint pool + random + other profile policies) and closes
+`docs/ideas/rl-improvements.md`'s "Multi-deck training" item.
+
+Tests: `test_make_game_specs_no_archetype_pool_unchanged` (mechanical
+backward-compat guard), `test_make_game_specs_cross_archetype_pool`,
+`test_play_one_cross_archetype_deck` (real engine game confirming each side
+gets its own deck), `test_load_pool_bots_skips_untrained_profiles` — all in
+`tests/test_rl.py`. Smoke-tested end-to-end with a throwaway agent profile
+against the real Part 3b pool-bot checkpoints (5 iterations, no crash,
+completed games).
+
+**Gotcha hit while wiring this up, worth flagging for any future CLI-flag
+addition:** `pkm/cli/__init__.py`'s `train` command is a hand-duplicated
+typer shim over `pkm/rl/train.py`'s own CLI (so `pkm train --help` shows
+the top-level app, not `pkm.rl.train`'s) — it does not forward unknown
+kwargs, so a new flag added only to `pkm/rl/train.py` silently doesn't
+exist from the actual `pkm train` entry point until also added to the
+`pkm/cli/__init__.py` shim. Cost about 10 minutes of "why doesn't my flag
+show up in `--help`" before finding the duplicate signature.
 
 ### 3b+3c — Simultaneous population training (design decision, 2026-07-19)
 
@@ -306,8 +334,25 @@ as separate entry points rather than one replacing the other outright.
 4. Part 2b MCTS determinization biasing behind opt-in `archetype_weights_path`; ablation (a) vs (c) vs (d), plus value-calibration check.
 5. If ablations are neutral-or-positive with no regressions for Part 2: confirm final Kaggle bundle size with `pkm/archetype.npz` added, then proceed to Part 3 (below) before finalizing defaults/docs.
 6. ~~Part 3a: source + build the remaining 12 pool decklists~~ **Done (2026-07-19)** — all 25 are legal 60-card decks with near-zero unresolved-card notes (worst case 3/60).
-7. Part 3b+3c (population training): build `PopulationMember`/`PopSpec`/`pkm/rl/population_train.py`; smoke-test with a small roster (anchor + 2-3 bots) before scaling to all 25; land the `_play_pop_chunk` parallel-rollout extension.
-8. **Flip defaults + update docs.** Turn on by default (for new training runs): belief-in-encoder (2a), determinization-biasing (2b), and population training as the standard way to grow the pool (supersedes the frozen-pool 3c). Run the full retrain of the main policy (`03_pult_munki`) against the live pool — the "full retrain in a follow-up" `a836ebd`'s commit message deferred, now meaningful because real opponent diversity exists to retrain against. Update `docs/ideas/multi-phase-policy-and-opponent-modeling.md` to reflect what was actually built, `docs/ideas/rl-improvements.md` (mark "Multi-deck training" done), and `AGENTS.md`.
+7. ~~Part 3b+3c (population training)~~ **Superseded (2026-07-19) — the
+   fallback path was taken instead** (decided up front, not after
+   instability): Part 3b done as 25 solo PPO runs via unmodified `train.py`
+   (65-100% eval-vs-random); Part 3c done as `GameSpec.opponent_deck` +
+   `pkm/rl/opponent_pool.py` + `pkm train --archetype-pool`, opt-in, no
+   simultaneous-training orchestration layer built. `pkm/rl/population_train.py`
+   remains a documented fallback-of-the-fallback (see §3b+3c design above) if
+   the frozen-pool retrain in Milestone 8 underperforms.
+8. **Run the retrain, then flip defaults + update docs.** Run the full
+   retrain of `03_pult_munki` with `pkm train --agent 03_pult_munki
+   --archetype-pool` (fresh run, not resumed — its existing checkpoint
+   predates the belief-feature resize and can't load) — the "full retrain in
+   a follow-up" `a836ebd`'s commit message deferred, now meaningful because
+   real opponent diversity exists to retrain against. If that goes well,
+   turn belief-in-encoder (2a) and determinization-biasing (2b) on by
+   default for new training runs. Update
+   `docs/ideas/multi-phase-policy-and-opponent-modeling.md` to reflect what
+   was actually built, `docs/ideas/rl-improvements.md` (mark "Multi-deck
+   training" done), and `AGENTS.md`.
 
 ## Critical files
 - `staples.json`, `pkm/data/card_data.py` — source data + card DB to match against
