@@ -197,3 +197,25 @@ body {
 .end-card { text-align: center; margin: auto; padding: 40px; }
 .end-card h2 { margin: 0 0 8px; }
 .err-msg { color: var(--p1); font-family: ui-monospace, monospace; font-size: 12px; }
+
+/* --- card art (07 image viewer) --- */
+.card.has-art { position: relative; overflow: visible; }
+.card-art {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; border-radius: 6px; z-index: 0;
+}
+/* text name sits UNDER the art; visible only if the image fails to load */
+.card.has-art .card-name {
+  position: absolute; inset: 0; z-index: -1;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center; font-size: 9px; padding: 2px;
+}
+.card.has-art .hp, .card.has-art .pips, .card-tag { position: relative; z-index: 1; }
+.card-tag {
+  position: absolute; top: 3px; left: 3px; z-index: 2;
+  background: #111a; color: #fff; border-radius: 4px; font-size: 8px; padding: 0 3px;
+}
+.card-back {
+  background: repeating-linear-gradient(45deg, #1b3a8f 0 8px, #12296b 8px 16px);
+  border: 1px solid #0d1f52; border-radius: 6px;
+}
