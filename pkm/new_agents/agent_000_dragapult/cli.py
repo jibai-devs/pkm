@@ -352,6 +352,7 @@ def _run_training(
     wandb_project: Optional[str] = None,
     wandb_mode: str = "offline",
     run_name: Optional[str] = None,
+    device: str = "cpu",
 ) -> None:
     # Import here so `--help` / `info` don't pay the heavy engine + torch import.
     from pkm.new_agents.agent_000_dragapult.train import train
@@ -398,6 +399,7 @@ def _run_training(
         eval_games=eval_games,
         observers=observers,
         run_name=run_name,
+        device=device,
     )
     console.print(
         f"\n[bold green]done[/] at update [bold]{ts.update_idx}[/] · "
@@ -556,6 +558,13 @@ def train(
     d_card: Optional[int] = typer.Option(
         None, help="Override: card embedding dim."
     ),
+    device: str = typer.Option(
+        "cpu",
+        "--device",
+        help="Learner device: cpu (default), cuda, or auto (cuda if available). "
+        "Rollout workers + eval always run on CPU; only the PPO update uses the "
+        "device. cuda needs a CUDA build of torch.",
+    ),
     method: str = typer.Option("ppo", help="Training method: 'ppo' or 'exit'."),
     mcts_simulations: int = typer.Option(
         32, help="MCTS simulations per move (exit)."
@@ -613,6 +622,14 @@ def train(
     if not resume:
         _confirm_overwrite(_paths(data_dir)["ckpt"], experiment, force)
     _select_engine(engine)
+    # Fail fast on a bad/unavailable device before building anything heavy.
+    from pkm.new_agents.agent_000_dragapult.config import resolve_device
+
+    try:
+        device = resolve_device(device)
+    except (RuntimeError, ValueError) as exc:
+        console.print(f"[red]{exc}[/]")
+        raise typer.Exit(2) from exc
     cfg = _build_config(
         workers=workers,
         lr=lr,
@@ -657,6 +674,7 @@ def train(
         wandb_project=wandb_project,
         wandb_mode=wandb_mode,
         run_name=run_name,
+        device=device,
     )
 
 
@@ -826,6 +844,12 @@ def sweep(
         "medium, large, xl. Architecture is fixed across the sweep; only the "
         "hyperparameters (and, with --tune-rewards, reward weights) are searched.",
     ),
+    device: str = typer.Option(
+        "cpu",
+        "--device",
+        help="Learner device for every trial: cpu (default), cuda, or auto. "
+        "Rollout + eval stay on CPU; only the PPO update uses the device.",
+    ),
     tune_rewards: bool = typer.Option(
         False,
         "--tune-rewards",
@@ -865,6 +889,13 @@ def sweep(
         )
         raise typer.Exit(2)
     _select_engine(engine)
+    from pkm.new_agents.agent_000_dragapult.config import resolve_device
+
+    try:
+        device = resolve_device(device)
+    except (RuntimeError, ValueError) as exc:
+        console.print(f"[red]{exc}[/]")
+        raise typer.Exit(2) from exc
     data_dir = _resolve_experiment(data_dir, experiment)
     import optuna
 
@@ -949,6 +980,7 @@ def sweep(
                 eval_games=eval_games,
                 observers=observers,
                 run_name=f"{study}-trial{trial.number}",
+                device=device,
             )
         except StopTraining as exc:  # pruned mid-run
             raise optuna.TrialPruned() from exc
@@ -1139,9 +1171,14 @@ def pack(
     template = Path(__file__).with_name("submit_main.py")
     p["submissions"].mkdir(parents=True, exist_ok=True)
 
-    # Extract just the model state_dict (checkpoints are TrainState blobs).
+    # Extract the model state_dict + the architecture it was trained with
+    # (checkpoints are TrainState blobs carrying the full config), so the bundle
+    # rebuilds a non-default (e.g. large/deeper) net correctly at inference.
     blob = torch.load(ckpt, map_location="cpu", weights_only=False)
     state_dict = blob["model"] if isinstance(blob, dict) and "model" in blob else blob
+    model_config = (
+        (blob.get("config") or {}).get("model") if isinstance(blob, dict) else None
+    )
 
     def _no_pycache(info: tarfile.TarInfo):
         base = Path(info.name).name
@@ -1153,7 +1190,7 @@ def pack(
     out = p["submissions"] / f"submission_{ts}.tar.gz"
     with tempfile.TemporaryDirectory() as tmp:
         weights_file = Path(tmp) / "weights.pt"
-        torch.save(state_dict, weights_file)
+        torch.save({"state_dict": state_dict, "model_config": model_config}, weights_file)
         with tarfile.open(out, "w:gz") as tar:
             tar.add(template, arcname="main.py")
             tar.add(weights_file, arcname="weights.pt")

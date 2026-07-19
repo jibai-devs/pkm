@@ -45,8 +45,24 @@ class DragapultAgent:
 
     @classmethod
     def from_checkpoint(cls, path: str, **kw: Any) -> "DragapultAgent":
-        model = PolicyValueModel()
-        model.load_state_dict(torch.load(path, map_location="cpu"))
+        # Always load on CPU — inference (Kaggle) runs on CPU regardless of the
+        # device the weights were trained on.
+        blob = torch.load(path, map_location="cpu", weights_only=False)
+        if isinstance(blob, dict) and "state_dict" in blob:
+            # Bundle format: weights + the architecture they were trained with,
+            # so a non-default (e.g. large / deeper) net rebuilds correctly.
+            from pkm.new_agents.agent_000_dragapult.config import (
+                ModelConfig,
+                build_model,
+            )
+
+            mc = blob.get("model_config")
+            model = build_model(ModelConfig(**mc)) if mc else PolicyValueModel()
+            model.load_state_dict(blob["state_dict"])
+        else:
+            # Legacy format: a bare state_dict (default/small architecture).
+            model = PolicyValueModel()
+            model.load_state_dict(blob)
         return cls(model=model, **kw)
 
     @torch.no_grad()

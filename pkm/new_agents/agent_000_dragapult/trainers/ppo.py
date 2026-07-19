@@ -89,6 +89,7 @@ def play_game(
 ) -> tuple[list[Step], int]:
     """Play one self-play game; return (recorded steps, result)."""
     steps: list[Step] = []
+    dev = next(model.parameters()).device  # cpu for rollout workers; gpu if single-process --device cuda
     obs, _ = battle_start(deck.DECK_60, deck.DECK_60)
     n_iter = 0
     while obs["current"]["result"] < 0 and n_iter < 100000:
@@ -102,11 +103,11 @@ def play_game(
             obs = battle_select([])
             n_iter += 1
             continue
-        b = collate([f])
+        b = {k: v.to(dev) for k, v in collate([f]).items()}
         with torch.no_grad():
             logits, value = model(b)
         k = policy.select_count(f.min_count, f.max_count, n)
-        valid = torch.zeros(logits.shape[1], dtype=torch.bool)
+        valid = torch.zeros(logits.shape[1], dtype=torch.bool, device=logits.device)
         valid[:n] = True
         picks, logprob = policy.sample_action(logits[0], valid, k, gen=gen)
         step = Step(
@@ -181,6 +182,7 @@ def ppo_update(
 ) -> dict[str, float]:
     model.train()
     tc = cfg.train
+    dev = next(model.parameters()).device  # learner device (cpu unless --device cuda)
     idx = np.arange(len(steps))
     adv_all = torch.tensor([s.adv for s in steps], dtype=torch.float32)
     adv_mean, adv_std = adv_all.mean().item(), adv_all.std().item() + 1e-8
@@ -201,6 +203,7 @@ def ppo_update(
             if not mb:
                 continue
             b = _minibatch(mb)
+            b = {k: v.to(dev) for k, v in b.items()}
             logits, value = model(b)
             new_lp = policy.batched_action_logprob(
                 logits, b["option_mask"], b["actions"], b["action_len"]
@@ -236,9 +239,18 @@ def ppo_update(
     # 0.0 = no better than predicting the mean, <0 = worse). Diagnoses whether
     # the critic is actually learning the return.
     with torch.no_grad():
-        b_all = _minibatch(steps)
-        _, v_all = model(b_all)
-        ret_all = b_all["ret"]
+        # Forward in minibatch-sized chunks, not one giant batch: a full-update
+        # batch (~1e4 steps) is fine in CPU RAM but OOMs a GPU (each option/entity
+        # tensor times thousands of steps). Concatenate the per-chunk values.
+        v_parts, ret_parts = [], []
+        for start in range(0, len(steps), tc.minibatch_size):
+            mb = steps[start : start + tc.minibatch_size]
+            b = {k: v.to(dev) for k, v in _minibatch(mb).items()}
+            _, v = model(b)
+            v_parts.append(v)
+            ret_parts.append(b["ret"])
+        v_all = torch.cat(v_parts)
+        ret_all = torch.cat(ret_parts)
         var_ret = ret_all.var().item()
         explained_var = 1.0 - (ret_all - v_all).var().item() / (var_ret + 1e-8)
     return {

@@ -22,9 +22,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
 cd "$REPO_ROOT"
 
+# NixOS: torch's CUDA build needs the driver's libcuda.so, exposed here (not in
+# an FHS path). Harmless on non-NixOS / CPU boxes (the dir just won't exist).
+export LD_LIBRARY_PATH="/run/opengl-driver/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
 exec uv run pkm new_agents 000_dragapult sweep \
     --experiment 001_complexity_large \
     --model large \
+    --device cuda \
     --tune-rewards \
     --trials 40 \
     --updates 20 \

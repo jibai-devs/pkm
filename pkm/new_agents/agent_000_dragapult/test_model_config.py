@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import pytest
 
+import torch
+
 from pkm.new_agents.agent_000_dragapult.config import (
     Config,
     ModelConfig,
     build_model,
     build_model_config,
+    resolve_device,
 )
 
 
@@ -71,3 +74,32 @@ def test_from_dict_backfills_missing_depth_fields():
         d["model"].pop(k, None)
     cfg = Config.from_dict(d)
     assert cfg.model.n_layers == 1
+
+
+# --------------------------------------------------------------------------- #
+# device selection
+# --------------------------------------------------------------------------- #
+
+
+def test_resolve_device_cpu_and_auto():
+    assert resolve_device("cpu") == "cpu"
+    # auto resolves to whatever is actually available (cpu on a CPU-only build).
+    assert resolve_device("auto") == ("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def test_resolve_device_unknown_raises():
+    with pytest.raises(ValueError, match="unknown device"):
+        resolve_device("tpu")
+
+
+def test_resolve_device_cuda_unavailable_raises_clearly():
+    if torch.cuda.is_available():
+        assert resolve_device("cuda") == "cuda"
+    else:
+        with pytest.raises(RuntimeError, match="cuda"):
+            resolve_device("cuda")
+
+
+def test_device_is_not_in_config_hash():
+    # Device is a runtime choice, not part of Config -> cpu/cuda are one experiment.
+    assert "device" not in Config().to_dict().get("train", {})

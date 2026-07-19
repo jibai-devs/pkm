@@ -62,6 +62,32 @@ MODEL_PRESETS: dict[str, dict[str, int]] = {
 }
 
 
+def resolve_device(name: str = "cpu") -> str:
+    """Resolve a device selector to a concrete ``'cpu'`` / ``'cuda'``.
+
+    ``'auto'`` picks ``'cuda'`` when a CUDA build + GPU are available, else
+    ``'cpu'``. An explicit ``'cuda'`` with no usable CUDA raises a clear error
+    (the installed torch here is often a CPU-only build) rather than failing
+    cryptically later. Device is a *runtime* choice — it is intentionally NOT
+    part of ``Config`` / the config hash, so the same run is one experiment
+    whether trained on CPU or GPU.
+    """
+    import torch
+
+    n = (name or "cpu").lower()
+    if n == "auto":
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    if n == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError(
+            f"--device cuda requested but torch.cuda is unavailable (installed "
+            f"torch is '{torch.__version__}'). Install a CUDA build of torch, or "
+            f"use --device cpu / --device auto."
+        )
+    if n not in ("cpu", "cuda"):
+        raise ValueError(f"unknown device {name!r}; choose 'cpu', 'cuda', or 'auto'")
+    return n
+
+
 def build_model_config(
     preset: str = "small", overrides: dict[str, int | None] | None = None
 ) -> "ModelConfig":
