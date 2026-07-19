@@ -398,14 +398,27 @@ outright.
    deleted — gitignored so not recoverable via git). Determinization-biasing
    (2b) stays irrelevant here — it's MCTS-only and `03_pult_munki` hasn't run
    Phase 2 expert iteration yet.
-9. **Next: build `pkm/rl/population_train.py`** per the §3b+3c design above
-   (`PopulationMember`/`PopSpec`, per-member trajectory bucketing,
-   `_play_pop_chunk`), smoke-test with a small roster (anchor + 2-3 bots)
-   before scaling to all 25, then use it for the *next* `03_pult_munki`
-   training run — independent of how Milestone 8's frozen-pool retrain turns
-   out. Land the "Tests to add" list under §3b+3c first. If this later
-   destabilizes, Milestone 8's frozen-pool design is the documented fallback
-   (see §3b+3c "Fallback" above), not a redesign.
+9. ~~Build `pkm/rl/population_train.py`~~ **Done (2026-07-19), built and
+   smoke-tested while Milestone 8's retrain ran in the background.**
+   `PopulationMember`/`PopSpec`, `make_pop_specs` (anchor plays
+   `games_per_pairing` games against every pool bot, sides alternated
+   deterministically), per-member trajectory bucketing (`_bucket_result`),
+   buffered update cadence (`min_samples`/`update_every`), and
+   `_play_pop_chunk`/`collect_pop_parallel` (`parallel_rollout.py`, decoupled
+   from `PopulationMember`/`PopSpec` via plain tuples to avoid a circular
+   import). `pkm population-train`, registered in both CLI entrypoints in
+   the same change this time. The plan's three named tests
+   (`test_population_matchmaking_coverage`, `test_population_trajectory_routing`,
+   `test_population_train_noop_on_solo_path`) all pass
+   (`tests/test_population_train.py`). Smoke-tested end-to-end sequentially
+   and under `--workers 2`, using a throwaway 3-member roster (never real
+   `agents/pool_*/` checkpoints — population training overwrites whatever
+   roster it's pointed at, and those hold real Part 3b results). **Not yet
+   done: the actual production run** — using it for the *next*
+   `03_pult_munki` training run, at full 25-bot scale, once Milestone 8's
+   retrain finishes. If that later destabilizes, Milestone 8's frozen-pool
+   design is the documented fallback (see §3b+3c "Fallback" above), not a
+   redesign.
 10. **Flip defaults + update docs**, once 8 and 9 have both been run and
     compared (ablation win-rate comparison, §3b+3c's own Verification #5):
     turn belief-in-encoder (2a) and `--archetype-pool`/population training on
