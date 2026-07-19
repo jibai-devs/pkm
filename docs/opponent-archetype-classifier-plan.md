@@ -141,6 +141,26 @@ padded/trimmed as needed); several `multi-match` best-effort picks remain
 deliberately best-effort-picks rather than blocking on them for pool bots).
 
 ### 3b — Train 25 simple pool bots
+
+**Status: done (2026-07-19), via the fallback path (below), not simultaneous
+population training.** All 25 `deck/pool_*.csv` trained solo, 100 iterations/
+16 games each, `pkm/rl/train.py` **unmodified**, into
+`agents/pool_<archetype_id>_<slug>/checkpoints/`. Eval-vs-random after 100
+iters ranged 65-100% across all 25 (worst: `pool_361_metagross_metal_maker`
+65%, `pool_362_mega_starmie_ex` 70%; most landed 85-100%) — every bot learned
+something over random, none stuck near-chance. Spot-checked one
+(`pool_361_metagross_metal_maker`) through export → `make_neural_agent` →
+5 games vs random (3/5 win) to confirm the checkpoint→npz→agent pipeline
+works, consistent with §Verification #2 below.
+
+Confirmed concretely in the process: the "known breakage" flagged in the
+2026-07-19 addendum above is real and specific — `03_pult_munki`'s committed
+checkpoint is stamped `opponent_archetype_belief` dim=4 (the old dormant
+3-class+Other trunk aux head), current registry expects dim=26 (25 real
+archetypes + Other, from this plan's live Part 1 classifier) — so that
+checkpoint cannot be exported or resumed from until the full retrain (3c
+below, then Milestone 8) happens.
+
 No lightweight-but-competent agent exists in this codebase today —
 `random_agent` and an unweighted `neural_agent` are both effectively random
 (`neural_agent.py` falls back to random legal moves when no weights file is
