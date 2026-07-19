@@ -4,6 +4,13 @@ Full project guide (structure, RL training, decks, submission): @AGENTS.md
 
 ## Active Context
 
+- **agent_000 status (2026-07-20):** stuck at Kaggle **600** across small/large nets —
+  it's an **eval ceiling**, not capacity: training is mirror self-play but the metric
+  was vs *random* (saturates ~100%). Fixes shipped: head-to-head eval
+  (`eval --opponent <ckpt>`), configurable net size/depth (`--model`), GPU
+  (`--device cuda`), heuristic shaping. Large net trained unstable (lr too high for
+  depth) → `002_large_tuned` (lr 1e-4). Next lever: **opponent-pool training**. Full
+  log: `pkm/new_agents/agent_000_dragapult/TRAINING.md` §10.
 - **Training/sweep workflow:** always run training runs and Optuna sweeps inside the
   shared **`pkm-train`** tmux session — `tmux new-session -d -s pkm-train` (once),
   launch with `tmux send-keys -t pkm-train "cd <repo> && ./…/train.sh" Enter`, watch
