@@ -241,6 +241,20 @@ show up in `--help`" before finding the duplicate signature.
 > still a prerequisite; this only changes how 3b/3c turn those decklists
 > into trained agents.
 
+> **Status update (2026-07-19, later same day): this is now the plan for
+> the next training run, not a conditional fallback.** Earlier the same day,
+> the decision was to ship the cheaper frozen-pool version first (3b solo +
+> 3c `--archetype-pool`, both done — see status notes above) and treat this
+> section as a "fallback-of-the-fallback," used only if the frozen-pool
+> retrain underperformed. That frozen-pool retrain is currently running
+> (`03_pult_munki`, 2000 iterations, `--archetype-pool-prob 0.4
+> --archetype-belief`). Independent of how that run turns out, the explicit
+> ask now is to build this simultaneous population-training design and use
+> it for the **next** training run after this one. `pkm/rl/population_train.py`
+> is still unbuilt — the design below is the spec to implement, not yet code.
+> Nothing about the currently-running retrain changes; this affects what
+> comes after it.
+
 **Why this is additive, not a rewrite of the existing trainer.** `play_game()`
 (`pkm/rl/rollout.py:129`) already plays two independent `TorchPolicy` objects
 against two independent decks and returns `GameResult.trajectories: tuple[list,
@@ -309,11 +323,12 @@ single-deck path (used by `03_pult_munki` today) is untouched.
 
 **Fallback:** if population training proves unstable early (e.g. very weak
 freshly-initialized pool bots give the anchor a degenerate easy-win signal,
-or vice versa), fall back to the originally-planned sequential order —
-solo-PPO each bot first (3b as first written), then sample them as a frozen
-pool via a `GameSpec` deck-field extension (3c as first written). Keep
-`pkm/rl/population_train.py` additive enough that both approaches can coexist
-as separate entry points rather than one replacing the other outright.
+or vice versa), fall back to the frozen-pool design that's already built and
+running (3b solo pool bots + 3c `--archetype-pool`/`--archetype-belief`, see
+status notes above) — that path stays available precisely because
+`pkm/rl/population_train.py` is required to be additive enough for both
+approaches to coexist as separate entry points, not one replacing the other
+outright.
 
 ### Tests to add
 - `build_deck()` legality (exactly 60 cards, resolution notes) for each of
@@ -359,27 +374,45 @@ as separate entry points rather than one replacing the other outright.
 4. Part 2b MCTS determinization biasing behind opt-in `archetype_weights_path`; ablation (a) vs (c) vs (d), plus value-calibration check.
 5. If ablations are neutral-or-positive with no regressions for Part 2: confirm final Kaggle bundle size with `pkm/archetype.npz` added, then proceed to Part 3 (below) before finalizing defaults/docs.
 6. ~~Part 3a: source + build the remaining 12 pool decklists~~ **Done (2026-07-19)** — all 25 are legal 60-card decks with near-zero unresolved-card notes (worst case 3/60).
-7. ~~Part 3b+3c (population training)~~ **Superseded (2026-07-19) — the
-   fallback path was taken instead** (decided up front, not after
-   instability): Part 3b done as 25 solo PPO runs via unmodified `train.py`
-   (65-100% eval-vs-random); Part 3c done as `GameSpec.opponent_deck` +
-   `pkm/rl/opponent_pool.py` + `pkm train --archetype-pool`, opt-in, no
-   simultaneous-training orchestration layer built. `pkm/rl/population_train.py`
-   remains a documented fallback-of-the-fallback (see §3b+3c design above) if
-   the frozen-pool retrain in Milestone 8 underperforms.
-8. **Run the retrain, then flip defaults + update docs.** Run the full
-   retrain of `03_pult_munki` with `pkm train --agent 03_pult_munki
-   --archetype-pool --archetype-belief` (fresh run, not resumed — its
-   existing checkpoint predates the belief-feature resize and can't load) —
-   the "full retrain in a follow-up" `a836ebd`'s commit message deferred, now
-   meaningful because both real opponent diversity (Part 3c) and a live
-   belief signal (Part 2a) exist to retrain with/against. If that goes well,
-   turn both on by default for new training runs, and revisit
-   determinization-biasing (2b, MCTS-only — irrelevant to this Phase-1 PPO
-   retrain since `03_pult_munki` hasn't run Phase 2 expert iteration yet).
-   Update `docs/ideas/multi-phase-policy-and-opponent-modeling.md` to reflect
-   what was actually built, `docs/ideas/rl-improvements.md` (mark
-   "Multi-deck training" done), and `AGENTS.md`.
+7. ~~Part 3b+3c (population training)~~ **Initially superseded (2026-07-19
+   morning) — the frozen-pool fallback path was taken first** (decided up
+   front, not after instability): Part 3b done as 25 solo PPO runs via
+   unmodified `train.py` (65-100% eval-vs-random); Part 3c done as
+   `GameSpec.opponent_deck` + `pkm/rl/opponent_pool.py` +
+   `pkm train --archetype-pool`, opt-in. **Reopened the same day (afternoon):**
+   the explicit ask is now to build `pkm/rl/population_train.py` and use it
+   for the training run *after* Milestone 8 — see the §3b+3c status update
+   above. Not superseded after all, just resequenced to come after the
+   frozen-pool retrain rather than replacing it.
+8. **In progress (2026-07-19).** Full retrain of `03_pult_munki`, fresh run
+   (not resumed — its old checkpoint predates the belief-feature resize and
+   can't load): `pkm train --agent 03_pult_munki --iterations 2000 --games 16
+   --eval-every 10 --archetype-pool --archetype-pool-prob 0.4
+   --archetype-belief` — the "full retrain in a follow-up" `a836ebd`'s commit
+   message deferred, now meaningful because both real opponent diversity
+   (Part 3c) and a live belief signal (Part 2a) exist to retrain with/against.
+   `--archetype-pool-prob` bumped from the 0.2 default to 0.4 and iterations
+   doubled from the original run's 1000 to 2000, both user calls, not
+   ablation-derived. Old checkpoint preserved at
+   `agents/03_pult_munki/checkpoints_pre_belief_resize/` (renamed, not
+   deleted — gitignored so not recoverable via git). Determinization-biasing
+   (2b) stays irrelevant here — it's MCTS-only and `03_pult_munki` hasn't run
+   Phase 2 expert iteration yet.
+9. **Next: build `pkm/rl/population_train.py`** per the §3b+3c design above
+   (`PopulationMember`/`PopSpec`, per-member trajectory bucketing,
+   `_play_pop_chunk`), smoke-test with a small roster (anchor + 2-3 bots)
+   before scaling to all 25, then use it for the *next* `03_pult_munki`
+   training run — independent of how Milestone 8's frozen-pool retrain turns
+   out. Land the "Tests to add" list under §3b+3c first. If this later
+   destabilizes, Milestone 8's frozen-pool design is the documented fallback
+   (see §3b+3c "Fallback" above), not a redesign.
+10. **Flip defaults + update docs**, once 8 and 9 have both been run and
+    compared (ablation win-rate comparison, §3b+3c's own Verification #5):
+    turn belief-in-encoder (2a) and `--archetype-pool`/population training on
+    by default for new training runs. Update
+    `docs/ideas/multi-phase-policy-and-opponent-modeling.md` to reflect what
+    was actually built, `docs/ideas/rl-improvements.md` (mark "Multi-deck
+    training" done), and `AGENTS.md`.
 
 ## Critical files
 - `staples.json`, `pkm/data/card_data.py` — source data + card DB to match against
