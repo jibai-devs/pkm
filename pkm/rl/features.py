@@ -26,6 +26,7 @@ from pkm.data import get_attack_data
 from pkm.heuristics.context import GameContext
 from pkm.heuristics.deck_tracker import CardLocation
 from pkm.rl.deterministic_features import (
+    enemy_threat,
     lethal_this_turn,
     retreat_viable,
     type_effectiveness,
@@ -100,8 +101,12 @@ class Norm:
     max_prize_count: float = 6.0  # engine/src/core/Core.h:15 PRIZE_SIZE=6
     max_discard_count: float = 60.0  # bounded by DECK_SIZE
     max_bench_count: float = 8.0  # engine/src/core/Core.h:14 BENCH_SIZE_MAX=8
-    max_turn: float = 30.0  # practical max; engine/src/game/GameProc.h:809 hard cap=10000
-    max_actions_per_turn: float = 20.0  # practical max; engine/src/game/GameProc.h:805 hard cap=10000
+    max_turn: float = (
+        30.0  # practical max; engine/src/game/GameProc.h:809 hard cap=10000
+    )
+    max_actions_per_turn: float = (
+        20.0  # practical max; engine/src/game/GameProc.h:805 hard cap=10000
+    )
     max_pick_count: float = 5.0  # practical max; no C++ cap
     max_energy_cost: float = 5.0  # practical max; no C++ cap
     max_damage_counters: float = 10.0  # practical max; bounded by max_hp
@@ -326,6 +331,8 @@ PER_SLOT_FEATURES: list[FeatureSpec] = [
     ),
     # Tier 1 (plan.md §4): bench retreat affordability.
     FeatureSpec("retreat_viable", 1, Scope.PER_SLOT, retreat_viable, True),
+    # Opposing-Pokemon threat level (energy-scaled first cut).
+    FeatureSpec("enemy_threat", 1, Scope.PER_SLOT, enemy_threat, True),
 ]
 
 
