@@ -226,18 +226,27 @@ def play_one(
     opponent_model: PolicyValueNet,
     deck: list[int],
     spec: GameSpec,
+    archetype_classifier=None,
 ) -> GameResult:
     """Play one game per `spec`, reusing `opponent_model` as scratch space for
-    the pooled-opponent case (avoids rebuilding a fresh module every game)."""
+    the pooled-opponent case (avoids rebuilding a fresh module every game).
+
+    Part 2a: `archetype_classifier` (a NumpyArchetypeClassifier, see
+    pkm/archetype/numpy_model.py), when given, is attached only to the
+    trainee's ("current") TorchPolicy -- not the frozen opponent's -- so its
+    belief re-injection (docs/opponent-archetype-classifier-plan.md Part 2a)
+    only ever influences the policy actually being trained this run. In the
+    mirror self-play case both sides share one TorchPolicy instance, so both
+    naturally get it too."""
     if spec.opponent_state is None:
-        cur = TorchPolicy(current_model)
+        cur = TorchPolicy(current_model, archetype_classifier=archetype_classifier)
         policies = (cur, cur)
         decks = (deck, deck)
     else:
         opponent_model.load_state_dict(spec.opponent_state)
         opponent_model.eval()
         opp = TorchPolicy(opponent_model)
-        cur = TorchPolicy(current_model)
+        cur = TorchPolicy(current_model, archetype_classifier=archetype_classifier)
         opp_deck = spec.opponent_deck if spec.opponent_deck is not None else deck
         policies = (cur, opp) if spec.side == 0 else (opp, cur)
         decks = (deck, opp_deck) if spec.side == 0 else (opp_deck, deck)

@@ -40,16 +40,21 @@ def _play_chunk(
     current_state: dict,
     deck: list[int],
     indexed_specs: list[tuple[int, GameSpec]],
+    archetype_classifier=None,
 ) -> list[tuple[int, GameResult]]:
     """Runs inside a worker process: rebuild the model(s) once, then play
     every spec in this chunk sequentially — a single process still only
-    ever runs one game at a time, same as the non-parallel path."""
+    ever runs one game at a time, same as the non-parallel path.
+
+    `archetype_classifier` (see pkm/rl/rollout.py:play_one) is a plain numpy
+    object (NumpyArchetypeClassifier), picklable by default -- passed through
+    to each worker like `current_state`/`deck`."""
     current_model = PolicyValueNet()
     current_model.load_state_dict(current_state)
     current_model.eval()
     opponent_model = PolicyValueNet()
     return [
-        (idx, play_one(current_model, opponent_model, deck, spec))
+        (idx, play_one(current_model, opponent_model, deck, spec, archetype_classifier))
         for idx, spec in indexed_specs
     ]
 
@@ -75,12 +80,14 @@ def collect_parallel(
     current_state: dict,
     deck: list[int],
     specs: list[GameSpec],
+    archetype_classifier=None,
 ) -> list[GameResult]:
     """Play every spec in `specs` across the pool; returns results in the
     same order as `specs`."""
     chunks = _chunk_specs(specs, num_workers)
     futures = [
-        executor.submit(_play_chunk, current_state, deck, chunk) for chunk in chunks
+        executor.submit(_play_chunk, current_state, deck, chunk, archetype_classifier)
+        for chunk in chunks
     ]
     results: list[GameResult | None] = [None] * len(specs)
     for future in futures:

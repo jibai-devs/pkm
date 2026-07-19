@@ -137,6 +137,74 @@ def test_play_one_cross_archetype_deck():
     assert result.rewards in {(1.0, -1.0), (-1.0, 1.0), (0.0, 0.0)}
 
 
+def _tiny_archetype_classifier(tmp_path):
+    """A cheap real (not mocked) NumpyArchetypeClassifier, same pattern as
+    tests/test_archetype_integration.py's helper -- avoids depending on the
+    gitignored pkm/archetype.npz export existing on disk."""
+    from pkm.archetype.export import export_npz
+    from pkm.archetype.numpy_model import NumpyArchetypeClassifier
+    from pkm.archetype.train import train as train_archetype
+
+    model, _ = train_archetype(
+        n_per_class=5, epochs=1, batch_size=32, log_every=0, seed=0
+    )
+    path = tmp_path / "archetype_test.npz"
+    export_npz(model, str(path))
+    return NumpyArchetypeClassifier.load(str(path))
+
+
+def test_play_one_classifier_reaches_trainee_not_opponent(tmp_path, monkeypatch):
+    """Part 2a wiring through play_one: archetype_classifier must reach the
+    trainee's TorchPolicy in both the mirror self-play and pool-opponent
+    branches, but never the frozen opponent's."""
+    import pkm.rl.rollout as rollout_mod
+
+    classifier = _tiny_archetype_classifier(tmp_path)
+    torch.manual_seed(0)
+    random.seed(0)
+    current_model = PolicyValueNet()
+    current_model.eval()
+    opponent_model = PolicyValueNet()
+    deck = Deck.from_csv("deck/00_basic.csv").card_ids
+
+    seen = []
+    real_init = rollout_mod.TorchPolicy.__init__
+
+    def spy_init(self, model, greedy=False, temperature=1.0, archetype_classifier=None):
+        seen.append((model is current_model, archetype_classifier is classifier))
+        real_init(self, model, greedy, temperature, archetype_classifier)
+
+    monkeypatch.setattr(rollout_mod.TorchPolicy, "__init__", spy_init)
+
+    # mirror self-play: opponent_state=None, cur reused for both sides
+    seen.clear()
+    play_one(
+        current_model,
+        opponent_model,
+        deck,
+        GameSpec(opponent_state=None, side=-1, collect=(True, True)),
+        classifier,
+    )
+    assert seen == [(True, True)]  # one TorchPolicy built, is current_model, has it
+
+    # pool-opponent branch: cur gets it, opp never does
+    seen.clear()
+    play_one(
+        current_model,
+        opponent_model,
+        deck,
+        GameSpec(
+            opponent_state=opponent_model.state_dict(), side=0, collect=(True, True)
+        ),
+        classifier,
+    )
+    is_current_flags = {
+        is_current: has_classifier for is_current, has_classifier in seen
+    }
+    assert is_current_flags[True] is True  # trainee got the classifier
+    assert is_current_flags[False] is False  # frozen opponent did not
+
+
 def test_load_pool_bots_skips_untrained_profiles(tmp_path):
     """A pool-bot profile dir with no ppo_latest.pt yet must be skipped, not
     raise -- lets population sourcing proceed incrementally."""

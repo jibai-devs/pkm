@@ -81,6 +81,7 @@ def train(
     pool_prob: float = 0.4,
     archetype_pool: list[PoolBot] | None = None,
     archetype_pool_prob: float = 0.0,
+    archetype_classifier=None,
     eval_every: int = 5,
     eval_games: int = 20,
     checkpoint_dir: str = "checkpoints",
@@ -145,6 +146,7 @@ def train(
                 "pool_prob": pool_prob,
                 "archetype_pool_size": len(archetype_pool) if archetype_pool else 0,
                 "archetype_pool_prob": archetype_pool_prob,
+                "archetype_belief": archetype_classifier is not None,
                 "games_per_iter": games_per_iter,
                 "seed": seed,
                 "deck": deck_path,
@@ -180,11 +182,17 @@ def train(
             )
             if executor is not None:
                 results = collect_parallel(
-                    executor, workers, model.state_dict(), deck, specs
+                    executor,
+                    workers,
+                    model.state_dict(),
+                    deck,
+                    specs,
+                    archetype_classifier=archetype_classifier,
                 )
             else:
                 results = [
-                    play_one(model, opponent_model, deck, spec) for spec in specs
+                    play_one(model, opponent_model, deck, spec, archetype_classifier)
+                    for spec in specs
                 ]
 
             for spec, result in zip(specs, results):
@@ -305,6 +313,19 @@ def main(
         help="fraction of games played against a random pool bot on its own "
         "deck, when --archetype-pool is set",
     ),
+    use_archetype_belief: bool = typer.Option(
+        False,
+        "--archetype-belief",
+        help="inject the standalone opponent-archetype classifier's belief "
+        "into the encoder for the trainee's decisions (Part 2a) -- loads "
+        "--archetype-weights once and attaches it to the trainee's "
+        "TorchPolicy only, never the frozen opponent's",
+    ),
+    archetype_weights: str = typer.Option(
+        "pkm/archetype.npz",
+        help="path to the exported NumpyArchetypeClassifier weights, used "
+        "when --archetype-belief is set",
+    ),
     eval_every: int = typer.Option(5, help="evaluate every N iterations"),
     eval_games: int = typer.Option(20, help="games for evaluation"),
     checkpoint_dir: str = typer.Option("checkpoints", help="checkpoint directory"),
@@ -333,6 +354,11 @@ def main(
         if weights is None:
             write_default_weights_file(profile.reward_weights_path)
             weights = str(profile.reward_weights_path)
+    archetype_classifier = None
+    if use_archetype_belief:
+        from pkm.archetype.numpy_model import NumpyArchetypeClassifier
+
+        archetype_classifier = NumpyArchetypeClassifier.load(archetype_weights)
     train(
         deck_path=deck,
         iterations=iterations,
@@ -343,6 +369,7 @@ def main(
         pool_size=pool_size,
         archetype_pool=load_pool_bots() if use_archetype_pool else None,
         archetype_pool_prob=archetype_pool_prob,
+        archetype_classifier=archetype_classifier,
         eval_every=eval_every,
         eval_games=eval_games,
         checkpoint_dir=checkpoint_dir,
