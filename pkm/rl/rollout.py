@@ -18,6 +18,7 @@ from .encoder import (
     EncodedDecision,
     budew_active_second_potential,
     budew_first_turn_attack_bonus,
+    budew_redundant_play_penalty,
     budew_turn_bench_setup_bonus,
     drakloak_backup_ready_bonus,
     dragapult_backup_potential,
@@ -95,6 +96,7 @@ class TorchPolicy:
         )
         d.wasted_resources_penalty = wasted_resources_attack_penalty(parsed, res.picks)
         d.drakloak_backup_ready_bonus = drakloak_backup_ready_bonus(parsed, res.picks)
+        d.budew_redundant_penalty = budew_redundant_play_penalty(parsed, res.picks)
         return res.picks, d
 
 
