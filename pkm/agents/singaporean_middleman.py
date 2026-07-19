@@ -107,13 +107,14 @@ def make_singaporean_middleman(
     agents: dict[str, AgentFn] | None = None,
     select_agent: SelectAgentFn = _select_agent,
     log_sink: Callable[[str], None] | None = None,
+    archetype_weights_path: str | None = None,
 ) -> AgentFn:
     """Build the kaggle-facing agent that dispatches per turn."""
     registry: dict[str, AgentFn] = (
         agents
         if agents is not None
         else {
-            "neural": make_neural_agent(deck, weights_path),
+            "neural": make_neural_agent(deck, weights_path, archetype_weights_path),
             "random": make_random_agent(deck),
             "first_turn": make_first_turn_agent(deck),
         }

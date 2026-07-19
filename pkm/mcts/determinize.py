@@ -49,16 +49,69 @@ def _fit(
     return pool
 
 
-def infer_opponent_decklist(obs: dict, energy_fallback: int = 3) -> list[int]:
+def _archetype_weighted_padding(
+    belief, energy_fallback: int, need: int, rng: random.Random
+) -> list[int]:
+    """Weight the padded portion of the decklist estimate toward the
+    believed archetype(s)' staple composition (copies * presence_pct,
+    weighted by belief) instead of crude basics-only padding. Falls back to
+    `energy_fallback` if belief is all on unresolved/off-meta mass."""
+    from pkm.archetype.archetypes import get_archetypes
+
+    archetypes = get_archetypes()
+    weights: dict[int, float] = {}
+    for idx, archetype in enumerate(archetypes):
+        b = float(belief[idx]) if idx < len(belief) else 0.0
+        if b <= 0.0:
+            continue
+        for staple in archetype.staples:
+            if staple.card_id is None:
+                continue
+            weights[staple.card_id] = (
+                weights.get(staple.card_id, 0.0) + b * staple.copies * staple.presence_pct
+            )
+
+    if not weights:
+        return [energy_fallback] * need
+
+    ids = list(weights.keys())
+    w = [weights[i] for i in ids]
+    return rng.choices(ids, weights=w, k=need)
+
+
+def infer_opponent_decklist(
+    obs: dict,
+    energy_fallback: int = 3,
+    classifier=None,
+    rng: random.Random | None = None,
+) -> list[int]:
     """Crude 60-card opponent decklist estimate from visible cards.
 
     Used at inference time when the true opponent list is unknown; training
-    self-play should pass the exact list instead.
+    self-play should pass the exact list instead. When `classifier` (a
+    pkm.archetype.numpy_model.NumpyArchetypeClassifier) is given, the padded
+    portion is weighted toward the believed archetype's staple composition
+    instead of crude basics-only padding -- sample_determinization itself
+    needs no change, it already draws uniformly from whatever decklist it's
+    given.
     """
     state = obs["current"]
     you = state["yourIndex"]
     visible = _visible_counter(state, 1 - you, include_hand=False)
     decklist = list(visible.elements())
+
+    need = 60 - len(decklist)
+    if need <= 0:
+        return decklist[:60]
+
+    if classifier is not None:
+        from pkm.archetype.belief import compute_belief
+
+        belief = compute_belief(obs, classifier)
+        padding = _archetype_weighted_padding(
+            belief, energy_fallback, need, rng or random.Random()
+        )
+        return (decklist + padding)[:60]
 
     cards = get_card_data()
     basics = [cid for cid in visible if cards.get(cid) and cards[cid].basic]

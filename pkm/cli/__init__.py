@@ -12,6 +12,7 @@ Usage:
 
 import typer
 
+from pkm.cli.archetype import app as archetype_app
 from pkm.cli.deck import app as deck_app
 from pkm.cli.cards import app as cards_app
 from pkm.new_agents.cli import app as new_agents_app
@@ -23,6 +24,7 @@ app.add_typer(deck_app, name="deck", help="Deck management")
 app.add_typer(cards_app, name="cards", help="Card data")
 app.add_typer(sweep_app, name="sweep", help="Hyperparameter sweeps")
 app.add_typer(new_agents_app, name="new_agents", help="Standalone next-gen agents")
+app.add_typer(archetype_app, name="archetype", help="Opponent-archetype classifier")
 
 
 # Single-command modules: register their main functions directly so

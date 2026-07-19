@@ -4,6 +4,7 @@ collects encoded decisions for both players."""
 import random
 from dataclasses import dataclass
 
+from pkm.archetype.belief import compute_belief
 from pkm.engine import (
     battle_finish,
     battle_select,
@@ -45,11 +46,21 @@ class TorchPolicy:
     """Wraps a PolicyValueNet into a per-observation actor."""
 
     def __init__(
-        self, model: PolicyValueNet, greedy: bool = False, temperature: float = 1.0
+        self,
+        model: PolicyValueNet,
+        greedy: bool = False,
+        temperature: float = 1.0,
+        archetype_classifier=None,
     ):
         self.model = model
         self.greedy = greedy
         self.temperature = temperature
+        # Optional NumpyArchetypeClassifier (pkm.archetype.numpy_model) --
+        # opt-in, default None. When given, its belief replaces the trunk's
+        # own dormant aux-head belief for the encoder's re-injection feature
+        # (pkm/rl/features.py:_opponent_archetype_belief); see
+        # docs/opponent-archetype-classifier-plan.md Part 2a.
+        self.archetype_classifier = archetype_classifier
 
     def act(
         self, obs: dict, collect: bool, ctx: GameContext | None = None
@@ -64,12 +75,13 @@ class TorchPolicy:
 
         d = encode_decision(parsed, ctx)
         res = self.model.act(d, greedy=self.greedy, temperature=self.temperature)
-        if ctx is not None:
-            # Task 8: carry the belief forward for the *next* decision's
-            # GLOBAL feature read (see pkm/rl/features.py) -- one decision
-            # stale by construction, never recomputed inside a pure
-            # feature function.
-            ctx.archetype_belief = res.belief
+        if ctx is not None and self.archetype_classifier is not None:
+            # Carry the belief forward for the *next* decision's GLOBAL
+            # feature read (see pkm/rl/features.py) -- one decision stale
+            # by construction, never recomputed inside a pure feature
+            # function. Left None (-> zeros) when no classifier is given,
+            # so this is opt-in and doesn't affect existing callers.
+            ctx.archetype_belief = compute_belief(obs, self.archetype_classifier)
         if not collect:
             return res.picks, None
         d.picks = res.picks

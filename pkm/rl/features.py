@@ -22,6 +22,7 @@ from pathlib import Path
 
 import numpy as np
 
+from pkm.archetype.archetypes import get_archetypes
 from pkm.data import get_attack_data
 from pkm.heuristics.context import GameContext
 from pkm.heuristics.deck_tracker import CardLocation
@@ -227,13 +228,14 @@ def _select_counts(obs: Observation, ctx: GameContext | None) -> np.ndarray:
     )
 
 
-# --- opponent-archetype belief (Task 8) ---------------------------------
+# --- opponent-archetype belief -------------------------------------------
 #
-# Tracked archetype classes, chosen deliberately now per plan.md §8.2 rule 4
-# -- growing this list is a checkpoint-breaking change (the head's output
-# width re-joins state_feats), so it's not meant to be painlessly resizable
-# later. One reserved "Other" slot (index len(ARCHETYPE_CLASSES)) absorbs
-# any future deck not in this list, without a width change for that case.
+# ARCHETYPE_CLASSES/ARCHETYPE_OUT/archetype_index below are the ORIGINAL
+# Task 8 aux head: a small head on PolicyValueNet's own trunk (pkm/rl/model.py)
+# that only ever distinguishes our own 3 project decks. Its own supervised
+# loss (pkm/rl/ppo.py) still trains against these labels -- left in place,
+# dormant, per plan.md §8.4's 2026-07-19 note. It no longer feeds this
+# GLOBAL feature: see BELIEF_DIM below.
 ARCHETYPE_CLASSES = ["00_basic", "01_psychic", "02_dragapult"]
 ARCHETYPE_OUT = len(ARCHETYPE_CLASSES) + 1  # +1 for "Other"
 
@@ -248,15 +250,26 @@ def archetype_index(deck_name_or_path: str) -> int:
         return len(ARCHETYPE_CLASSES)
 
 
+# This GLOBAL feature slot's actual source (2026-07-19): the standalone
+# opponent-archetype classifier (pkm/archetype/), not the trunk aux head
+# above -- deliberately replaces it rather than adding a second belief slot
+# (see docs/opponent-archetype-classifier-plan.md Part 2a). ctx.archetype_belief
+# is written by pkm/rl/rollout.py:TorchPolicy.act via
+# pkm.archetype.belief.compute_belief() when an archetype_classifier is
+# supplied; left None (-> zeros here) otherwise, so this is opt-in and every
+# existing caller that doesn't pass a classifier is unaffected.
+NUM_TRACKED_ARCHETYPES = len(get_archetypes())
+BELIEF_DIM = NUM_TRACKED_ARCHETYPES + 1  # +1 for "Unknown"
+
+
 def _opponent_archetype_belief(obs: Observation, ctx: GameContext | None) -> np.ndarray:
-    """Detached softmax belief carried on ctx, updated by the caller after
-    each real decision (see pkm/rl/rollout.py:TorchPolicy.act) from the
-    trunk's own archetype head -- one decision stale, never recomputed
-    inside this pure function. Zero (uninformative) before the first
-    update, or when ctx is None (e.g. MCTS's simulated tree)."""
+    """Detached belief carried on ctx, updated by the caller after each real
+    decision -- one decision stale, never recomputed inside this pure
+    function. Zero (uninformative) before the first update, or when ctx is
+    None (e.g. MCTS's simulated tree)."""
     if ctx is not None and ctx.archetype_belief is not None:
         return np.asarray(ctx.archetype_belief, dtype=np.float32)
-    return np.zeros(ARCHETYPE_OUT, dtype=np.float32)
+    return np.zeros(BELIEF_DIM, dtype=np.float32)
 
 
 GLOBAL_FEATURES: list[FeatureSpec] = [
@@ -271,10 +284,10 @@ GLOBAL_FEATURES: list[FeatureSpec] = [
         "select_type_onehot", NUM_SELECT_TYPES, Scope.GLOBAL, _select_type_onehot, True
     ),
     FeatureSpec("select_counts", 4, Scope.GLOBAL, _select_counts, True),
-    # Task 8: learned belief, not a deterministic fact -- see docstring.
+    # Learned belief, not a deterministic fact -- see docstring.
     FeatureSpec(
         "opponent_archetype_belief",
-        ARCHETYPE_OUT,
+        BELIEF_DIM,
         Scope.GLOBAL,
         _opponent_archetype_belief,
         False,

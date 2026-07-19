@@ -1,0 +1,3896 @@
+{
+  "format": "TEF-CRI",
+  "archetypes": [
+    {
+      "id": "284",
+      "name": "Dragapult ex",
+      "url": "https://limitlesstcg.com/decks/284",
+      "staples": [
+        {
+          "name": "Dreepy",
+          "set": "TWM",
+          "number": "128",
+          "share_text": "4 in 99.80%",
+          "tooltip": "99.80% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "99.80%"
+        },
+        {
+          "name": "Drakloak",
+          "set": "TWM",
+          "number": "129",
+          "share_text": "4 in 99.80%",
+          "tooltip": "99.80% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "99.80%"
+        },
+        {
+          "name": "Dragapult ex",
+          "set": "TWM",
+          "number": "130",
+          "share_text": "2 in 100%",
+          "tooltip": "86.50% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Budew",
+          "set": "ASC",
+          "number": "16",
+          "share_text": "1 in 99.59%",
+          "tooltip": "40.29% of decklist include 2 of this card\n99.59% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "99.59%"
+        },
+        {
+          "name": "Fezandipiti ex",
+          "set": "ASC",
+          "number": "142",
+          "share_text": "1 in 97.96%",
+          "tooltip": "97.96% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "97.96%"
+        },
+        {
+          "name": "Meowth ex",
+          "set": "POR",
+          "number": "62",
+          "share_text": "1 in 98.98%",
+          "tooltip": "2.45% of decklist include 2 of this card\n98.98% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "98.98%"
+        },
+        {
+          "name": "Munkidori",
+          "set": "TWM",
+          "number": "95",
+          "share_text": "1 in 99.80%",
+          "tooltip": "79.75% of decklist include 2 of this card\n99.80% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "99.80%"
+        },
+        {
+          "name": "Lillie's Determination",
+          "set": "MEG",
+          "number": "119",
+          "share_text": "4 in 99.59%",
+          "tooltip": "99.59% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "99.59%"
+        },
+        {
+          "name": "Crispin",
+          "set": "SCR",
+          "number": "133",
+          "share_text": "2 in 97.34%",
+          "tooltip": "53.99% of decklist include 3 of this card\n97.34% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "97.34%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "3 in 97.55%",
+          "tooltip": "9.00% of decklist include 4 of this card\n97.55% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "97.55%"
+        },
+        {
+          "name": "Ultra Ball",
+          "set": "MEG",
+          "number": "131",
+          "share_text": "3 in 100%",
+          "tooltip": "88.55% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Poké Pad",
+          "set": "POR",
+          "number": "81",
+          "share_text": "4 in 96.32%",
+          "tooltip": "96.32% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "96.32%"
+        },
+        {
+          "name": "Buddy-Buddy Poffin",
+          "set": "TEF",
+          "number": "144",
+          "share_text": "4 in 99.59%",
+          "tooltip": "99.59% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "99.59%"
+        },
+        {
+          "name": "Night Stretcher",
+          "set": "ASC",
+          "number": "196",
+          "share_text": "2 in 99.80%",
+          "tooltip": "1.43% of decklist include 4 of this card\n20.45% of decklist include at least 3 of this card\n99.80% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "99.80%"
+        },
+        {
+          "name": "Unfair Stamp",
+          "set": "TWM",
+          "number": "165",
+          "share_text": "1 in 92.43%",
+          "tooltip": "92.43% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "92.43%"
+        },
+        {
+          "name": "Special Red Card",
+          "set": "CRI",
+          "number": "82",
+          "share_text": "1 in 91.00%",
+          "tooltip": "4.91% of decklist include 2 of this card\n91.00% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "91.00%"
+        },
+        {
+          "name": "Psychic Energy",
+          "set": "MEE",
+          "number": "5",
+          "share_text": "3 in 99.59%",
+          "tooltip": "21.88% of decklist include 4 of this card\n99.59% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "99.59%"
+        },
+        {
+          "name": "Fire Energy",
+          "set": "MEE",
+          "number": "2",
+          "share_text": "3 in 99.39%",
+          "tooltip": "34.36% of decklist include 4 of this card\n99.39% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "99.39%"
+        },
+        {
+          "name": "Darkness Energy",
+          "set": "MEE",
+          "number": "7",
+          "share_text": "1 in 99.80%",
+          "tooltip": "0.20% of decklist include 4 of this card\n17.18% of decklist include at least 3 of this card\n89.98% of decklist include at least 2 of this card\n99.80% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "99.80%"
+        }
+      ]
+    },
+    {
+      "id": "320",
+      "name": "N's Zoroark ex",
+      "url": "https://limitlesstcg.com/decks/320",
+      "staples": [
+        {
+          "name": "N's Zorua",
+          "set": "JTG",
+          "number": "97",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "N's Zoroark ex",
+          "set": "JTG",
+          "number": "98",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "N's Zekrom",
+          "set": "ASC",
+          "number": "155",
+          "share_text": "1 in 100%",
+          "tooltip": "89.04% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Munkidori",
+          "set": "TWM",
+          "number": "95",
+          "share_text": "1 in 98.63%",
+          "tooltip": "2.74% of decklist include 3 of this card\n47.95% of decklist include at least 2 of this card\n98.63% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "98.63%"
+        },
+        {
+          "name": "Pecharunt ex",
+          "set": "SFA",
+          "number": "39",
+          "share_text": "1 in 91.78%",
+          "tooltip": "17.81% of decklist include 2 of this card\n91.78% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "91.78%"
+        },
+        {
+          "name": "Lillie's Determination",
+          "set": "MEG",
+          "number": "119",
+          "share_text": "4 in 98.63%",
+          "tooltip": "98.63% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "98.63%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "3 in 100%",
+          "tooltip": "64.38% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Cyrano",
+          "set": "SSP",
+          "number": "170",
+          "share_text": "2 in 90.41%",
+          "tooltip": "34.25% of decklist include 3 of this card\n90.41% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "90.41%"
+        },
+        {
+          "name": "Black Belt's Training",
+          "set": "JTG",
+          "number": "143",
+          "share_text": "1 in 91.78%",
+          "tooltip": "54.79% of decklist include 2 of this card\n91.78% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "91.78%"
+        },
+        {
+          "name": "Buddy-Buddy Poffin",
+          "set": "TEF",
+          "number": "144",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Ultra Ball",
+          "set": "MEG",
+          "number": "131",
+          "share_text": "1 in 97.26%",
+          "tooltip": "9.59% of decklist include 4 of this card\n49.32% of decklist include at least 3 of this card\n86.30% of decklist include at least 2 of this card\n97.26% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "97.26%"
+        },
+        {
+          "name": "N's PP Up",
+          "set": "JTG",
+          "number": "153",
+          "share_text": "3 in 98.63%",
+          "tooltip": "35.62% of decklist include 4 of this card\n98.63% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "98.63%"
+        },
+        {
+          "name": "Night Stretcher",
+          "set": "ASC",
+          "number": "196",
+          "share_text": "2 in 98.63%",
+          "tooltip": "5.48% of decklist include 3 of this card\n98.63% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "98.63%"
+        },
+        {
+          "name": "Poké Pad",
+          "set": "POR",
+          "number": "81",
+          "share_text": "1 in 100%",
+          "tooltip": "38.36% of decklist include 4 of this card\n78.08% of decklist include at least 3 of this card\n87.67% of decklist include at least 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "N's Castle",
+          "set": "JTG",
+          "number": "152",
+          "share_text": "1 in 98.63%",
+          "tooltip": "5.48% of decklist include 3 of this card\n69.86% of decklist include at least 2 of this card\n98.63% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "98.63%"
+        },
+        {
+          "name": "Darkness Energy",
+          "set": "MEE",
+          "number": "7",
+          "share_text": "7 in 100%",
+          "tooltip": "4.11% of decklist include 9 of this card\n82.19% of decklist include at least 8 of this card\n100% of decklist include at least 7 of this card",
+          "copies": "7",
+          "presence_pct": "100%"
+        }
+      ]
+    },
+    {
+      "id": "341",
+      "name": "Crustle Mysterious Rock Inn",
+      "url": "https://limitlesstcg.com/decks/341",
+      "staples": [
+        {
+          "name": "Mega Kangaskhan ex",
+          "set": "MEG",
+          "number": "104",
+          "share_text": "3 in 97.96%",
+          "tooltip": "89.80% of decklist include 4 of this card\n97.96% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "97.96%"
+        },
+        {
+          "name": "Dwebble",
+          "set": "DRI",
+          "number": "11",
+          "share_text": "3 in 100%",
+          "tooltip": "100% of decklist include 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Crustle",
+          "set": "DRI",
+          "number": "12",
+          "share_text": "3 in 91.84%",
+          "tooltip": "91.84% of decklist include 3 of this card",
+          "copies": "3",
+          "presence_pct": "91.84%"
+        },
+        {
+          "name": "Lillie's Determination",
+          "set": "MEG",
+          "number": "119",
+          "share_text": "4 in 97.96%",
+          "tooltip": "97.96% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "97.96%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "4 in 91.84%",
+          "tooltip": "91.84% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "91.84%"
+        },
+        {
+          "name": "Team Rocket's Petrel",
+          "set": "DRI",
+          "number": "176",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Hilda",
+          "set": "WHT",
+          "number": "84",
+          "share_text": "2 in 97.96%",
+          "tooltip": "8.16% of decklist include 3 of this card\n97.96% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "97.96%"
+        },
+        {
+          "name": "Xerosic's Machinations",
+          "set": "SFA",
+          "number": "64",
+          "share_text": "1 in 93.88%",
+          "tooltip": "93.88% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "93.88%"
+        },
+        {
+          "name": "Jumbo Ice Cream",
+          "set": "PFL",
+          "number": "91",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Pokégear 3.0",
+          "set": "SVI",
+          "number": "186",
+          "share_text": "3 in 100%",
+          "tooltip": "14.29% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Buddy-Buddy Poffin",
+          "set": "TEF",
+          "number": "144",
+          "share_text": "1 in 100%",
+          "tooltip": "83.67% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Ultra Ball",
+          "set": "MEG",
+          "number": "131",
+          "share_text": "1 in 100%",
+          "tooltip": "6.12% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Switch",
+          "set": "MEG",
+          "number": "130",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Hero's Cape",
+          "set": "TEF",
+          "number": "152",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Factory",
+          "set": "DRI",
+          "number": "173",
+          "share_text": "1 in 91.84%",
+          "tooltip": "4.08% of decklist include 2 of this card\n91.84% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "91.84%"
+        },
+        {
+          "name": "Spiky Energy",
+          "set": "JTG",
+          "number": "159",
+          "share_text": "3 in 97.96%",
+          "tooltip": "67.35% of decklist include 4 of this card\n97.96% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "97.96%"
+        },
+        {
+          "name": "Growing Grass Energy",
+          "set": "POR",
+          "number": "86",
+          "share_text": "4 in 97.96%",
+          "tooltip": "97.96% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "97.96%"
+        },
+        {
+          "name": "Mist Energy",
+          "set": "TEF",
+          "number": "161",
+          "share_text": "4 in 97.96%",
+          "tooltip": "97.96% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "97.96%"
+        }
+      ]
+    },
+    {
+      "id": "322",
+      "name": "Slowking Seek Inspiration",
+      "url": "https://limitlesstcg.com/decks/322",
+      "staples": [
+        {
+          "name": "Slowpoke",
+          "set": "SCR",
+          "number": "57",
+          "share_text": "4 in 96.67%",
+          "tooltip": "96.67% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "96.67%"
+        },
+        {
+          "name": "Slowking",
+          "set": "SCR",
+          "number": "58",
+          "share_text": "3 in 96.67%",
+          "tooltip": "96.67% of decklist include 3 of this card",
+          "copies": "3",
+          "presence_pct": "96.67%"
+        },
+        {
+          "name": "Mega Kangaskhan ex",
+          "set": "MEG",
+          "number": "104",
+          "share_text": "1 in 91.67%",
+          "tooltip": "11.67% of decklist include 3 of this card\n80.00% of decklist include at least 2 of this card\n91.67% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "91.67%"
+        },
+        {
+          "name": "Latias ex",
+          "set": "SSP",
+          "number": "76",
+          "share_text": "1 in 98.33%",
+          "tooltip": "85.00% of decklist include 2 of this card\n98.33% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "98.33%"
+        },
+        {
+          "name": "Kyurem",
+          "set": "SFA",
+          "number": "47",
+          "share_text": "2 in 96.67%",
+          "tooltip": "96.67% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "96.67%"
+        },
+        {
+          "name": "Metagross",
+          "set": "CRI",
+          "number": "61",
+          "share_text": "1 in 100%",
+          "tooltip": "61.67% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Meowth ex",
+          "set": "POR",
+          "number": "62",
+          "share_text": "1 in 98.33%",
+          "tooltip": "10.00% of decklist include 2 of this card\n98.33% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "98.33%"
+        },
+        {
+          "name": "Lillie's Clefairy ex",
+          "set": "JTG",
+          "number": "56",
+          "share_text": "1 in 98.33%",
+          "tooltip": "3.33% of decklist include 2 of this card\n98.33% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "98.33%"
+        },
+        {
+          "name": "Fezandipiti ex",
+          "set": "ASC",
+          "number": "142",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Lillie's Determination",
+          "set": "MEG",
+          "number": "119",
+          "share_text": "4 in 96.67%",
+          "tooltip": "96.67% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "96.67%"
+        },
+        {
+          "name": "Ciphermaniac's Codebreaking",
+          "set": "TEF",
+          "number": "145",
+          "share_text": "2 in 98.33%",
+          "tooltip": "6.67% of decklist include 4 of this card\n85.00% of decklist include at least 3 of this card\n98.33% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "98.33%"
+        },
+        {
+          "name": "Poké Pad",
+          "set": "POR",
+          "number": "81",
+          "share_text": "4 in 91.67%",
+          "tooltip": "91.67% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "91.67%"
+        },
+        {
+          "name": "Ultra Ball",
+          "set": "MEG",
+          "number": "131",
+          "share_text": "3 in 96.67%",
+          "tooltip": "88.33% of decklist include 4 of this card\n96.67% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "96.67%"
+        },
+        {
+          "name": "Wondrous Patch",
+          "set": "PFL",
+          "number": "94",
+          "share_text": "3 in 98.33%",
+          "tooltip": "1.67% of decklist include 4 of this card\n98.33% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "98.33%"
+        },
+        {
+          "name": "Night Stretcher",
+          "set": "ASC",
+          "number": "196",
+          "share_text": "2 in 98.33%",
+          "tooltip": "6.67% of decklist include 4 of this card\n40.00% of decklist include at least 3 of this card\n98.33% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "98.33%"
+        },
+        {
+          "name": "Academy at Night",
+          "set": "SFA",
+          "number": "54",
+          "share_text": "4 in 96.67%",
+          "tooltip": "96.67% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "96.67%"
+        },
+        {
+          "name": "Telepathic Psychic Energy",
+          "set": "POR",
+          "number": "88",
+          "share_text": "4 in 95.00%",
+          "tooltip": "95.00% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "95.00%"
+        },
+        {
+          "name": "Psychic Energy",
+          "set": "MEE",
+          "number": "5",
+          "share_text": "3 in 100%",
+          "tooltip": "15.00% of decklist include 5 of this card\n51.67% of decklist include at least 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        }
+      ]
+    },
+    {
+      "id": "352",
+      "name": "Hydrapple ex",
+      "url": "https://limitlesstcg.com/decks/352",
+      "staples": [
+        {
+          "name": "Teal Mask Ogerpon ex",
+          "set": "TWM",
+          "number": "25",
+          "share_text": "4 in 96.55%",
+          "tooltip": "96.55% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "96.55%"
+        },
+        {
+          "name": "Dipplin",
+          "set": "TWM",
+          "number": "18",
+          "share_text": "1 in 100%",
+          "tooltip": "1.72% of decklist include 3 of this card\n89.66% of decklist include at least 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Hydrapple ex",
+          "set": "SCR",
+          "number": "14",
+          "share_text": "2 in 100%",
+          "tooltip": "100% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Bayleef",
+          "set": "MEG",
+          "number": "9",
+          "share_text": "1 in 94.83%",
+          "tooltip": "75.86% of decklist include 2 of this card\n94.83% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "94.83%"
+        },
+        {
+          "name": "Meganium",
+          "set": "MEG",
+          "number": "10",
+          "share_text": "2 in 100%",
+          "tooltip": "100% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Meowth ex",
+          "set": "POR",
+          "number": "62",
+          "share_text": "1 in 100%",
+          "tooltip": "79.31% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Fezandipiti ex",
+          "set": "ASC",
+          "number": "142",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Celebi",
+          "set": "MEG",
+          "number": "12",
+          "share_text": "1 in 94.83%",
+          "tooltip": "3.45% of decklist include 3 of this card\n15.52% of decklist include at least 2 of this card\n94.83% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "94.83%"
+        },
+        {
+          "name": "Lillie's Determination",
+          "set": "MEG",
+          "number": "119",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "2 in 98.28%",
+          "tooltip": "3.45% of decklist include 3 of this card\n98.28% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "98.28%"
+        },
+        {
+          "name": "Dawn",
+          "set": "PFL",
+          "number": "87",
+          "share_text": "1 in 98.28%",
+          "tooltip": "31.03% of decklist include 2 of this card\n98.28% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "98.28%"
+        },
+        {
+          "name": "Briar",
+          "set": "SCR",
+          "number": "132",
+          "share_text": "1 in 93.10%",
+          "tooltip": "93.10% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "93.10%"
+        },
+        {
+          "name": "Lana's Aid",
+          "set": "TWM",
+          "number": "155",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Bug Catching Set",
+          "set": "TWM",
+          "number": "143",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Ultra Ball",
+          "set": "MEG",
+          "number": "131",
+          "share_text": "3 in 94.83%",
+          "tooltip": "72.41% of decklist include 4 of this card\n94.83% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "94.83%"
+        },
+        {
+          "name": "Night Stretcher",
+          "set": "ASC",
+          "number": "196",
+          "share_text": "1 in 98.28%",
+          "tooltip": "17.24% of decklist include 2 of this card\n98.28% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "98.28%"
+        },
+        {
+          "name": "Forest of Vitality",
+          "set": "MEG",
+          "number": "117",
+          "share_text": "3 in 100%",
+          "tooltip": "79.31% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Grass Energy",
+          "set": "MEE",
+          "number": "1",
+          "share_text": "13 in 96.55%",
+          "tooltip": "46.55% of decklist include 14 of this card\n96.55% of decklist include at least 13 of this card",
+          "copies": "13",
+          "presence_pct": "96.55%"
+        }
+      ]
+    },
+    {
+      "id": "350",
+      "name": "Alakazam Powerful Hand",
+      "url": "https://limitlesstcg.com/decks/350",
+      "staples": [
+        {
+          "name": "Abra",
+          "set": "MEG",
+          "number": "54",
+          "share_text": "4 in 96.77%",
+          "tooltip": "96.77% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "96.77%"
+        },
+        {
+          "name": "Kadabra",
+          "set": "MEG",
+          "number": "55",
+          "share_text": "4 in 91.94%",
+          "tooltip": "91.94% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "91.94%"
+        },
+        {
+          "name": "Alakazam",
+          "set": "MEG",
+          "number": "56",
+          "share_text": "3 in 100%",
+          "tooltip": "100% of decklist include 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Dunsparce",
+          "set": "JTG",
+          "number": "120",
+          "share_text": "3 in 96.77%",
+          "tooltip": "96.77% of decklist include 3 of this card",
+          "copies": "3",
+          "presence_pct": "96.77%"
+        },
+        {
+          "name": "Dudunsparce",
+          "set": "TEF",
+          "number": "129",
+          "share_text": "2 in 100%",
+          "tooltip": "56.45% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Genesect",
+          "set": "SFA",
+          "number": "40",
+          "share_text": "1 in 96.77%",
+          "tooltip": "96.77% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "96.77%"
+        },
+        {
+          "name": "Fezandipiti ex",
+          "set": "ASC",
+          "number": "142",
+          "share_text": "1 in 96.77%",
+          "tooltip": "96.77% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "96.77%"
+        },
+        {
+          "name": "Dawn",
+          "set": "PFL",
+          "number": "87",
+          "share_text": "3 in 100%",
+          "tooltip": "74.19% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Hilda",
+          "set": "WHT",
+          "number": "84",
+          "share_text": "3 in 100%",
+          "tooltip": "22.58% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "2 in 100%",
+          "tooltip": "1.61% of decklist include 4 of this card\n24.19% of decklist include at least 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Lana's Aid",
+          "set": "TWM",
+          "number": "155",
+          "share_text": "1 in 100%",
+          "tooltip": "1.61% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Buddy-Buddy Poffin",
+          "set": "TEF",
+          "number": "144",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Poké Pad",
+          "set": "POR",
+          "number": "81",
+          "share_text": "4 in 98.39%",
+          "tooltip": "98.39% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "98.39%"
+        },
+        {
+          "name": "Rare Candy",
+          "set": "MEG",
+          "number": "125",
+          "share_text": "2 in 100%",
+          "tooltip": "87.10% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Enhanced Hammer",
+          "set": "TWM",
+          "number": "148",
+          "share_text": "1 in 93.55%",
+          "tooltip": "80.65% of decklist include 2 of this card\n93.55% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "93.55%"
+        },
+        {
+          "name": "Sacred Ash",
+          "set": "DRI",
+          "number": "168",
+          "share_text": "1 in 96.77%",
+          "tooltip": "96.77% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "96.77%"
+        },
+        {
+          "name": "Night Stretcher",
+          "set": "ASC",
+          "number": "196",
+          "share_text": "1 in 93.55%",
+          "tooltip": "1.61% of decklist include 2 of this card\n93.55% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "93.55%"
+        },
+        {
+          "name": "Telepathic Psychic Energy",
+          "set": "POR",
+          "number": "88",
+          "share_text": "4 in 98.39%",
+          "tooltip": "98.39% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "98.39%"
+        },
+        {
+          "name": "Psychic Energy",
+          "set": "MEE",
+          "number": "5",
+          "share_text": "1 in 100%",
+          "tooltip": "6.45% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Enriching Energy",
+          "set": "SSP",
+          "number": "191",
+          "share_text": "1 in 98.39%",
+          "tooltip": "98.39% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "98.39%"
+        }
+      ]
+    },
+    {
+      "id": "280",
+      "name": "Raging Bolt ex",
+      "url": "https://limitlesstcg.com/decks/280",
+      "staples": [
+        {
+          "name": "Mega Kangaskhan ex",
+          "set": "MEG",
+          "number": "104",
+          "share_text": "2 in 97.67%",
+          "tooltip": "9.30% of decklist include 4 of this card\n88.37% of decklist include at least 3 of this card\n97.67% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "97.67%"
+        },
+        {
+          "name": "Meowth ex",
+          "set": "POR",
+          "number": "62",
+          "share_text": "3 in 90.70%",
+          "tooltip": "90.70% of decklist include 3 of this card",
+          "copies": "3",
+          "presence_pct": "90.70%"
+        },
+        {
+          "name": "Teal Mask Ogerpon ex",
+          "set": "TWM",
+          "number": "25",
+          "share_text": "3 in 97.67%",
+          "tooltip": "2.33% of decklist include 4 of this card\n97.67% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "97.67%"
+        },
+        {
+          "name": "Raging Bolt ex",
+          "set": "TEF",
+          "number": "123",
+          "share_text": "2 in 100%",
+          "tooltip": "2.33% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Latias ex",
+          "set": "SSP",
+          "number": "76",
+          "share_text": "2 in 97.67%",
+          "tooltip": "97.67% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "97.67%"
+        },
+        {
+          "name": "Lillie's Clefairy ex",
+          "set": "JTG",
+          "number": "56",
+          "share_text": "1 in 100%",
+          "tooltip": "11.63% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Wellspring Mask Ogerpon ex",
+          "set": "TWM",
+          "number": "64",
+          "share_text": "1 in 95.35%",
+          "tooltip": "95.35% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "95.35%"
+        },
+        {
+          "name": "Fezandipiti ex",
+          "set": "ASC",
+          "number": "142",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Chien-Pao",
+          "set": "SSP",
+          "number": "56",
+          "share_text": "1 in 97.67%",
+          "tooltip": "2.33% of decklist include 2 of this card\n97.67% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "97.67%"
+        },
+        {
+          "name": "Crispin",
+          "set": "SCR",
+          "number": "133",
+          "share_text": "4 in 97.67%",
+          "tooltip": "97.67% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "97.67%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "2 in 95.35%",
+          "tooltip": "2.33% of decklist include 3 of this card\n95.35% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "95.35%"
+        },
+        {
+          "name": "Cyrano",
+          "set": "SSP",
+          "number": "170",
+          "share_text": "1 in 95.35%",
+          "tooltip": "72.09% of decklist include 2 of this card\n95.35% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "95.35%"
+        },
+        {
+          "name": "Ciphermaniac's Codebreaking",
+          "set": "TEF",
+          "number": "145",
+          "share_text": "1 in 90.70%",
+          "tooltip": "90.70% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "90.70%"
+        },
+        {
+          "name": "Ultra Ball",
+          "set": "MEG",
+          "number": "131",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Energy Switch",
+          "set": "MEG",
+          "number": "115",
+          "share_text": "3 in 93.02%",
+          "tooltip": "86.05% of decklist include 4 of this card\n93.02% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "93.02%"
+        },
+        {
+          "name": "Night Stretcher",
+          "set": "ASC",
+          "number": "196",
+          "share_text": "2 in 93.02%",
+          "tooltip": "93.02% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "93.02%"
+        },
+        {
+          "name": "Glass Trumpet",
+          "set": "SCR",
+          "number": "135",
+          "share_text": "1 in 97.67%",
+          "tooltip": "83.72% of decklist include 2 of this card\n97.67% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "97.67%"
+        },
+        {
+          "name": "Area Zero Underdepths",
+          "set": "SCR",
+          "number": "131",
+          "share_text": "3 in 97.67%",
+          "tooltip": "39.53% of decklist include 4 of this card\n97.67% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "97.67%"
+        },
+        {
+          "name": "Grass Energy",
+          "set": "MEE",
+          "number": "1",
+          "share_text": "7 in 90.70%",
+          "tooltip": "2.33% of decklist include 10 of this card\n44.19% of decklist include at least 8 of this card\n90.70% of decklist include at least 7 of this card",
+          "copies": "7",
+          "presence_pct": "90.70%"
+        },
+        {
+          "name": "Lightning Energy",
+          "set": "MEE",
+          "number": "4",
+          "share_text": "2 in 100%",
+          "tooltip": "2.33% of decklist include 4 of this card\n6.98% of decklist include at least 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Fighting Energy",
+          "set": "MEE",
+          "number": "6",
+          "share_text": "2 in 100%",
+          "tooltip": "4.65% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Psychic Energy",
+          "set": "MEE",
+          "number": "5",
+          "share_text": "2 in 93.02%",
+          "tooltip": "93.02% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "93.02%"
+        },
+        {
+          "name": "Water Energy",
+          "set": "MEE",
+          "number": "3",
+          "share_text": "1 in 95.35%",
+          "tooltip": "95.35% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "95.35%"
+        }
+      ]
+    },
+    {
+      "id": "339",
+      "name": "Ogerpon Box",
+      "url": "https://limitlesstcg.com/decks/339",
+      "staples": [
+        {
+          "name": "Mega Kangaskhan ex",
+          "set": "MEG",
+          "number": "104",
+          "share_text": "2 in 100%",
+          "tooltip": "40.48% of decklist include 4 of this card\n64.29% of decklist include at least 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Meowth ex",
+          "set": "POR",
+          "number": "62",
+          "share_text": "1 in 100%",
+          "tooltip": "59.52% of decklist include 3 of this card\n80.95% of decklist include at least 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Latias ex",
+          "set": "SSP",
+          "number": "76",
+          "share_text": "2 in 95.24%",
+          "tooltip": "95.24% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "95.24%"
+        },
+        {
+          "name": "Lillie's Clefairy ex",
+          "set": "JTG",
+          "number": "56",
+          "share_text": "2 in 95.24%",
+          "tooltip": "95.24% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "95.24%"
+        },
+        {
+          "name": "Wellspring Mask Ogerpon ex",
+          "set": "TWM",
+          "number": "64",
+          "share_text": "1 in 100%",
+          "tooltip": "11.90% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Fezandipiti ex",
+          "set": "ASC",
+          "number": "142",
+          "share_text": "1 in 100%",
+          "tooltip": "2.38% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Chien-Pao",
+          "set": "SSP",
+          "number": "56",
+          "share_text": "1 in 90.48%",
+          "tooltip": "90.48% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "90.48%"
+        },
+        {
+          "name": "Teal Mask Ogerpon ex",
+          "set": "TWM",
+          "number": "25",
+          "share_text": "2 in 97.62%",
+          "tooltip": "11.90% of decklist include 4 of this card\n66.67% of decklist include at least 3 of this card\n97.62% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "97.62%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "2 in 100%",
+          "tooltip": "38.10% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Ultra Ball",
+          "set": "MEG",
+          "number": "131",
+          "share_text": "4 in 97.62%",
+          "tooltip": "97.62% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "97.62%"
+        },
+        {
+          "name": "Energy Switch",
+          "set": "MEG",
+          "number": "115",
+          "share_text": "2 in 100%",
+          "tooltip": "71.43% of decklist include 4 of this card\n80.95% of decklist include at least 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Night Stretcher",
+          "set": "ASC",
+          "number": "196",
+          "share_text": "1 in 100%",
+          "tooltip": "88.10% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Area Zero Underdepths",
+          "set": "SCR",
+          "number": "131",
+          "share_text": "3 in 100%",
+          "tooltip": "33.33% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Grass Energy",
+          "set": "MEE",
+          "number": "1",
+          "share_text": "4 in 100%",
+          "tooltip": "9.52% of decklist include 11 of this card\n14.29% of decklist include at least 10 of this card\n16.67% of decklist include at least 8 of this card\n52.38% of decklist include at least 7 of this card\n88.10% of decklist include at least 5 of this card\n100% of decklist include at least 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        }
+      ]
+    },
+    {
+      "id": "326",
+      "name": "Lillie's Clefairy ex",
+      "url": "https://limitlesstcg.com/decks/326",
+      "staples": [
+        {
+          "name": "Mega Kangaskhan ex",
+          "set": "MEG",
+          "number": "104",
+          "share_text": "3 in 100%",
+          "tooltip": "81.82% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Meowth ex",
+          "set": "POR",
+          "number": "62",
+          "share_text": "2 in 100%",
+          "tooltip": "81.82% of decklist include 4 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Lillie's Clefairy ex",
+          "set": "JTG",
+          "number": "56",
+          "share_text": "3 in 100%",
+          "tooltip": "81.82% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Latias ex",
+          "set": "SSP",
+          "number": "76",
+          "share_text": "2 in 100%",
+          "tooltip": "81.82% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Wellspring Mask Ogerpon ex",
+          "set": "TWM",
+          "number": "64",
+          "share_text": "1 in 90.91%",
+          "tooltip": "81.82% of decklist include 2 of this card\n90.91% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "90.91%"
+        },
+        {
+          "name": "Fezandipiti ex",
+          "set": "ASC",
+          "number": "142",
+          "share_text": "1 in 100%",
+          "tooltip": "81.82% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Chien-Pao",
+          "set": "SSP",
+          "number": "56",
+          "share_text": "1 in 100%",
+          "tooltip": "9.09% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Koraidon ex",
+          "set": "ASC",
+          "number": "121",
+          "share_text": "1 in 90.91%",
+          "tooltip": "90.91% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "90.91%"
+        },
+        {
+          "name": "Crispin",
+          "set": "SCR",
+          "number": "133",
+          "share_text": "3 in 100%",
+          "tooltip": "45.45% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "3 in 100%",
+          "tooltip": "100% of decklist include 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Ciphermaniac's Codebreaking",
+          "set": "TEF",
+          "number": "145",
+          "share_text": "1 in 100%",
+          "tooltip": "81.82% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Cyrano",
+          "set": "SSP",
+          "number": "170",
+          "share_text": "1 in 100%",
+          "tooltip": "9.09% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Ultra Ball",
+          "set": "MEG",
+          "number": "131",
+          "share_text": "4 in 90.91%",
+          "tooltip": "90.91% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "90.91%"
+        },
+        {
+          "name": "Lillie's Pearl",
+          "set": "JTG",
+          "number": "151",
+          "share_text": "2 in 100%",
+          "tooltip": "9.09% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Area Zero Underdepths",
+          "set": "SCR",
+          "number": "131",
+          "share_text": "4 in 90.91%",
+          "tooltip": "90.91% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "90.91%"
+        },
+        {
+          "name": "Psychic Energy",
+          "set": "MEE",
+          "number": "5",
+          "share_text": "3 in 100%",
+          "tooltip": "81.82% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Water Energy",
+          "set": "MEE",
+          "number": "3",
+          "share_text": "1 in 90.91%",
+          "tooltip": "63.64% of decklist include 2 of this card\n90.91% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "90.91%"
+        },
+        {
+          "name": "Fighting Energy",
+          "set": "MEE",
+          "number": "6",
+          "share_text": "1 in 100%",
+          "tooltip": "81.82% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Telepathic Psychic Energy",
+          "set": "POR",
+          "number": "88",
+          "share_text": "1 in 100%",
+          "tooltip": "18.18% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        }
+      ]
+    },
+    {
+      "id": "356",
+      "name": "Rocket's Honchkrow",
+      "url": "https://limitlesstcg.com/decks/356",
+      "staples": [
+        {
+          "name": "Team Rocket's Murkrow",
+          "set": "DRI",
+          "number": "127",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Honchkrow",
+          "set": "ASC",
+          "number": "127",
+          "share_text": "3 in 100%",
+          "tooltip": "3.45% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Porygon",
+          "set": "DRI",
+          "number": "153",
+          "share_text": "2 in 100%",
+          "tooltip": "3.45% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Porygon2",
+          "set": "DRI",
+          "number": "154",
+          "share_text": "1 in 100%",
+          "tooltip": "6.90% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Articuno",
+          "set": "DRI",
+          "number": "51",
+          "share_text": "2 in 93.10%",
+          "tooltip": "93.10% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "93.10%"
+        },
+        {
+          "name": "Team Rocket's Ariana",
+          "set": "DRI",
+          "number": "171",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Archer",
+          "set": "DRI",
+          "number": "170",
+          "share_text": "4 in 96.55%",
+          "tooltip": "96.55% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "96.55%"
+        },
+        {
+          "name": "Team Rocket's Giovanni",
+          "set": "DRI",
+          "number": "174",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Proton",
+          "set": "DRI",
+          "number": "177",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Petrel",
+          "set": "DRI",
+          "number": "176",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Poké Pad",
+          "set": "POR",
+          "number": "81",
+          "share_text": "3 in 96.55%",
+          "tooltip": "82.76% of decklist include 4 of this card\n96.55% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "96.55%"
+        },
+        {
+          "name": "Team Rocket's Transceiver",
+          "set": "DRI",
+          "number": "178",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Roto-Stick",
+          "set": "PRE",
+          "number": "127",
+          "share_text": "3 in 96.55%",
+          "tooltip": "68.97% of decklist include 4 of this card\n96.55% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "96.55%"
+        },
+        {
+          "name": "Night Stretcher",
+          "set": "ASC",
+          "number": "196",
+          "share_text": "2 in 96.55%",
+          "tooltip": "89.66% of decklist include 3 of this card\n96.55% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "96.55%"
+        },
+        {
+          "name": "Miracle Headset",
+          "set": "SSP",
+          "number": "183",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Factory",
+          "set": "DRI",
+          "number": "173",
+          "share_text": "3 in 100%",
+          "tooltip": "10.34% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Energy",
+          "set": "DRI",
+          "number": "182",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Ignition Energy",
+          "set": "WHT",
+          "number": "86",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        }
+      ]
+    },
+    {
+      "id": "336",
+      "name": "Festival Lead",
+      "url": "https://limitlesstcg.com/decks/336",
+      "staples": [
+        {
+          "name": "Grookey",
+          "set": "TWM",
+          "number": "14",
+          "share_text": "4 in 96.55%",
+          "tooltip": "96.55% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "96.55%"
+        },
+        {
+          "name": "Thwackey",
+          "set": "TWM",
+          "number": "15",
+          "share_text": "3 in 100%",
+          "tooltip": "68.97% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Dipplin",
+          "set": "TWM",
+          "number": "18",
+          "share_text": "3 in 100%",
+          "tooltip": "58.62% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Goldeen",
+          "set": "TWM",
+          "number": "44",
+          "share_text": "1 in 96.55%",
+          "tooltip": "31.03% of decklist include 2 of this card\n96.55% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "96.55%"
+        },
+        {
+          "name": "Shaymin",
+          "set": "DRI",
+          "number": "10",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Lillie's Determination",
+          "set": "MEG",
+          "number": "119",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Kieran",
+          "set": "TWM",
+          "number": "154",
+          "share_text": "1 in 96.55%",
+          "tooltip": "27.59% of decklist include 2 of this card\n96.55% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "96.55%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "2 in 100%",
+          "tooltip": "20.69% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Lana's Aid",
+          "set": "TWM",
+          "number": "155",
+          "share_text": "1 in 96.55%",
+          "tooltip": "10.34% of decklist include 2 of this card\n96.55% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "96.55%"
+        },
+        {
+          "name": "Poké Pad",
+          "set": "POR",
+          "number": "81",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Buddy-Buddy Poffin",
+          "set": "TEF",
+          "number": "144",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Bug Catching Set",
+          "set": "TWM",
+          "number": "143",
+          "share_text": "3 in 100%",
+          "tooltip": "58.62% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Night Stretcher",
+          "set": "ASC",
+          "number": "196",
+          "share_text": "1 in 93.10%",
+          "tooltip": "3.45% of decklist include 3 of this card\n27.59% of decklist include at least 2 of this card\n93.10% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "93.10%"
+        },
+        {
+          "name": "Brave Bangle",
+          "set": "WHT",
+          "number": "80",
+          "share_text": "1 in 100%",
+          "tooltip": "3.45% of decklist include 3 of this card\n89.66% of decklist include at least 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Air Balloon",
+          "set": "ASC",
+          "number": "181",
+          "share_text": "1 in 100%",
+          "tooltip": "51.72% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Festival Grounds",
+          "set": "TWM",
+          "number": "149",
+          "share_text": "4 in 96.55%",
+          "tooltip": "96.55% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "96.55%"
+        },
+        {
+          "name": "Grass Energy",
+          "set": "MEE",
+          "number": "1",
+          "share_text": "3 in 100%",
+          "tooltip": "3.45% of decklist include 6 of this card\n65.52% of decklist include at least 5 of this card\n89.66% of decklist include at least 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Rabsca",
+          "set": "TEF",
+          "number": "24",
+          "share_text": "1 in 93.10%",
+          "tooltip": "93.10% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "93.10%"
+        },
+        {
+          "name": "Black Belt's Training",
+          "set": "JTG",
+          "number": "143",
+          "share_text": "1 in 96.55%",
+          "tooltip": "51.72% of decklist include 2 of this card\n96.55% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "96.55%"
+        }
+      ]
+    },
+    {
+      "id": "345",
+      "name": "Mega Lucario ex",
+      "url": "https://limitlesstcg.com/decks/345",
+      "staples": [
+        {
+          "name": "Riolu",
+          "set": "MEG",
+          "number": "76",
+          "share_text": "1 in 90.00%",
+          "tooltip": "5.00% of decklist include 4 of this card\n50.00% of decklist include at least 3 of this card\n90.00% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "90.00%"
+        },
+        {
+          "name": "Mega Lucario ex",
+          "set": "MEG",
+          "number": "77",
+          "share_text": "3 in 100%",
+          "tooltip": "100% of decklist include 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Solrock",
+          "set": "MEG",
+          "number": "75",
+          "share_text": "2 in 100%",
+          "tooltip": "20.00% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Lunatone",
+          "set": "MEG",
+          "number": "74",
+          "share_text": "2 in 100%",
+          "tooltip": "100% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "2 in 100%",
+          "tooltip": "35.00% of decklist include 4 of this card\n40.00% of decklist include at least 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Lillie's Determination",
+          "set": "MEG",
+          "number": "119",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Fighting Gong",
+          "set": "MEG",
+          "number": "116",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Premium Power Pro",
+          "set": "MEG",
+          "number": "124",
+          "share_text": "4 in 95.00%",
+          "tooltip": "95.00% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "95.00%"
+        },
+        {
+          "name": "Poké Pad",
+          "set": "POR",
+          "number": "81",
+          "share_text": "3 in 100%",
+          "tooltip": "70.00% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Ultra Ball",
+          "set": "MEG",
+          "number": "131",
+          "share_text": "2 in 95.00%",
+          "tooltip": "30.00% of decklist include 4 of this card\n60.00% of decklist include at least 3 of this card\n95.00% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "95.00%"
+        },
+        {
+          "name": "Gravity Mountain",
+          "set": "SSP",
+          "number": "177",
+          "share_text": "1 in 100%",
+          "tooltip": "85.00% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Fighting Energy",
+          "set": "MEE",
+          "number": "6",
+          "share_text": "7 in 100%",
+          "tooltip": "5.00% of decklist include 12 of this card\n15.00% of decklist include at least 11 of this card\n25.00% of decklist include at least 10 of this card\n50.00% of decklist include at least 9 of this card\n75.00% of decklist include at least 8 of this card\n100% of decklist include at least 7 of this card",
+          "copies": "7",
+          "presence_pct": "100%"
+        }
+      ]
+    },
+    {
+      "id": "337",
+      "name": "Rocket's Mewtwo ex",
+      "url": "https://limitlesstcg.com/decks/337",
+      "staples": [
+        {
+          "name": "Team Rocket's Tarountula",
+          "set": "DRI",
+          "number": "19",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Spidops",
+          "set": "DRI",
+          "number": "20",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Mewtwo ex",
+          "set": "DRI",
+          "number": "81",
+          "share_text": "2 in 100%",
+          "tooltip": "100% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Mimikyu",
+          "set": "DRI",
+          "number": "87",
+          "share_text": "1 in 100%",
+          "tooltip": "81.82% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Articuno",
+          "set": "DRI",
+          "number": "51",
+          "share_text": "2 in 90.91%",
+          "tooltip": "90.91% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "90.91%"
+        },
+        {
+          "name": "Lillie's Clefairy ex",
+          "set": "JTG",
+          "number": "56",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Lillie's Determination",
+          "set": "MEG",
+          "number": "119",
+          "share_text": "3 in 100%",
+          "tooltip": "54.55% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Ariana",
+          "set": "DRI",
+          "number": "171",
+          "share_text": "2 in 100%",
+          "tooltip": "36.36% of decklist include 4 of this card\n72.73% of decklist include at least 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Giovanni",
+          "set": "DRI",
+          "number": "174",
+          "share_text": "3 in 100%",
+          "tooltip": "18.18% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Proton",
+          "set": "DRI",
+          "number": "177",
+          "share_text": "2 in 90.91%",
+          "tooltip": "45.45% of decklist include 3 of this card\n90.91% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "90.91%"
+        },
+        {
+          "name": "Team Rocket's Transceiver",
+          "set": "DRI",
+          "number": "178",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Ultra Ball",
+          "set": "MEG",
+          "number": "131",
+          "share_text": "4 in 90.91%",
+          "tooltip": "90.91% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "90.91%"
+        },
+        {
+          "name": "Night Stretcher",
+          "set": "ASC",
+          "number": "196",
+          "share_text": "1 in 100%",
+          "tooltip": "18.18% of decklist include 3 of this card\n72.73% of decklist include at least 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Energy Switch",
+          "set": "MEG",
+          "number": "115",
+          "share_text": "1 in 100%",
+          "tooltip": "18.18% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Factory",
+          "set": "DRI",
+          "number": "173",
+          "share_text": "1 in 100%",
+          "tooltip": "27.27% of decklist include 3 of this card\n81.82% of decklist include at least 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Grass Energy",
+          "set": "MEE",
+          "number": "1",
+          "share_text": "5 in 100%",
+          "tooltip": "9.09% of decklist include 7 of this card\n81.82% of decklist include at least 6 of this card\n100% of decklist include at least 5 of this card",
+          "copies": "5",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Energy",
+          "set": "DRI",
+          "number": "182",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Psychic Energy",
+          "set": "MEE",
+          "number": "5",
+          "share_text": "1 in 90.91%",
+          "tooltip": "90.91% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "90.91%"
+        }
+      ]
+    },
+    {
+      "id": "363",
+      "name": "Hop's Trevenant",
+      "url": "https://limitlesstcg.com/decks/363",
+      "staples": [
+        {
+          "name": "Hop's Phantump",
+          "set": "ASC",
+          "number": "95",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Hop's Trevenant",
+          "set": "ASC",
+          "number": "96",
+          "share_text": "3 in 100%",
+          "tooltip": "12.50% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Hop's Snorlax",
+          "set": "JTG",
+          "number": "117",
+          "share_text": "1 in 100%",
+          "tooltip": "87.50% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Hop's Cramorant",
+          "set": "JTG",
+          "number": "138",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Lillie's Clefairy ex",
+          "set": "JTG",
+          "number": "56",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Shaymin",
+          "set": "DRI",
+          "number": "10",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Lillie's Determination",
+          "set": "MEG",
+          "number": "119",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Petrel",
+          "set": "DRI",
+          "number": "176",
+          "share_text": "3 in 100%",
+          "tooltip": "75.00% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "3 in 100%",
+          "tooltip": "25.00% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Poké Pad",
+          "set": "POR",
+          "number": "81",
+          "share_text": "3 in 100%",
+          "tooltip": "87.50% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Night Stretcher",
+          "set": "ASC",
+          "number": "196",
+          "share_text": "2 in 100%",
+          "tooltip": "62.50% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Hop's Bag",
+          "set": "JTG",
+          "number": "147",
+          "share_text": "1 in 100%",
+          "tooltip": "12.50% of decklist include 3 of this card\n87.50% of decklist include at least 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Hop's Choice Band",
+          "set": "JTG",
+          "number": "148",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Postwick",
+          "set": "JTG",
+          "number": "154",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Mist Energy",
+          "set": "TEF",
+          "number": "161",
+          "share_text": "3 in 100%",
+          "tooltip": "62.50% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Telepathic Psychic Energy",
+          "set": "POR",
+          "number": "88",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        }
+      ]
+    },
+    {
+      "id": "371",
+      "name": "Beedrill ex",
+      "url": "https://limitlesstcg.com/decks/371",
+      "staples": [
+        {
+          "name": "Weedle",
+          "set": "CRI",
+          "number": "1",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Kakuna",
+          "set": "CRI",
+          "number": "2",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Beedrill ex",
+          "set": "CRI",
+          "number": "3",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Dudunsparce",
+          "set": "TEF",
+          "number": "129",
+          "share_text": "3 in 93.33%",
+          "tooltip": "6.67% of decklist include 4 of this card\n93.33% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "93.33%"
+        },
+        {
+          "name": "Fan Rotom",
+          "set": "SCR",
+          "number": "118",
+          "share_text": "1 in 100%",
+          "tooltip": "6.67% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Fezandipiti ex",
+          "set": "ASC",
+          "number": "142",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Lillie's Determination",
+          "set": "MEG",
+          "number": "119",
+          "share_text": "3 in 93.33%",
+          "tooltip": "86.67% of decklist include 4 of this card\n93.33% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "93.33%"
+        },
+        {
+          "name": "Dawn",
+          "set": "PFL",
+          "number": "87",
+          "share_text": "2 in 93.33%",
+          "tooltip": "6.67% of decklist include 4 of this card\n53.33% of decklist include at least 3 of this card\n93.33% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "93.33%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "2 in 93.33%",
+          "tooltip": "6.67% of decklist include 4 of this card\n20.00% of decklist include at least 3 of this card\n93.33% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "93.33%"
+        },
+        {
+          "name": "Poké Pad",
+          "set": "POR",
+          "number": "81",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Buddy-Buddy Poffin",
+          "set": "TEF",
+          "number": "144",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Ultra Ball",
+          "set": "MEG",
+          "number": "131",
+          "share_text": "3 in 93.33%",
+          "tooltip": "46.67% of decklist include 4 of this card\n93.33% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "93.33%"
+        },
+        {
+          "name": "Night Stretcher",
+          "set": "ASC",
+          "number": "196",
+          "share_text": "1 in 93.33%",
+          "tooltip": "6.67% of decklist include 3 of this card\n66.67% of decklist include at least 2 of this card\n93.33% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "93.33%"
+        },
+        {
+          "name": "Forest of Vitality",
+          "set": "MEG",
+          "number": "117",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Grass Energy",
+          "set": "MEE",
+          "number": "1",
+          "share_text": "4 in 100%",
+          "tooltip": "6.67% of decklist include 6 of this card\n86.67% of decklist include at least 5 of this card\n100% of decklist include at least 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        }
+      ]
+    },
+    {
+      "id": "333",
+      "name": "Ethan's Typhlosion",
+      "url": "https://limitlesstcg.com/decks/333",
+      "staples": [
+        {
+          "name": "Ethan's Cyndaquil",
+          "set": "DRI",
+          "number": "32",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Ethan's Quilava",
+          "set": "DRI",
+          "number": "33",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Ethan's Typhlosion",
+          "set": "DRI",
+          "number": "34",
+          "share_text": "3 in 100%",
+          "tooltip": "14.29% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Victini",
+          "set": "SSP",
+          "number": "21",
+          "share_text": "1 in 100%",
+          "tooltip": "57.14% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Shaymin",
+          "set": "DRI",
+          "number": "10",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Fezandipiti ex",
+          "set": "ASC",
+          "number": "142",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Ethan's Adventure",
+          "set": "DRI",
+          "number": "165",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "2 in 100%",
+          "tooltip": "100% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Lillie's Determination",
+          "set": "MEG",
+          "number": "119",
+          "share_text": "2 in 100%",
+          "tooltip": "85.71% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Kieran",
+          "set": "TWM",
+          "number": "154",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Ultra Ball",
+          "set": "MEG",
+          "number": "131",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Buddy-Buddy Poffin",
+          "set": "TEF",
+          "number": "144",
+          "share_text": "2 in 100%",
+          "tooltip": "14.29% of decklist include 4 of this card\n85.71% of decklist include at least 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Rare Candy",
+          "set": "MEG",
+          "number": "125",
+          "share_text": "2 in 100%",
+          "tooltip": "28.57% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Poké Pad",
+          "set": "POR",
+          "number": "81",
+          "share_text": "2 in 100%",
+          "tooltip": "71.43% of decklist include 4 of this card\n85.71% of decklist include at least 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Night Stretcher",
+          "set": "ASC",
+          "number": "196",
+          "share_text": "2 in 100%",
+          "tooltip": "28.57% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Redeemable Ticket",
+          "set": "JTG",
+          "number": "156",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Secret Box",
+          "set": "TWM",
+          "number": "163",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Brave Bangle",
+          "set": "WHT",
+          "number": "80",
+          "share_text": "2 in 100%",
+          "tooltip": "14.29% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Fire Energy",
+          "set": "MEE",
+          "number": "2",
+          "share_text": "5 in 100%",
+          "tooltip": "100% of decklist include 5 of this card",
+          "copies": "5",
+          "presence_pct": "100%"
+        }
+      ]
+    },
+    {
+      "id": "332",
+      "name": "Cynthia's Garchomp ex",
+      "url": "https://limitlesstcg.com/decks/332",
+      "staples": [
+        {
+          "name": "Cynthia's Gible",
+          "set": "DRI",
+          "number": "102",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Cynthia's Gabite",
+          "set": "DRI",
+          "number": "103",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Cynthia's Garchomp ex",
+          "set": "DRI",
+          "number": "104",
+          "share_text": "3 in 100%",
+          "tooltip": "100% of decklist include 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Cynthia's Roselia",
+          "set": "DRI",
+          "number": "7",
+          "share_text": "3 in 100%",
+          "tooltip": "87.50% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Cynthia's Roserade",
+          "set": "DRI",
+          "number": "8",
+          "share_text": "3 in 100%",
+          "tooltip": "50.00% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Cynthia's Spiritomb",
+          "set": "DRI",
+          "number": "129",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Lillie's Determination",
+          "set": "MEG",
+          "number": "119",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "3 in 100%",
+          "tooltip": "37.50% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Buddy-Buddy Poffin",
+          "set": "TEF",
+          "number": "144",
+          "share_text": "3 in 100%",
+          "tooltip": "87.50% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Fighting Gong",
+          "set": "MEG",
+          "number": "116",
+          "share_text": "3 in 100%",
+          "tooltip": "12.50% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Poké Pad",
+          "set": "POR",
+          "number": "81",
+          "share_text": "3 in 100%",
+          "tooltip": "75.00% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Pokégear 3.0",
+          "set": "SVI",
+          "number": "186",
+          "share_text": "2 in 100%",
+          "tooltip": "37.50% of decklist include 4 of this card\n50.00% of decklist include at least 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Cynthia's Power Weight",
+          "set": "DRI",
+          "number": "162",
+          "share_text": "2 in 100%",
+          "tooltip": "37.50% of decklist include 4 of this card\n75.00% of decklist include at least 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Fighting Energy",
+          "set": "MEE",
+          "number": "6",
+          "share_text": "3 in 100%",
+          "tooltip": "12.50% of decklist include 5 of this card\n62.50% of decklist include at least 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Rocky Fighting Energy",
+          "set": "POR",
+          "number": "87",
+          "share_text": "3 in 100%",
+          "tooltip": "75.00% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        }
+      ]
+    },
+    {
+      "id": "361",
+      "name": "Metagross Metal Maker",
+      "url": "https://limitlesstcg.com/decks/361",
+      "staples": [
+        {
+          "name": "Beldum",
+          "set": "TEF",
+          "number": "113",
+          "share_text": "1 in 100%",
+          "tooltip": "85.71% of decklist include 4 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Metang",
+          "set": "TEF",
+          "number": "114",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Metagross",
+          "set": "CRI",
+          "number": "61",
+          "share_text": "2 in 100%",
+          "tooltip": "14.29% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Genesect ex",
+          "set": "BLK",
+          "number": "67",
+          "share_text": "2 in 100%",
+          "tooltip": "100% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Fezandipiti ex",
+          "set": "ASC",
+          "number": "142",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Heatran",
+          "set": "TWM",
+          "number": "123",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Petrel",
+          "set": "DRI",
+          "number": "176",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "1 in 100%",
+          "tooltip": "57.14% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Transceiver",
+          "set": "DRI",
+          "number": "178",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Ultra Ball",
+          "set": "MEG",
+          "number": "131",
+          "share_text": "2 in 100%",
+          "tooltip": "28.57% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Energy Recycler",
+          "set": "DRI",
+          "number": "164",
+          "share_text": "1 in 100%",
+          "tooltip": "85.71% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Buddy-Buddy Poffin",
+          "set": "TEF",
+          "number": "144",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Special Red Card",
+          "set": "CRI",
+          "number": "82",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Precious Trolley",
+          "set": "SSP",
+          "number": "185",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Brave Bangle",
+          "set": "WHT",
+          "number": "80",
+          "share_text": "1 in 100%",
+          "tooltip": "28.57% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Gravity Mountain",
+          "set": "SSP",
+          "number": "177",
+          "share_text": "1 in 100%",
+          "tooltip": "14.29% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Metal Energy",
+          "set": "MEE",
+          "number": "8",
+          "share_text": "15 in 100%",
+          "tooltip": "14.29% of decklist include 18 of this card\n71.43% of decklist include at least 17 of this card\n85.71% of decklist include at least 16 of this card\n100% of decklist include at least 15 of this card",
+          "copies": "15",
+          "presence_pct": "100%"
+        }
+      ]
+    },
+    {
+      "id": "353",
+      "name": "Mega Lopunny ex",
+      "url": "https://limitlesstcg.com/decks/353",
+      "staples": [
+        {
+          "name": "Dunsparce",
+          "set": "JTG",
+          "number": "120",
+          "share_text": "2 in 100%",
+          "tooltip": "12.50% of decklist include 4 of this card\n25.00% of decklist include at least 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Dudunsparce",
+          "set": "TEF",
+          "number": "129",
+          "share_text": "2 in 100%",
+          "tooltip": "87.50% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Buneary",
+          "set": "PFL",
+          "number": "83",
+          "share_text": "2 in 100%",
+          "tooltip": "62.50% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Mega Lopunny ex",
+          "set": "PFL",
+          "number": "84",
+          "share_text": "2 in 100%",
+          "tooltip": "62.50% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Fan Rotom",
+          "set": "SCR",
+          "number": "118",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Lillie's Determination",
+          "set": "MEG",
+          "number": "119",
+          "share_text": "2 in 100%",
+          "tooltip": "12.50% of decklist include 4 of this card\n87.50% of decklist include at least 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Wally's Compassion",
+          "set": "MEG",
+          "number": "132",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "3 in 100%",
+          "tooltip": "62.50% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Hilda",
+          "set": "WHT",
+          "number": "84",
+          "share_text": "2 in 100%",
+          "tooltip": "37.50% of decklist include 4 of this card\n87.50% of decklist include at least 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Ultra Ball",
+          "set": "MEG",
+          "number": "131",
+          "share_text": "3 in 100%",
+          "tooltip": "75.00% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Buddy-Buddy Poffin",
+          "set": "TEF",
+          "number": "144",
+          "share_text": "3 in 100%",
+          "tooltip": "50.00% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Poké Pad",
+          "set": "POR",
+          "number": "81",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Air Balloon",
+          "set": "ASC",
+          "number": "181",
+          "share_text": "2 in 100%",
+          "tooltip": "62.50% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Battle Cage",
+          "set": "PFL",
+          "number": "85",
+          "share_text": "2 in 100%",
+          "tooltip": "75.00% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Mist Energy",
+          "set": "TEF",
+          "number": "161",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        }
+      ]
+    },
+    {
+      "id": "329",
+      "name": "Marnie's Grimmsnarl ex",
+      "url": "https://limitlesstcg.com/decks/329",
+      "staples": [
+        {
+          "name": "Munkidori",
+          "set": "TWM",
+          "number": "95",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Marnie's Impidimp",
+          "set": "DRI",
+          "number": "134",
+          "share_text": "3 in 100%",
+          "tooltip": "33.33% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Marnie's Morgrem",
+          "set": "DRI",
+          "number": "135",
+          "share_text": "2 in 100%",
+          "tooltip": "100% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Marnie's Grimmsnarl ex",
+          "set": "DRI",
+          "number": "136",
+          "share_text": "3 in 100%",
+          "tooltip": "100% of decklist include 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Snorunt",
+          "set": "ASC",
+          "number": "46",
+          "share_text": "2 in 100%",
+          "tooltip": "100% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Froslass",
+          "set": "TWM",
+          "number": "53",
+          "share_text": "2 in 100%",
+          "tooltip": "100% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Budew",
+          "set": "ASC",
+          "number": "16",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Yveltal",
+          "set": "MEG",
+          "number": "88",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Lillie's Determination",
+          "set": "MEG",
+          "number": "119",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Team Rocket's Petrel",
+          "set": "DRI",
+          "number": "176",
+          "share_text": "3 in 100%",
+          "tooltip": "66.67% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "3 in 100%",
+          "tooltip": "100% of decklist include 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Poké Pad",
+          "set": "POR",
+          "number": "81",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Buddy-Buddy Poffin",
+          "set": "TEF",
+          "number": "144",
+          "share_text": "2 in 100%",
+          "tooltip": "66.67% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Night Stretcher",
+          "set": "ASC",
+          "number": "196",
+          "share_text": "2 in 100%",
+          "tooltip": "33.33% of decklist include 4 of this card\n66.67% of decklist include at least 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Rare Candy",
+          "set": "MEG",
+          "number": "125",
+          "share_text": "2 in 100%",
+          "tooltip": "100% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Energy Switch",
+          "set": "MEG",
+          "number": "115",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Special Red Card",
+          "set": "CRI",
+          "number": "82",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Air Balloon",
+          "set": "ASC",
+          "number": "181",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Spikemuth Gym",
+          "set": "DRI",
+          "number": "169",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Darkness Energy",
+          "set": "MEE",
+          "number": "7",
+          "share_text": "9 in 100%",
+          "tooltip": "100% of decklist include 9 of this card",
+          "copies": "9",
+          "presence_pct": "100%"
+        }
+      ]
+    },
+    {
+      "id": "362",
+      "name": "Mega Starmie ex",
+      "url": "https://limitlesstcg.com/decks/362",
+      "staples": [
+        {
+          "name": "Munkidori",
+          "set": "TWM",
+          "number": "95",
+          "share_text": "2 in 100%",
+          "tooltip": "55.56% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Staryu",
+          "set": "POR",
+          "number": "20",
+          "share_text": "2 in 100%",
+          "tooltip": "66.67% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Mega Starmie ex",
+          "set": "POR",
+          "number": "21",
+          "share_text": "2 in 100%",
+          "tooltip": "100% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Meowth ex",
+          "set": "POR",
+          "number": "62",
+          "share_text": "1 in 100%",
+          "tooltip": "11.11% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Lillie's Determination",
+          "set": "MEG",
+          "number": "119",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "2 in 100%",
+          "tooltip": "33.33% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Hilda",
+          "set": "WHT",
+          "number": "84",
+          "share_text": "2 in 100%",
+          "tooltip": "11.11% of decklist include 4 of this card\n77.78% of decklist include at least 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Wally's Compassion",
+          "set": "MEG",
+          "number": "132",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Buddy-Buddy Poffin",
+          "set": "TEF",
+          "number": "144",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Ultra Ball",
+          "set": "MEG",
+          "number": "131",
+          "share_text": "3 in 100%",
+          "tooltip": "44.44% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Poké Pad",
+          "set": "POR",
+          "number": "81",
+          "share_text": "2 in 100%",
+          "tooltip": "88.89% of decklist include 4 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Night Stretcher",
+          "set": "ASC",
+          "number": "196",
+          "share_text": "1 in 100%",
+          "tooltip": "11.11% of decklist include 3 of this card\n44.44% of decklist include at least 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Risky Ruins",
+          "set": "MEG",
+          "number": "127",
+          "share_text": "2 in 100%",
+          "tooltip": "66.67% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Water Energy",
+          "set": "MEE",
+          "number": "3",
+          "share_text": "3 in 100%",
+          "tooltip": "66.67% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Darkness Energy",
+          "set": "MEE",
+          "number": "7",
+          "share_text": "2 in 100%",
+          "tooltip": "11.11% of decklist include 4 of this card\n77.78% of decklist include at least 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Legacy Energy",
+          "set": "TWM",
+          "number": "167",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Ignition Energy",
+          "set": "WHT",
+          "number": "86",
+          "share_text": "1 in 100%",
+          "tooltip": "44.44% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        }
+      ]
+    },
+    {
+      "id": "370",
+      "name": "Mega Greninja ex",
+      "url": "https://limitlesstcg.com/decks/370",
+      "staples": [
+        {
+          "name": "Froakie",
+          "set": "CRI",
+          "number": "20",
+          "share_text": "3 in 100%",
+          "tooltip": "75.00% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Frogadier",
+          "set": "CRI",
+          "number": "21",
+          "share_text": "2 in 93.75%",
+          "tooltip": "25.00% of decklist include 3 of this card\n93.75% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "93.75%"
+        },
+        {
+          "name": "Greninja ex",
+          "set": "TWM",
+          "number": "106",
+          "share_text": "1 in 100%",
+          "tooltip": "68.75% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Meowth ex",
+          "set": "POR",
+          "number": "62",
+          "share_text": "1 in 100%",
+          "tooltip": "6.25% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Fezandipiti ex",
+          "set": "ASC",
+          "number": "142",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Budew",
+          "set": "ASC",
+          "number": "16",
+          "share_text": "1 in 93.75%",
+          "tooltip": "93.75% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "93.75%"
+        },
+        {
+          "name": "Lillie's Determination",
+          "set": "MEG",
+          "number": "119",
+          "share_text": "3 in 100%",
+          "tooltip": "87.50% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Hilda",
+          "set": "WHT",
+          "number": "84",
+          "share_text": "2 in 93.75%",
+          "tooltip": "75.00% of decklist include 3 of this card\n93.75% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "93.75%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "2 in 100%",
+          "tooltip": "12.50% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Poké Pad",
+          "set": "POR",
+          "number": "81",
+          "share_text": "3 in 100%",
+          "tooltip": "43.75% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Buddy-Buddy Poffin",
+          "set": "TEF",
+          "number": "144",
+          "share_text": "4 in 93.75%",
+          "tooltip": "93.75% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "93.75%"
+        },
+        {
+          "name": "Ultra Ball",
+          "set": "MEG",
+          "number": "131",
+          "share_text": "2 in 93.75%",
+          "tooltip": "12.50% of decklist include 4 of this card\n81.25% of decklist include at least 3 of this card\n93.75% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "93.75%"
+        },
+        {
+          "name": "Rare Candy",
+          "set": "MEG",
+          "number": "125",
+          "share_text": "2 in 100%",
+          "tooltip": "6.25% of decklist include 4 of this card\n81.25% of decklist include at least 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Night Stretcher",
+          "set": "ASC",
+          "number": "196",
+          "share_text": "1 in 100%",
+          "tooltip": "37.50% of decklist include 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Special Red Card",
+          "set": "CRI",
+          "number": "82",
+          "share_text": "1 in 93.75%",
+          "tooltip": "93.75% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "93.75%"
+        },
+        {
+          "name": "Water Energy",
+          "set": "MEE",
+          "number": "3",
+          "share_text": "6 in 93.75%",
+          "tooltip": "56.25% of decklist include 7 of this card\n93.75% of decklist include at least 6 of this card",
+          "copies": "6",
+          "presence_pct": "93.75%"
+        },
+        {
+          "name": "Ignition Energy",
+          "set": "WHT",
+          "number": "86",
+          "share_text": "1 in 100%",
+          "tooltip": "12.50% of decklist include 3 of this card\n68.75% of decklist include at least 2 of this card\n100% of decklist include at least 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        }
+      ]
+    },
+    {
+      "id": "351",
+      "name": "Ogerpon Meganium",
+      "url": "https://limitlesstcg.com/decks/351",
+      "staples": [
+        {
+          "name": "Teal Mask Ogerpon ex",
+          "set": "TWM",
+          "number": "25",
+          "share_text": "3 in 100%",
+          "tooltip": "71.43% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Smoliv",
+          "set": "DRI",
+          "number": "21",
+          "share_text": "2 in 100%",
+          "tooltip": "100% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Dolliv",
+          "set": "DRI",
+          "number": "22",
+          "share_text": "2 in 100%",
+          "tooltip": "100% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Arboliva ex",
+          "set": "DRI",
+          "number": "23",
+          "share_text": "2 in 100%",
+          "tooltip": "100% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Bayleef",
+          "set": "MEG",
+          "number": "9",
+          "share_text": "2 in 100%",
+          "tooltip": "100% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Meganium",
+          "set": "MEG",
+          "number": "10",
+          "share_text": "2 in 100%",
+          "tooltip": "100% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Budew",
+          "set": "ASC",
+          "number": "16",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Fezandipiti ex",
+          "set": "ASC",
+          "number": "142",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Lillie's Determination",
+          "set": "MEG",
+          "number": "119",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Dawn",
+          "set": "PFL",
+          "number": "87",
+          "share_text": "2 in 100%",
+          "tooltip": "42.86% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "2 in 100%",
+          "tooltip": "100% of decklist include 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Lana's Aid",
+          "set": "TWM",
+          "number": "155",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Ultra Ball",
+          "set": "MEG",
+          "number": "131",
+          "share_text": "2 in 100%",
+          "tooltip": "85.71% of decklist include 4 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Bug Catching Set",
+          "set": "TWM",
+          "number": "143",
+          "share_text": "3 in 100%",
+          "tooltip": "85.71% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Poké Pad",
+          "set": "POR",
+          "number": "81",
+          "share_text": "2 in 100%",
+          "tooltip": "28.57% of decklist include 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Unfair Stamp",
+          "set": "TWM",
+          "number": "165",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Forest of Vitality",
+          "set": "MEG",
+          "number": "117",
+          "share_text": "3 in 100%",
+          "tooltip": "85.71% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Grass Energy",
+          "set": "MEE",
+          "number": "1",
+          "share_text": "11 in 100%",
+          "tooltip": "57.14% of decklist include 12 of this card\n100% of decklist include at least 11 of this card",
+          "copies": "11",
+          "presence_pct": "100%"
+        }
+      ]
+    },
+    {
+      "id": "373",
+      "name": "Sylveon Safeguard",
+      "url": "https://limitlesstcg.com/decks/373",
+      "staples": []
+    },
+    {
+      "id": "315",
+      "name": "Archaludon ex",
+      "url": "https://limitlesstcg.com/decks/315",
+      "staples": [
+        {
+          "name": "Duraludon",
+          "set": "SCR",
+          "number": "106",
+          "share_text": "3 in 100%",
+          "tooltip": "75.00% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Archaludon ex",
+          "set": "SSP",
+          "number": "130",
+          "share_text": "3 in 100%",
+          "tooltip": "100% of decklist include 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Relicanth",
+          "set": "TEF",
+          "number": "84",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Mega Mawile ex",
+          "set": "MEG",
+          "number": "94",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Lillie's Determination",
+          "set": "MEG",
+          "number": "119",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Boss's Orders",
+          "set": "MEG",
+          "number": "114",
+          "share_text": "3 in 100%",
+          "tooltip": "75.00% of decklist include 4 of this card\n100% of decklist include at least 3 of this card",
+          "copies": "3",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Night Stretcher",
+          "set": "ASC",
+          "number": "196",
+          "share_text": "2 in 100%",
+          "tooltip": "25.00% of decklist include 4 of this card\n50.00% of decklist include at least 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Poké Pad",
+          "set": "POR",
+          "number": "81",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Ultra Ball",
+          "set": "MEG",
+          "number": "131",
+          "share_text": "4 in 100%",
+          "tooltip": "100% of decklist include 4 of this card",
+          "copies": "4",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Special Red Card",
+          "set": "CRI",
+          "number": "82",
+          "share_text": "1 in 100%",
+          "tooltip": "100% of decklist include 1 of this card",
+          "copies": "1",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Prism Tower",
+          "set": "CRI",
+          "number": "80",
+          "share_text": "2 in 100%",
+          "tooltip": "25.00% of decklist include 4 of this card\n50.00% of decklist include at least 3 of this card\n100% of decklist include at least 2 of this card",
+          "copies": "2",
+          "presence_pct": "100%"
+        },
+        {
+          "name": "Metal Energy",
+          "set": "MEE",
+          "number": "8",
+          "share_text": "10 in 100%",
+          "tooltip": "25.00% of decklist include 11 of this card\n100% of decklist include at least 10 of this card",
+          "copies": "10",
+          "presence_pct": "100%"
+        }
+      ]
+    }
+  ]
+}

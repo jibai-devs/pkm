@@ -30,6 +30,7 @@ result.html
 # Training artifacts
 checkpoints/
 pkm/policy.npz
+pkm/archetype.npz
 replay.json
 runs/
 agents/*/train.log
