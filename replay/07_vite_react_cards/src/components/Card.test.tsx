@@ -37,8 +37,17 @@ describe("Card art", () => {
     );
   });
 
-  it("keeps the card name in the DOM as text fallback", () => {
+  it("does not render the text name while art is still loading", () => {
     render(<Card card={inst} db={db} variant="active" backend="local" />);
+    expect(screen.queryByText("Dragapult ex", { selector: ".card-name" })).toBeNull();
+  });
+
+  it("shows the card name as a visible fallback once both backends fail", () => {
+    render(<Card card={inst} db={db} variant="active" backend="local" />);
+    const img = screen.getByRole("img") as HTMLImageElement;
+    fireEvent.error(img); // primary -> fallback
+    fireEvent.error(screen.getByRole("img")); // fallback -> dead
+    expect(screen.queryByRole("img")).toBeNull();
     expect(screen.getByText("Dragapult ex", { selector: ".card-name" })).toBeTruthy();
   });
 

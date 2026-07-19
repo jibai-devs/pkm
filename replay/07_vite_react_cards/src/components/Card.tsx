@@ -30,21 +30,19 @@ function EnergyPips({ energies }: { energies: number[] }) {
 }
 
 // Local-first (or cdn-first) <img> that swaps to the other backend once on
-// error, then hides itself so the text name underneath shows. Never a broken
-// image icon.
-function CardArt({ id, backend, alt }: { id: number; backend: CardBackend; alt: string }) {
+// error, then reports itself dead via onDead so the parent Card can render a
+// visible text-name fallback in its place. Never a broken image icon.
+function CardArt({ id, backend, alt, onDead }: { id: number; backend: CardBackend; alt: string; onDead: () => void }) {
   const { primary, fallback } = resolveCardArt(id, backend);
   const [src, setSrc] = useState(primary);
-  const [dead, setDead] = useState(false);
-  useEffect(() => { setSrc(primary); setDead(false); }, [primary]);
-  if (dead) return null;
+  useEffect(() => { setSrc(primary); }, [primary]);
   return (
     <img
       className="card-art"
       src={src}
       alt={alt}
       draggable={false}
-      onError={() => (src !== fallback ? setSrc(fallback) : setDead(true))}
+      onError={() => (src !== fallback ? setSrc(fallback) : onDead())}
     />
   );
 }
@@ -60,6 +58,8 @@ export function Card({ card, db, variant, backend, hpDelta, appeared }: Props) {
   const hpPct = card.maxHp ? Math.max(0, (card.hp / card.maxHp) * 100) : 0;
   const damaged = (hpDelta ?? 0) < 0;
   const healed = (hpDelta ?? 0) > 0;
+  const [artDead, setArtDead] = useState(false);
+  useEffect(() => { setArtDead(false); }, [card.id, backend]);
 
   const cls = [
     "card", `card-${variant}`, "has-art",
@@ -69,8 +69,9 @@ export function Card({ card, db, variant, backend, hpDelta, appeared }: Props) {
 
   return (
     <div className={cls} tabIndex={0}>
-      <CardArt id={card.id} backend={backend} alt={name} />
-      <div className="card-name">{name}</div>
+      {artDead
+        ? <div className="card-name">{name}</div>
+        : <CardArt id={card.id} backend={backend} alt={name} onDead={() => setArtDead(true)} />}
       {def?.ex && <span className="card-tag">ex</span>}
 
       {variant !== "hand" && card.maxHp > 0 && (

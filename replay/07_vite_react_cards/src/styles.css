@@ -71,29 +71,14 @@ body {
 
 .board-meta { display: flex; gap: 12px; align-items: center; color: var(--muted); flex-wrap: wrap; }
 .board-meta .flagged { color: var(--accent); }
-.board-meta .stadium { color: var(--text); }
 
-.players { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.player {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 10px;
-}
-.player-active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
-.player-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
 .player-tag { font-weight: 700; padding: 1px 7px; border-radius: 5px; background: var(--panel2); }
-.player:nth-child(1) .player-tag { color: var(--p0); }
-.player:nth-child(2) .player-tag { color: var(--p1); }
 .turn-flag { color: var(--accent); font-size: 12px; }
 .counts { margin-left: auto; color: var(--muted); font-size: 12px; }
 
 .zone-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; margin: 6px 0 3px; }
 .row { display: flex; flex-wrap: wrap; gap: 6px; }
 .empty { color: var(--muted); padding: 6px; }
-.discard-row { max-height: 132px; overflow-y: auto; align-content: flex-start; }
-.discard-row .card { opacity: .68; min-width: 84px; }
-.discard-row .card:hover, .discard-row .card:focus { opacity: 1; }
 
 /* ---- cards ---- */
 .card {
@@ -204,9 +189,11 @@ body {
   position: absolute; inset: 0; width: 100%; height: 100%;
   object-fit: cover; border-radius: 6px; z-index: 0;
 }
-/* text name sits UNDER the art; visible only if the image fails to load */
+/* Text-name fallback: only ever rendered by Card when CardArt has failed on
+   both backends (see Card.tsx `artDead`), so it never has an <img> sibling to
+   compete with — no negative z-index trick needed. */
 .card.has-art .card-name {
-  position: absolute; inset: 0; z-index: -1;
+  position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
   text-align: center; font-size: 9px; padding: 2px;
 }
@@ -230,10 +217,16 @@ body {
 .pl-band { display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center; }
 .field-zone { display: flex; flex-direction: column; gap: 8px; align-items: center; }
 .zone { display: flex; flex-direction: column; gap: 4px; align-items: center; }
-.zone-label { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; opacity: .6; }
-.row { display: flex; gap: 8px; }
+.board-cards .zone-label { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; opacity: .6; }
+.board-cards .row { display: flex; gap: 8px; }
 .prizes-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; }
 .prizes-grid .card { width: calc(var(--cw) * 0.66); height: calc(var(--ch) * 0.66); }
+.prize-taken {
+  width: calc(var(--cw) * 0.66); height: calc(var(--ch) * 0.66);
+  border: 1.5px dashed rgba(255,255,255,.18);
+  border-radius: 6px;
+  opacity: .3;
+}
 .piles-zone { flex-direction: row; gap: 12px; align-items: flex-start; }
 .pile { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .slot { width: var(--cw); height: var(--ch); border: 1.5px dashed rgba(255,255,255,.28);

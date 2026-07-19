@@ -20,6 +20,8 @@ const STATUS_FLAGS: [keyof PlayerState, string][] = [
   ["paralyzed", "Paralyzed"], ["confused", "Confused"],
 ];
 
+const PRIZE_SLOTS = 6;
+
 export function PlayerBoard({ player, index, db, diff, active, side, backend, revealHand }: Props) {
   const statuses = STATUS_FLAGS.filter(([k]) => player[k]);
   const cardProps = (serial: number) => ({
@@ -34,7 +36,11 @@ export function PlayerBoard({ player, index, db, diff, active, side, backend, re
     <div className="zone prizes-zone">
       <div className="zone-label">Prizes ({player.prize.length})</div>
       <div className="prizes-grid">
-        {Array.from({ length: player.prize.length }).map((_, i) => <CardBack key={i} variant="mini" />)}
+        {Array.from({ length: PRIZE_SLOTS }).map((_, i) =>
+          i < player.prize.length
+            ? <CardBack key={i} variant="mini" />
+            : <div key={i} className="prize-taken" aria-hidden="true" />
+        )}
       </div>
     </div>
   );
