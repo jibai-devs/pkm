@@ -168,6 +168,21 @@ def population_train_cmd(
     )
 
 
+@app.command(name="eval-vs-pool")
+def eval_vs_pool_cmd(
+    agent: str = typer.Option("03_pult_munki", help="agent profile name to evaluate"),
+    games: int = typer.Option(20, help="games per pool bot, alternating sides"),
+    pool_glob: str = typer.Option(
+        "pool_*", help="glob under agents/ for pool-bot profiles"
+    ),
+) -> None:
+    """Per-archetype win rate against every trained agents/pool_*/ bot, on
+    each bot's own deck (evaluate_vs_random only covers vs the random agent)."""
+    from pkm.rl.eval_vs_pool import eval_vs_pool as _eval_vs_pool
+
+    _eval_vs_pool(agent=agent, games=games, pool_glob=pool_glob)
+
+
 @app.command(name="exit-train")
 def exit_train(
     agent: str | None = typer.Option(
