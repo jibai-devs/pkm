@@ -73,18 +73,232 @@ Two additive, independently-toggleable integration points. **Before touching eit
 3. MCTS-specific: compare value-head calibration (`abs(V(s) - actual_outcome)`) with/without archetype-biased determinization over a few `exit-train` iterations — better hidden-info guesses should reduce MCTS target noise.
 4. End-to-end smoke test: `make_mcts_agent(..., archetype_weights_path=<real exported path>)` driving real decisions through the real engine, confirming the classifier path never silently falls into the exception-swallowing fallback.
 
+## Part 3 — Real-Decklist Pool Bots + Cross-Archetype Opponent Sampling
+
+> **2026-07-19 addendum.** Part 1+2 shipped in commit `a836ebd` with a known
+> accepted breakage: the belief-feature resize invalidates existing policy
+> checkpoints, left broken "pending a full retrain in a follow-up." Part 3 is
+> that follow-up's prerequisite — it gives both the classifier and RL
+> self-play *real* opponent decklists to train/retrain against, instead of
+> only the synthetic staple-sampled decklists Part 1 generates. Confirmed via
+> code inspection: `pkm/archetype/gen.py`'s dataset generator is currently
+> 100% `staples.json`-derived and has no connection to real decklists;
+> `pkm/rl/train.py` currently hardcodes one deck for both self-play sides
+> (`train.py:97-102`, comment already flags "no multi-deck opponent pool yet
+> -- AGENTS.md 'What's Next' #5"); `GameSpec` (`rollout.py:176-183`) has no
+> deck field. Part 3 closes both gaps.
+
+### New files (beyond Part 1/2)
+- `pkm/archetype/build_pool_deck.py` — converts a sourced `entries.json`
+  (`[{"name", "set", "number", "count"}, ...]`, scratch file, not committed)
+  into a legal 60-card `deck/pool_<archetype_id>_<slug>.csv`, reusing
+  `archetypes.py`'s name→card_id resolution machinery but with best-effort
+  multi-match picking (unlike the classifier's strict resolution, which
+  leaves ambiguous staples unresolved) and basic-energy padding/trimming to
+  exactly 60. **Already built.**
+- `agents/pool_<archetype_id>_<slug>/` — one per-archetype training profile
+  directory (checkpoints/metrics), via the existing `AgentProfile` (Part 3b).
+  **Correction (2026-07-19):** the name must be flat (`pool_284_dragapult_ex`,
+  matching `deck/pool_284_dragapult_ex.csv`), not nested under `agents/pool/`
+  — `AgentProfile.__init__` derives `base_dir=agents/<name>` and
+  `deck_path=deck/<name>.csv` directly from the profile name with no
+  subdirectory support, so nesting would require changing `pkm/agents/profile.py`
+  for no benefit. The original wording above (`agents/pool/<id>_<slug>/`) was
+  never actually implemented against and is superseded by this line.
+- `pkm/rl/population_train.py` — new, additive orchestration layer for
+  simultaneous multi-agent training (see "3b+3c" below). Reuses
+  `rollout.py:play_game`/`ppo.py:ppo_update` unchanged; does not modify
+  `train.py`'s existing single-deck path.
+
+### 3a — Real decklists for 25 archetypes
+Source a real, legal decklist per `staples.json` archetype (25 total), convert
+via `python -m pkm.archetype.build_pool_deck <entries.json> <archetype_id>
+<slug>`, and check the printed notes for unresolved cards / >4-copy warnings.
+
+**Status: 25/25 done (2026-07-19).** The remaining 12 (Raging Bolt ex (280),
+Ogerpon Box (339), Lillie's Clefairy ex (326), Alakazam Powerful Hand (350),
+Metagross Metal Maker (361), Mega Lopunny ex (353), Marnie's Grimmsnarl ex
+(329), Mega Starmie ex (362), Mega Greninja ex (370), Ogerpon Meganium (351),
+Sylveon Safeguard (373), Archaludon ex (315)) were sourced from real
+limitlesstcg tournament decklists (one URL per archetype, user-supplied) and
+converted with a new scraper, `pkm/archetype/scrape_decklist.py`
+(`python -m pkm.archetype.scrape_decklist <limitlesstcg_list_url>
+<archetype_id> <slug>`), which parses `div.decklist-card[data-set][data-number]`
++ `.card-count`/`.card-name` into `entries.json` shape in-memory and reuses
+`build_pool_deck.build_deck()`/new `write_pool_deck()` unchanged — no separate
+resolution path. `requests`/`beautifulsoup4` were added as real `pyproject.toml`
+dependencies for this (previously only transitive).
+
+Worst-case unresolved-card count across all 12 was 3/60 (Archaludon ex, 5%) —
+well under a 15-20% concern threshold discussed with the user; the recurring
+gap is `Special Red Card` (CRI/82, a secret-rare trainer genuinely absent from
+the engine's card pool), not the "some cards may not exist" risk flagged for
+Metagross/Sylveon specifically, both of which resolved with ≤1 unresolved
+card. All 25 pass `build_deck()`'s legality checks (60 cards, ≥1 Basic,
+padded/trimmed as needed); several `multi-match` best-effort picks remain
+(same pre-existing reprint-collision class documented in
+`pkm/archetype/aliases.py`, not fixed here since `build_pool_deck.py`
+deliberately best-effort-picks rather than blocking on them for pool bots).
+
+### 3b — Train 25 simple pool bots
+No lightweight-but-competent agent exists in this codebase today —
+`random_agent` and an unweighted `neural_agent` are both effectively random
+(`neural_agent.py` falls back to random legal moves when no weights file is
+found). Decision: produce each pool bot via a **short PPO run** (~50-100
+iterations, well under `03_pult_munki`'s 1000) using `pkm/rl/train.py`
+**unmodified** — one run per `deck/pool_*.csv`, exported the standard way
+(`pkm/rl/export.py`) into `agents/pool/<archetype_id>_<slug>/checkpoints/`.
+
+### 3c — Cross-archetype opponent sampling
+Extend `GameSpec` (`pkm/rl/rollout.py`) with an optional opponent-deck field;
+extend `pkm/rl/train.py`'s existing checkpoint-pool sampling
+(`pool`/`pool_prob`) so a configurable fraction of games draw both an
+*opponent deck* and its matching Part 3b pool-bot policy, instead of always
+mirroring `deck_path` against itself or a same-deck past checkpoint. Opt-in,
+defaulting to today's single-deck behavior when the cross-archetype pool
+isn't supplied — consistent with how 2a/2b were landed. This is the concrete,
+scoped-down version of the generalized opponent pool sketched in
+`docs/ideas/general-agent-architecture.md` (checkpoint pool + random + other
+profile policies) and closes `docs/ideas/rl-improvements.md`'s "Multi-deck
+training" item.
+
+### 3b+3c — Simultaneous population training (design decision, 2026-07-19)
+
+> Supersedes the sequential reading of 3b→3c above ("train 25 bots solo,
+> *then* sample them as a frozen pool"). Decision: train the main agent
+> (`03_pult_munki`) and all 25 pool bots **together**, from shared games,
+> each side updating its own live policy from that game's outcome — not a
+> frozen-checkpoint opponent pool. 3a (real decklists) is unaffected and
+> still a prerequisite; this only changes how 3b/3c turn those decklists
+> into trained agents.
+
+**Why this is additive, not a rewrite of the existing trainer.** `play_game()`
+(`pkm/rl/rollout.py:129`) already plays two independent `TorchPolicy` objects
+against two independent decks and returns `GameResult.trajectories: tuple[list,
+list]` — one player's experience never touches the other's. `ppo_update(model,
+optimizer, decisions)` (`pkm/rl/ppo.py:82`) is already fully generic per model
+— it has no notion of "the" training run. Today's `train.py` just never
+exploits this: the opponent is always a frozen `state_dict` (no optimizer),
+and both trajectories get merged into one `data` list for one model. Population
+training only needs a new orchestration layer on top — `train.py`'s existing
+single-deck path (used by `03_pult_munki` today) is untouched.
+
+**Design:**
+- `PopulationMember` dataclass: `name`, `deck` (card ids), `model`
+  (`PolicyValueNet`), `optimizer`, `weights` (reward-shaping dict, from that
+  member's own `AgentProfile.reward_weights_path`), `archetype_label` (from
+  `archetype_index(deck_path)` — see note below), `profile` (`AgentProfile`,
+  for checkpoint/metrics paths). Roster = the anchor (`03_pult_munki`) + all
+  `agents/pool_*` members, loaded once at startup.
+- Matchmaking: each iteration, the anchor plays `games_per_pairing` (new
+  knob, default e.g. 2-4) games against **each** pool bot — guarantees every
+  bot gets fresh data every iteration instead of a random subset. Total
+  games/iteration = `games_per_pairing * len(pool)`. Bot-vs-bot games are out
+  of scope for v1 (the ask was "Dragapult vs. every other deck," not a full
+  round-robin); can be added later as another matchup-generation function
+  without touching the per-member update logic.
+- New `PopSpec` (not a reuse of `GameSpec` — that stays exactly as-is for
+  `train.py`'s pool-of-past-checkpoints path): `(member_a_idx, member_b_idx,
+  collect: (bool, bool))`.
+- After rollout, trajectories are bucketed **per member name**, not into one
+  shared list — `data: dict[str, list[EncodedDecision]]`. Each member's PPO
+  update runs on only its own bucket.
+- Update cadence: buffer a member's trajectories across iterations until
+  either its bucket reaches a minimum sample count or `update_every`
+  iterations pass, whichever first — bounds how stale ("off-policy") a
+  member's own batch gets relative to the policy that generated it, same
+  concern `pool_size` already manages for frozen opponents in `train.py`,
+  just now applying to the *learner* too. Default a small bound (e.g. 1-3
+  iterations) rather than leaving it unbounded.
+- `dec.true_archetype`: set from each trajectory owner's *own*
+  `archetype_index(deck_path)`, not one constant for the whole run. Low
+  stakes either way — per `pkm/rl/features.py:233-238`, this feeds only the
+  dormant 3-class trunk aux head (`00_basic`/`01_psychic`/`02_dragapult`),
+  not the live belief feature (that's the standalone Part 1 classifier via
+  `ctx.archetype_belief`). Every pool-bot deck resolves to the reserved
+  "Other" class, which is fine — it was already dormant before this change.
+- Parallel rollout: `parallel_rollout.py:_play_chunk` currently closes over
+  one shared `deck`/`current_state`; population training needs each spec to
+  carry both members' decks and state dicts, since no single shared deck
+  exists anymore. New `_play_pop_chunk` alongside the existing one rather
+  than modifying it in place.
+- Checkpoints/metrics/eval-vs-random: reuse each member's own
+  `AgentProfile` dirs unchanged — no new convention needed.
+
+**Tradeoffs to watch (from the earlier discussion, now concrete):**
+1. **Memory** — 26 live models × Adam optimizer state (2x params) instead of
+   1 live + cheap frozen `state_dict`s. Model is small per AGENTS.md ("tens
+   of K params" scale for the archetype classifier; `PolicyValueNet` is
+   larger but still modest), so likely fine — worth a one-time memory check
+   with the full 26-member roster before committing to it.
+2. **Compute** — total games/iteration scales with `games_per_pairing * 25`,
+   not `games_per_iter` as today; tune `games_per_pairing` down if wall-clock
+   becomes the bottleneck rather than silently starving bots of data.
+3. **On-policy drift** — bounded by `update_every`/buffer size above; if
+   training destabilizes, shrinking that bound is the first lever, not
+   architecture changes.
+
+**Fallback:** if population training proves unstable early (e.g. very weak
+freshly-initialized pool bots give the anchor a degenerate easy-win signal,
+or vice versa), fall back to the originally-planned sequential order —
+solo-PPO each bot first (3b as first written), then sample them as a frozen
+pool via a `GameSpec` deck-field extension (3c as first written). Keep
+`pkm/rl/population_train.py` additive enough that both approaches can coexist
+as separate entry points rather than one replacing the other outright.
+
+### Tests to add
+- `build_deck()` legality (exactly 60 cards, resolution notes) for each of
+  the 12 new archetypes.
+- `test_population_trajectory_routing` — a mixed anchor-vs-bot game's
+  trajectories land in the correct member's bucket, never cross-contaminate.
+- `test_population_matchmaking_coverage` — every roster member (besides the
+  anchor) gets exactly `games_per_pairing` games per iteration.
+- `test_population_train_noop_on_solo_path` — `train.py`'s existing
+  single-deck/single-model flow (used by `03_pult_munki` today) is bit-for-bit
+  unaffected by the new module existing (no shared mutable state, no import
+  side effects).
+
+### Verification for Part 3
+1. ~~`ls deck/pool_*.csv | wc -l` == 25; no unresolved-card notes.~~ **Done
+   (2026-07-19)** — 25/25, worst case 3 unresolved cards (Archaludon ex),
+   none blocking legality.
+2. Each pool bot's exported `policy.npz` loads via
+   `make_neural_agent(deck, weights_path=...)` and completes a legal game
+   against `random_agent`.
+3. `pytest tests/` (full suite) passes with no weakened assertions —
+   specifically confirms `train.py`'s existing solo path is unaffected by the
+   new population-training module.
+4. Population-specific: each pool bot's eval-vs-random win rate trends up
+   over iterations (not just the anchor's) — confirms bots are actually
+   learning from their thinner per-iteration batches, not stuck near-random.
+5. Ablation win-rate comparison (same methodology as Part 2's Verification
+   §2): anchor's win rate vs. a fixed held-out opponent set, population
+   training vs. the original frozen-pool design (§3b/3c as first written),
+   before flipping the default at Milestone 8.
+
+---
+
 ## Milestones (sequenced)
 0. Prep: inspect `pkm/rl/rollout.py`, `pkm/rl/play.py`, `pkm/rl/logging.py`; confirm `.gitignore` covers generated dataset/checkpoint paths.
 1. Part 1 data plumbing: `card_aliases.py` + `archetypes.py`, iterate resolution report to near-zero unresolved.
 2. Part 1 classifier: `archetype_gen.py` → `archetype_model.py`/`archetype_train.py` → `numpy_archetype.py`/`archetype_export.py`; run full Part 1 verification before proceeding.
 3. Part 2a encoder integration behind opt-in `belief` param; ablation (a) vs (b).
 4. Part 2b MCTS determinization biasing behind opt-in `archetype_weights_path`; ablation (a) vs (c) vs (d), plus value-calibration check.
-5. If ablations are neutral-or-positive with no regressions: flip defaults on for new training runs, update `docs/ideas/multi-phase-policy-and-opponent-modeling.md` to reflect what was actually built, confirm final Kaggle bundle size with `pkm/archetype.npz` added.
+5. If ablations are neutral-or-positive with no regressions for Part 2: confirm final Kaggle bundle size with `pkm/archetype.npz` added, then proceed to Part 3 (below) before finalizing defaults/docs.
+6. ~~Part 3a: source + build the remaining 12 pool decklists~~ **Done (2026-07-19)** — all 25 are legal 60-card decks with near-zero unresolved-card notes (worst case 3/60).
+7. Part 3b+3c (population training): build `PopulationMember`/`PopSpec`/`pkm/rl/population_train.py`; smoke-test with a small roster (anchor + 2-3 bots) before scaling to all 25; land the `_play_pop_chunk` parallel-rollout extension.
+8. **Flip defaults + update docs.** Turn on by default (for new training runs): belief-in-encoder (2a), determinization-biasing (2b), and population training as the standard way to grow the pool (supersedes the frozen-pool 3c). Run the full retrain of the main policy (`03_pult_munki`) against the live pool — the "full retrain in a follow-up" `a836ebd`'s commit message deferred, now meaningful because real opponent diversity exists to retrain against. Update `docs/ideas/multi-phase-policy-and-opponent-modeling.md` to reflect what was actually built, `docs/ideas/rl-improvements.md` (mark "Multi-deck training" done), and `AGENTS.md`.
 
 ## Critical files
 - `staples.json`, `pkm/data/card_data.py` — source data + card DB to match against
 - `pkm/rl/encoder.py`, `pkm/rl/model.py` — encoder hook (Part 2a)
 - `pkm/mcts/determinize.py`, `pkm/mcts/agent.py` — determinization hook (Part 2b)
 - `pkm/rl/numpy_policy.py`, `pkm/rl/export.py` — pattern to mirror for numpy export
+- `pkm/rl/rollout.py` (`play_game`, `GameResult`, `GameSpec`), `pkm/rl/ppo.py`
+  (`ppo_update`), `pkm/rl/train.py`, `pkm/agents/profile.py` (`AgentProfile`)
+  — existing primitives Part 3b+3c's population trainer builds on top of,
+  unmodified
+- `pkm/rl/parallel_rollout.py` — `_play_chunk` pattern to mirror for
+  `_play_pop_chunk`
 - `tests/test_rl.py`, `tests/test_mcts.py` — invariants to preserve
 - `docs/ideas/multi-phase-policy-and-opponent-modeling.md` — doc to finalize at the end

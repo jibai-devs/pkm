@@ -5,10 +5,12 @@ description = "Pokémon TCG AI Battle Challenge - Simulation agent"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "beautifulsoup4>=4.15.0",
     "kaggle-environments>=1.30.2",
     "numpy>=2.0",
     "pandas>=2.0",
     "pydantic>=2.13.4",
+    "requests>=2.28.1",
     "rice>=0.4",
     "textual>=8.2.8",
     "torch>=2.12.1",

@@ -16,7 +16,6 @@ and "Kaggle Submission".
 > (e.g. `winget install --id Casey.Just` or `cargo install just`) if you want
 > the shorter form later; it's a convenience, not a dependency of anything
 > here.
-
 ---
 
 ## 1. Start a training run
@@ -45,34 +44,25 @@ pkm train --agent 03_pult_munki --iterations 200 --games 16 --eval-every 10
 
 (with `just` installed, this is `just train agent=03_pult_munki iterations=200 games=16`.)
 
-### Turning on the deck-specific reward-shaping terms
+### Deck-specific reward-shaping terms
 
-`pkm/rl/reward_terms.py` ships every term except prize-differential shaping
-(`"shaping": 0.2`) at `0.0` — the Budew/Dreepy-line/Xerosic/Drakloak bonuses
-this branch ported in are all **off** by default. To turn them on for this
-agent specifically, write `agents/03_pult_munki/reward_weights.json`:
+`pkm/rl/reward_terms.py` is the registry of every term (17 total: 4
+potential-based + 13 direct, see the file for the current list) — its
+built-in `DEFAULT_WEIGHTS` ships everything at `0.0` except prize-differential
+shaping (`"shaping": 0.2`). Per-agent, `agents/<name>/reward_weights.json`
+overrides that default; unknown/missing keys are ignored/defaulted, so it's
+safe if the registry grows a term after the file was written.
 
-```json
-{
-  "shaping": 0.2,
-  "budew_setup": 0.1,
-  "dreepy_field": 0.1,
-  "budew_bonus": 0.3,
-  "wrong_type_penalty": 0.3,
-  "dragapult_bonus": 0.2,
-  "xerosic": 0.2,
-  "dreepy_evolve": 0.2,
-  "dreepy_bench_charge": 0.2,
-  "dreepy_active_charge": 0.3,
-  "drakloak_backup_ready": 0.2
-}
-```
+**`agents/03_pult_munki/reward_weights.json` already exists and is already
+tuned** (not the doc's job to restate the numbers — they drift; read the file
+directly before a run to see current values). `pkm train --agent
+03_pult_munki` picks it up automatically, no extra flag needed. To point at a
+different weights file instead, use `--weights <path>`, which overrides the
+agent-default lookup.
 
-(Magnitudes above are a starting guess, not tuned — treat as a sweep
-candidate.) `pkm train --agent 03_pult_munki` picks this file up
-automatically once it exists; no extra flag needed. Or point at any file
-explicitly with `--weights <path>`, which overrides the agent-default
-lookup.
+To create a fresh one for a *new* agent, `write_default_weights_file()` (same
+module) writes `DEFAULT_WEIGHTS` verbatim as a starting point — every term at
+`0.0` except `shaping`.
 
 ---
 
@@ -270,9 +260,15 @@ kaggle competitions submit -c pokemon-tcg-ai-battle \
 (with `just`: `just upload submissions/submission_03_pult_munki_<timestamp>.tar.gz` —
 defaults to the newest `submissions/*.tar.gz` if you omit the path.)
 
-`kaggle --version` / `kaggle config view` confirm the CLI is already
-installed and authenticated on this machine (user `naqibl`) — no extra setup
-needed.
+`kaggle --version` / `kaggle config view` show the CLI is installed with a
+saved username (`naqibl`), but that only proves a config file exists, not
+that its token still works — verified by actually calling an authenticated
+endpoint (`kaggle competitions submissions -c pokemon-tcg-ai-battle`), which
+currently 401s. **The Kaggle CLI is not authenticated on this machine** —
+generate a fresh token first (kaggle.com → Account → API → Create New Token,
+drop the downloaded `kaggle.json` into `~/.kaggle/`) before any of the
+commands below will work. The website upload flow is unaffected if you need
+to submit before fixing this.
 
 Poll until it finishes scoring:
 ```bash

@@ -2,7 +2,7 @@
 
 **Reminder: Update this file whenever something significant changes** — new training results, new agents, architecture changes, submission status, etc. Stale docs are worse than no docs.
 
-## Current Progress (as of 2026-07-18)
+## Current Progress (as of 2026-07-19)
 
 | Phase | Status | Details |
 |-------|--------|---------|
@@ -12,6 +12,8 @@
 | Agent profiles | **Done** | Per-agent directories for checkpoints, metrics, runs. Agents: `00_basic`, `01_psychic`, `02_dragapult`, `03_pult_munki` |
 | Heuristics integration | **Done (Tasks 1-8)** | `GameContext`/`DeckTracker`, `FeatureSpec` registry, Tier-1 deterministic features, pooled deck-ledger, opponent-archetype auxiliary head. Task 9 (hard-rule forced picks) deliberately not built. Full write-up: `docs/ARCHITECTURE.md` |
 | Reward-shaping merge | **Done** | Deck-specific (Dreepy/Drakloak/Dragapult ex/Budew/Xerosic) reward terms merged from `refactor-to-prepare-for-heuristics-integration`, off by default (`pkm/rl/reward_terms.py`) |
+| Opponent-archetype classifier | **Done (Parts 1-2)** | Synthetic-data supervised classifier over 25 `staples.json` archetypes, wired into the encoder (belief feature) + MCTS determinization, both opt-in. Full plan/status: `docs/opponent-archetype-classifier-plan.md`. **Known breakage:** the belief-feature resize invalidated existing policy checkpoints, pending the full retrain Part 3 sets up for. |
+| Opponent pool decklists (Part 3a) | **Done (25/25)** | Real, legal 60-card decklist per `staples.json` archetype, scraped from limitlesstcg tournament lists via `pkm/archetype/scrape_decklist.py` and converted with `pkm/archetype/build_pool_deck.py` → `deck/pool_<id>_<slug>.csv`. **Not yet started:** Part 3b/3c population training (`pkm/rl/population_train.py`) that actually trains bots on these decks. |
 | Metrics & monitoring | **Done** | CSV logging + Plotly notebook |
 | Kaggle submission | **Working, verified** | `pkm export --agent <name> pkm/policy.npz` + `bash submit.sh <name>` — see `docs/TRAINING_AND_SUBMISSION.md` for the full runbook |
 
@@ -37,7 +39,7 @@
 4. **Kaggle CLI auth is broken on this machine** — `kaggle competitions submit`/`logs`/`submissions` all 401. `~/.kaggle/kaggle.json` needs a fresh token (kaggle.com → Account → API → Create New Token) before the CLI can be used again; the website upload flow still works.
 5. **Hyperparameter sweep** — LR, games/iter, pool size, eval frequency
 6. **Larger model** — wider MLP, more embedding dims, attention over options
-7. **Multi-deck training** — sample opponent decks from a pool for robustness (also unblocks the opponent-archetype head being anything but single-class)
+7. **Multi-deck training** — all 25 real opponent decklists are sourced (Part 3a, done); population training (Part 3b/3c: `pkm/rl/population_train.py`, `PopulationMember`/`PopSpec`) that actually trains the anchor + 25 pool bots together against them is the next unbuilt step. See `docs/opponent-archetype-classifier-plan.md` Part 3.
 
 ## Build & Run
 ```bash
@@ -70,6 +72,12 @@ pytest tests/              # run tests
   - `pkm/rl/reward_terms.py` — reward-shaping term registry (`POTENTIAL_TERMS`/`DIRECT_TERMS`/`DEFAULT_WEIGHTS`), per-agent weights JSON
   - `pkm/rl/parallel_rollout.py` — `ProcessPoolExecutor` self-play (`pkm train --workers N`)
 - `pkm/heuristics/` — `GameContext` (per-game memory) + `DeckTracker` (own-deck card-location tracking, prize deduction)
+- `pkm/archetype/` — opponent-archetype classifier (Parts 1-2) + real pool-deck sourcing (Part 3a)
+  - `pkm/archetype/archetypes.py`, `pkm/archetype/aliases.py` — `staples.json` name → engine `card_id` resolution (exact match, then hand-maintained alias table for collisions)
+  - `pkm/archetype/gen.py`, `pkm/archetype/numpy_model.py` — synthetic training-data generator + numpy-forward classifier twin (Kaggle, no torch)
+  - `pkm/archetype/build_pool_deck.py` — converts a real `entries.json` decklist into a legal `deck/pool_<id>_<slug>.csv`; best-effort multi-match resolution (unlike the classifier's strict resolution)
+  - `pkm/archetype/scrape_decklist.py` — scrapes a `limitlesstcg.com/decks/list/<id>` tournament decklist page straight into the same pipeline (`python -m pkm.archetype.scrape_decklist <url> <archetype_id> <slug>`)
+  - `docs/opponent-archetype-classifier-plan.md` — full plan + status (Parts 1/2/3)
 - `pkm/cli_deck.py` — deck management CLI (list, show, convert)
 - `docs/ARCHITECTURE.md` — full technical walkthrough of the heuristics-integration architecture (GameContext/registry/trunk/heads/reward-shaping/MCTS boundary)
 - `docs/TRAINING_AND_SUBMISSION.md` — runbook: start/background/monitor a training run, export, back up to HF, build + upload a Kaggle submission
@@ -85,6 +93,7 @@ pytest tests/              # run tests
 - `deck/01_psychic.csv` — Psychic Toolbox (Slowking + Mega Kangaskhan ex)
 - `deck/02_dragapult.csv` — **default deck**: Dragapult ex / Dusknoir (Psychic/Dark)
 - `deck/03_pult_munki.csv` — Dragapult ex / Munkidori, **no Dusknoir**, carries Xerosic's Machinations — the deck the merged reward-shaping terms actually target
+- `deck/pool_<id>_<slug>.csv` — 25 real, legal 60-card decklists, one per `staples.json` archetype (Part 3a, done); opponent pool for the not-yet-built population training (Part 3b/3c)
 - `submit.sh` — creates a Kaggle submission bundle for any agent (`bash submit.sh <agent>`); no longer hardcoded to `02_dragapult`; validates `deck/<agent>.csv` exists first
 - `docs/RL_PLAN.md` — RL self-play design (Phase 1 PPO, Phase 2 IS-MCTS/ExIt)
 - `replay/` — replay viewer + data
