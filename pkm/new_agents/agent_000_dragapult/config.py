@@ -25,6 +25,7 @@ from pkm.new_agents.agent_000_dragapult.attacks import AttackEncoder
 from pkm.new_agents.agent_000_dragapult.encoder import StateEncoder
 from pkm.new_agents.agent_000_dragapult.features import FEATURE_VERSION
 from pkm.new_agents.agent_000_dragapult.model import PolicyValueModel
+from pkm.rl.reward_terms import DEFAULT_WEIGHTS
 
 
 @dataclass(frozen=True)
@@ -65,6 +66,16 @@ class TrainConfig:
     # shaping_coef=0.0) to recover the original v1 terminal-only behaviour.
     shaping: str = "prize_potential"  # key into shaping.SHAPERS
     shaping_coef: float = 1.0  # scale on the shaping term (0.0 == terminal)
+    # Per-term shaping weights, consulted only when shaping == "heuristic" (the
+    # full deck-specific reward stack ported from pkm/rl). Maps a term name in
+    # reward_terms.ALL_TERMS -> coefficient. Defaults to DEFAULT_WEIGHTS (every
+    # term listed, all deck-specific ones at 0.0), so this field changes nothing
+    # unless shaping is switched to "heuristic" and weights are set. Serialized
+    # into every checkpoint config (and folded into the config hash), so a run's
+    # weights are fully reproducible.
+    reward_weights: dict[str, float] = field(
+        default_factory=lambda: dict(DEFAULT_WEIGHTS)
+    )
     # --- training method selector (key into trainers.TRAINERS) ---
     method: str = "ppo"
     # MCTS expert-iteration knobs (inert unless method == "exit").
