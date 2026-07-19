@@ -36,3 +36,4 @@ runs/
 agents/*/train.log
 agents/*/train_stdout.log
 agents/*/train_stderr.log
+agents/*/train_loop.log
