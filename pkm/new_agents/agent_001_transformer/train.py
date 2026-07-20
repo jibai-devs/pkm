@@ -177,6 +177,12 @@ def main():
     ap.add_argument("--batch-size", type=int, default=128)
     ap.add_argument("--device", default=None, help="cpu | cuda (default: auto)")
     ap.add_argument(
+        "--init",
+        type=Path,
+        default=None,
+        help="resume from a {state_dict,dims} checkpoint instead of a fresh net",
+    )
+    ap.add_argument(
         "--out",
         type=Path,
         default=Path(__file__).resolve().parents[3] / "out_transformer",
@@ -186,8 +192,15 @@ def main():
 
     device = torch.device(args.device or ("cuda" if torch.cuda.is_available() else "cpu"))
     deck = net.sample_deck
-    dims = net.MODEL_DIMS
-    model = net.build_model(dims, device)
+    if args.init is not None:
+        blob = torch.load(args.init, map_location=device, weights_only=False)
+        dims = tuple(blob.get("dims", net.MODEL_DIMS))
+        model = net.MyModel(*dims).to(device)
+        model.load_state_dict(blob["state_dict"])
+        print(f"resumed from {args.init}", flush=True)
+    else:
+        dims = net.MODEL_DIMS
+        model = net.build_model(dims, device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
     args.out.mkdir(parents=True, exist_ok=True)
     print(f"device={device} dims={dims} out={args.out}", flush=True)
