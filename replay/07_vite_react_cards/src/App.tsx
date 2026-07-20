@@ -81,6 +81,7 @@ function Viewer({ replay, db, source, error, onPickFile }: ViewerProps) {
   const pb = usePlayback(replay.steps.length, initialStep());
   const [backend, setBackend] = useState<CardBackend>(defaultBackend());
   const [reveal, setReveal] = useState<"realistic" | "full-info">("realistic");
+  const [swap, setSwap] = useState(false);
   const stats = useMemo(() => computeStats(replay), [replay]);
 
   const step = useMemo(() => mergeStep(replay, pb.index), [replay, pb.index]);
@@ -89,6 +90,10 @@ function Viewer({ replay, db, source, error, onPickFile }: ViewerProps) {
     [replay, pb.index],
   );
   const diff = useMemo(() => computeDiff(prev, step), [prev, step]);
+
+  // Bottom side = the "player" (the viewer's own side), swappable via the toggle.
+  const viewer = step.current?.yourIndex ?? 1;
+  const bottomIndex = ((swap ? 1 - viewer : viewer) ? 1 : 0) as 0 | 1;
 
   // Keep ?step= in sync so the current position is shareable / survives reload.
   useEffect(() => {
@@ -148,14 +153,15 @@ function Viewer({ replay, db, source, error, onPickFile }: ViewerProps) {
         <div className="topline">
           <h1>{replay.title || replay.name || "PTCG Replay"}</h1>
           <FilePicker source={source} error={error} onPickFile={onPickFile} />
-          <ViewControls backend={backend} setBackend={setBackend} reveal={reveal} setReveal={setReveal} />
+          <ViewControls backend={backend} setBackend={setBackend} reveal={reveal} setReveal={setReveal}
+            swap={swap} onSwap={() => setSwap((s) => !s)} />
         </div>
         <Timeline pb={pb} turn={step.current?.turn ?? null} />
       </header>
 
       <main className="main">
         <ErrorBoundary resetKey={pb.index}>
-          <Board step={step} db={db} diff={diff} backend={backend} reveal={reveal} />
+          <Board step={step} db={db} diff={diff} backend={backend} reveal={reveal} bottomIndex={bottomIndex} />
         </ErrorBoundary>
         <aside className="sidebar">
           <LogPanel step={step} db={db} />
@@ -202,15 +208,20 @@ function FilePicker({
 }
 
 function ViewControls({
-  backend, setBackend, reveal, setReveal,
+  backend, setBackend, reveal, setReveal, swap, onSwap,
 }: {
   backend: CardBackend;
   setBackend: (b: CardBackend) => void;
   reveal: "realistic" | "full-info";
   setReveal: (r: "realistic" | "full-info") => void;
+  swap: boolean;
+  onSwap: () => void;
 }) {
   return (
     <div className="view-controls">
+      <button className="swap-btn" onClick={onSwap} title="Swap which player is on the bottom">
+        ⇅ Swap sides{swap ? " (flipped)" : ""}
+      </button>
       <label className="ctl">
         Art
         <select value={backend} onChange={(e) => setBackend(e.target.value as CardBackend)}>

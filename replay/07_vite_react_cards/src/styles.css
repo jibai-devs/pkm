@@ -254,5 +254,11 @@ body {
   padding: 6px; border-top: 1px dashed rgba(255,255,255,.2); border-bottom: 1px dashed rgba(255,255,255,.2); }
 
 .view-controls { display: flex; gap: 12px; align-items: center; margin-left: auto; }
+.swap-btn {
+  background: var(--panel2); color: var(--text);
+  border: 1px solid var(--line); border-radius: 6px;
+  padding: 3px 10px; cursor: pointer; font-size: 11px; white-space: nowrap;
+}
+.swap-btn:hover { border-color: var(--accent); }
 .view-controls .ctl { display: flex; gap: 5px; align-items: center; font-size: 11px; opacity: .85; }
 .view-controls select { font-size: 11px; }
