@@ -171,6 +171,30 @@ Two things that are easy to get wrong here, both verified by measurement:
 
 Design + rationale: `docs/superpowers/specs/2026-07-13-human-tui-battle-design.md`.
 
+## Human Play (Browser / React GUI)
+Same game as the TUI, but in the browser with real card art — pick opponent and
+deck on a pre-game screen, then click options to play. Reuses the `replay/07`
+board components; the engine side reuses the TUI's `ThreadedEnvSession`.
+```bash
+just play-web-build         # build the SPA + serve everything at :8000
+# open http://localhost:8000/?mode=play
+# --- or, for live UI dev with hot reload (two terminals): ---
+just play-web               # terminal 1: Python API + session bridge (:8000)
+just play-web-dev           # terminal 2: Vite dev server (:5175/?mode=play)
+```
+Architecture: `pkm/web/server.py` is a stdlib `http.server` long-poll bridge —
+a blocking `GET /api/event` *is* `session.next_event`, a `POST /api/submit` *is*
+`session.submit`. No new Python deps, no async; `ThreadingHTTPServer` gives each
+long-poll its own thread. Option **labels are rendered server-side** with the
+TUI's `pkm/tui/labels.option_label` (not reimplemented in TS) and shipped with
+the observation; the React `src/live/` modules turn a single live obs into the
+same `MergedStep` the replay `Board`/`LogPanel` already render. The SPA is served
+by the Python server in prod (`?mode=play`); in dev Vite proxies `/api` to it.
+Two inherited gotchas still apply: kaggle's timeouts are disarmed by
+`ThreadedEnvSession` (or the human loses on the clock), and nothing may `print()`
+while the human agent blocks (kaggle's process-wide `redirect_stdout` swallows
+it) — the server writes to sockets, not stdout, so it is unaffected.
+
 ## Custom Agents
 Agents are plain functions with signature `def agent(obs: dict) -> list[int]`.
 To add your own agent:

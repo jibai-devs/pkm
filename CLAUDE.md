@@ -156,3 +156,17 @@ first/last, scrubber to jump.
 
 **Full usage:** `docs/REPLAY_VIEWER.md` · **data contract & code layout:**
 `replay/05_vite_react_app/README.md`.
+
+## Browser play (React GUI vs bot)
+
+`replay/07_vite_react_cards` at `?mode=play` is a live game GUI (not just a
+replay viewer): pick opponent + deck, then click options to play a real match
+against a bot with real card art. `just play-web-build` builds + serves UI and
+API at `:8000`; for hot-reload dev run `just play-web` (Python bridge) +
+`just play-web-dev` (Vite) in two terminals. The engine side reuses the TUI's
+`ThreadedEnvSession` through a stdlib `http.server` long-poll bridge
+(`pkm/web/server.py`) — a blocking `GET /api/event` *is* `next_event`, a `POST
+/api/submit` *is* `submit`; no new Python deps. Option labels are rendered
+server-side via `pkm/tui/labels.option_label`; play-mode React code is in
+`replay/07_vite_react_cards/src/live/`. Full write-up: `AGENTS.md` → "Human Play
+(Browser / React GUI)".

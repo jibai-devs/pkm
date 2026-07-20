@@ -26,3 +26,22 @@ bun run test           # vitest unit tests
 
 Everything else — timeline, log, stats, diff, keyboard controls, replay loading —
 is inherited from 05; see `../05_vite_react_app/README.md` for the data contract.
+
+## Interactive play (`?mode=play`)
+This app doubles as a live game GUI: open `?mode=play` to play a real match
+against a bot, reusing the same board components. It needs the Python play server
+(`pkm/web/server.py`) running for its `/api` calls.
+
+```bash
+# from repo root:
+just play-web-build         # build + serve UI+API at :8000, open /?mode=play
+# or for hot-reload dev (two terminals):
+just play-web               # Python API bridge on :8000
+just play-web-dev           # this Vite dev server on :5175/?mode=play (proxies /api)
+```
+
+Play-mode code lives in `src/live/` (`api.ts` fetch client, `useLiveGame.ts`
+state machine + long-poll loop, `liveStep.ts` obs→MergedStep adapter) plus
+`src/components/PreGame.tsx` and `src/components/OptionsPane.tsx`. Option labels
+are rendered server-side; see repo `AGENTS.md` → "Human Play (Browser / React
+GUI)" for the full architecture.

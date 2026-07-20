@@ -18,8 +18,21 @@ import { computeStats } from "./data/stats";
 import { mergeStep } from "./data/stepState";
 import type { Replay } from "./data/types";
 import { usePlayback } from "./state/usePlayback";
+import { LiveApp } from "./live/LiveApp";
+
+function isPlayMode(): boolean {
+  return new URLSearchParams(window.location.search).get("mode") === "play";
+}
 
 export default function App() {
+  // ?mode=play swaps the replay viewer for the interactive game against a bot
+  // (same board components, live server-driven state). Everything below is the
+  // unchanged replay viewer.
+  if (isPlayMode()) return <LiveApp />;
+  return <ReplayApp />;
+}
+
+function ReplayApp() {
   const [db, setDb] = useState<CardDb | null>(null);
   const [replay, setReplay] = useState<Replay | null>(null);
   const [source, setSource] = useState<string>("");
@@ -155,6 +168,7 @@ function Viewer({ replay, db, source, error, onPickFile }: ViewerProps) {
           <FilePicker source={source} error={error} onPickFile={onPickFile} />
           <ViewControls backend={backend} setBackend={setBackend} reveal={reveal} setReveal={setReveal}
             swap={swap} onSwap={() => setSwap((s) => !s)} />
+          <a className="mode-link" href="?mode=play">▶ Play vs bot</a>
         </div>
         <Timeline pb={pb} turn={step.current?.turn ?? null} />
       </header>

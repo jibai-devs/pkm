@@ -146,6 +146,25 @@ fetch-cards *ARGS:
 replay-cards file="":
     cd replay/07_vite_react_cards && bun install && VITE_REPLAY={{file}} bun run dev
 
+# --- browser play (play the game in the React GUI vs a bot) -------------------
+
+# Start the Python play server (http://localhost:8000). It bridges the browser
+# to the same game session the TUI uses, and serves the built SPA. For live dev
+# with hot reload, ALSO run `just play-web-dev` in another terminal.
+play-web port="8000":
+    uv run python -m pkm.web.server --port {{port}}
+
+# Vite dev server for the play UI (http://localhost:5175/?mode=play), proxying
+# /api to the play server. Run `just play-web` alongside this.
+play-web-dev:
+    cd replay/07_vite_react_cards && bun install && bun run dev
+
+# One-shot: build the SPA, then serve everything (UI + API) from the Python
+# server. Open http://localhost:8000/?mode=play . No Vite process needed.
+play-web-build port="8000":
+    cd replay/07_vite_react_cards && bun install && bun run build
+    uv run python -m pkm.web.server --port {{port}}
+
 # --- submission ---------------------------------------------------------------
 
 # export freshest weights and build submissions/submission_<agent>_<ts>.tar.gz
