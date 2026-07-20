@@ -26,6 +26,7 @@ from pkm.archetype.archetypes import get_archetypes
 from pkm.data import get_attack_data
 from pkm.heuristics.context import GameContext
 from pkm.heuristics.deck_tracker import CardLocation
+from pkm.rl.attack_damage_estimator import estimate_attack_damage
 from pkm.rl.deterministic_features import (
     lethal_this_turn,
     retreat_viable,
@@ -369,7 +370,7 @@ def _attack_damage(obs: Observation, ctx: GameContext | None) -> np.ndarray:
     for o in sel.option:
         if o.type == OPT_ATTACK:
             atk = attack_data.get(o.attackId or 0)
-            out.append(atk.damage / NORM.max_damage if atk else 0.0)
+            out.append(estimate_attack_damage(atk, obs) / NORM.max_damage if atk else 0.0)
         else:
             out.append(0.0)
     return np.array(out, dtype=np.float32)

@@ -18,6 +18,7 @@ import numpy as np
 
 from pkm.data.card_data import get_attack_data, get_card_by_id
 from pkm.heuristics.context import GameContext
+from pkm.rl.attack_damage_estimator import min_guaranteed_damage
 from pkm.types.obs import MAX_BENCH, Observation, OptionType, board_pokemon
 
 
@@ -25,7 +26,17 @@ def lethal_this_turn(obs: Observation, ctx: GameContext | None) -> np.ndarray:
     """1.0 for an attack option that would knock out the opponent's active
     Pokemon this turn, else 0.0. Ignores type effectiveness and any other
     damage-modifying effect -- see type_effectiveness for that signal;
-    the network combines the two itself."""
+    the network combines the two itself.
+
+    Uses `min_guaranteed_damage`, not the raw `atk.damage` field: an attack
+    whose real damage is computed from card text (e.g. Mega Abomasnow ex's
+    Hammer-lanche -- declared `damage: 0`, real damage up to 600 depending on
+    a deck-mill effect) previously could never be flagged lethal here no
+    matter how much damage it was about to do. `min_guaranteed_damage`
+    specifically excludes expected-value-only patterns (coin flips), so this
+    stays a certainty claim, not a probability -- see
+    pkm/rl/attack_damage_estimator.py and
+    docs/superpowers/plans/2026-07-20-attack-damage-estimator.md."""
     state = obs.current
     sel = obs.select
     assert state is not None and sel is not None
@@ -37,7 +48,7 @@ def lethal_this_turn(obs: Observation, ctx: GameContext | None) -> np.ndarray:
         lethal = False
         if o.type == OptionType.ATTACK and opp_active is not None:
             atk = attack_data.get(o.attackId or 0)
-            if atk is not None and opp_active.hp - atk.damage <= 0:
+            if atk is not None and opp_active.hp - min_guaranteed_damage(atk, obs) <= 0:
                 lethal = True
         out.append(1.0 if lethal else 0.0)
     return np.array(out, dtype=np.float32)
