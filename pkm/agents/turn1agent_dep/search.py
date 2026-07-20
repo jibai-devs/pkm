@@ -116,9 +116,21 @@ class _Node:
         "children",
     )
 
-    def __init__(self, search: "Turn1Search", state: SearchState, events: dict):
+    def __init__(
+        self,
+        search: "Turn1Search",
+        state: SearchState,
+        events: dict,
+        prev_obs: dict | None = None,
+    ):
         obs = state.raw_observation
-        final_obs = obs if _is_ours(obs, search.me) else None
+        # `prev_obs` is the parent's state -- the one the action was taken on.
+        # It's the fallback score-on state for a turn-ENDING action (attack /
+        # end turn), whose own resulting observation belongs to the opponent
+        # and so can't be scored. Without it those leaves evaluated to 0.0,
+        # which made the search never voluntarily end the turn (it would
+        # retreat rather than attack, since retreating kept a positive score).
+        final_obs = obs if _is_ours(obs, search.me) else prev_obs
         for _ in range(_MAX_FORCED_SKIP):
             if obs["current"]["result"] >= 0 or not _is_ours(obs, search.me):
                 break
@@ -248,7 +260,9 @@ class Turn1Search:
             if child is None:
                 picks = list(node.actions[i])
                 ev = _apply_events(node.events, node.obs, picks)
-                child = _Node(self, search_step(node.search_id, picks), ev)
+                child = _Node(
+                    self, search_step(node.search_id, picks), ev, prev_obs=node.obs
+                )
                 node.children[i] = child
                 if child.leaf_value is not None:
                     v = child.leaf_value

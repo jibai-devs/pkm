@@ -38,6 +38,31 @@ def _visible_counter(state: dict, player_index: int, include_hand: bool) -> Coun
     return c
 
 
+_DEFAULT_BASIC: int | None = None
+
+
+def _default_basic_pokemon() -> int | None:
+    """A stable Basic Pokémon id from the card DB.
+
+    Stand-in for an opponent Basic we haven't seen yet. Needed because an
+    inferred decklist built purely from *visible* cards contains no Pokémon at
+    all early on, and the engine requires a Pokémon in a facedown active slot.
+    Cached: the card DB is immutable for the process.
+    """
+    global _DEFAULT_BASIC
+    if _DEFAULT_BASIC is None:
+        cards = get_card_data()
+        _DEFAULT_BASIC = next(
+            (
+                cid
+                for cid in sorted(cards)
+                if cards[cid].basic and cards[cid].card_type == 0
+            ),
+            None,
+        )
+    return _DEFAULT_BASIC
+
+
 def _fit(
     pool: list[int], need: int, filler: list[int], rng: random.Random
 ) -> list[int]:
@@ -62,7 +87,13 @@ def infer_opponent_decklist(obs: dict, energy_fallback: int = 3) -> list[int]:
 
     cards = get_card_data()
     basics = [cid for cid in visible if cards.get(cid) and cards[cid].basic]
-    filler_basic = basics[0] if basics else energy_fallback
+    # This pad stands in for the opponent's unseen Basics -- redraw targets and,
+    # crucially, whatever is sitting facedown in their active slot. Early on
+    # *nothing* of theirs is visible, so `basics` is empty; falling back to
+    # `energy_fallback` here yielded a 60-card estimate with ZERO Pokémon, which
+    # then made sample_determinization unable to fill a facedown active and
+    # raise. Fall back to a real Basic Pokémon instead.
+    filler_basic = basics[0] if basics else (_default_basic_pokemon() or energy_fallback)
     # pad: a couple of extra basics (redraw targets), rest basic energy
     while len(decklist) < 8:
         decklist.append(filler_basic)
@@ -122,8 +153,15 @@ def sample_determinization(
             )
         )
         if pick is None:
+            # Estimate ran out of Pokémon (every one we know of is already
+            # visible, or the decklist estimate was Pokémon-free). The engine
+            # requires *something* here, so substitute a default Basic rather
+            # than aborting the caller's whole search.
+            pick = _default_basic_pokemon()
+        if pick is None:
             raise ValueError("no Pokémon left in opponent decklist estimate")
-        pool_o.remove(pick)
+        if pick in pool_o:
+            pool_o.remove(pick)
         opponent_active = [pick]
 
     hand_n = opp["handCount"]

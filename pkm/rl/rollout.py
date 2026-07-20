@@ -4,6 +4,7 @@ collects encoded decisions for both players."""
 import random
 from dataclasses import dataclass
 
+from pkm.agents.first_turn_agent import make_first_turn_agent
 from pkm.engine import (
     battle_finish,
     battle_select,
@@ -108,6 +109,58 @@ class RandomPolicy:
         return random.sample(range(len(sel["option"])), sel["maxCount"]), None
 
 
+def _is_own_first_turn(obs: dict) -> bool:
+    """Whether the current decision belongs to the to-move player's own first
+    turn -- setup (turn 0), turn 1 going first (or before the coin resolves),
+    turn 2 going second. Mirrors `singaporean_middleman._select_agent`'s rule
+    so training-time delegation matches the deployed router exactly (the
+    engine's turn counter is shared across both players)."""
+    cur = obs["current"]
+    turn = cur["turn"]
+    you = cur["yourIndex"]
+    first_player = cur.get("firstPlayer", -1)
+    if turn == 0:
+        return True
+    if turn == 1 and first_player != 1 - you:
+        return True
+    if turn == 2 and first_player == 1 - you:
+        return True
+    return False
+
+
+class FirstTurnDelegatingPolicy:
+    """Plays the to-move player's own first turn with the scripted first-turn
+    agent, delegating every later decision to `inner`.
+
+    First-turn picks are made by the scripted agent, so they are *never*
+    collected into the trajectory (returns `record=None`, exactly like a
+    forced pick) -- the policy is only trained on the turns it actually plays,
+    matching how `singaporean_middleman` deploys it (turn 1 = scripted, turn
+    2+ = neural)."""
+
+    def __init__(self, inner, first_turn_agent):
+        self.inner = inner
+        self._first_turn = first_turn_agent
+
+    def act(
+        self, obs: dict, collect: bool, ctx: GameContext | None = None
+    ) -> tuple[list[int], EncodedDecision | None]:
+        if _is_own_first_turn(obs):
+            return self._first_turn(obs), None
+        return self.inner.act(obs, collect=collect, ctx=ctx)
+
+
+def make_training_first_turn_agent(deck: list[int]):
+    """A first-turn agent tuned for self-play speed (a small search budget),
+    not deployment strength: it's called on both sides of every game, so the
+    full 6s/decision deployment budget would throttle rollout to a crawl.
+    Setup picks are priority-table lookups either way; only the in-turn MCTS
+    scales with these knobs."""
+    return make_first_turn_agent(
+        deck, n_determinizations=1, n_simulations=6, time_budget_s=0.75
+    )
+
+
 @dataclass
 class GameResult:
     trajectories: tuple[list[EncodedDecision], list[EncodedDecision]]
@@ -197,9 +250,13 @@ def play_one(
     opponent_model: PolicyValueNet,
     deck: list[int],
     spec: GameSpec,
+    first_turn_agent=None,
 ) -> GameResult:
     """Play one game per `spec`, reusing `opponent_model` as scratch space for
-    the pooled-opponent case (avoids rebuilding a fresh module every game)."""
+    the pooled-opponent case (avoids rebuilding a fresh module every game).
+
+    If `first_turn_agent` is given, both sides delegate their own first turn
+    to it (never collected) -- see `FirstTurnDelegatingPolicy`."""
     if spec.opponent_state is None:
         cur = TorchPolicy(current_model)
         policies = (cur, cur)
@@ -209,6 +266,11 @@ def play_one(
         opp = TorchPolicy(opponent_model)
         cur = TorchPolicy(current_model)
         policies = (cur, opp) if spec.side == 0 else (opp, cur)
+    if first_turn_agent is not None:
+        policies = (
+            FirstTurnDelegatingPolicy(policies[0], first_turn_agent),
+            FirstTurnDelegatingPolicy(policies[1], first_turn_agent),
+        )
     return play_game(policies, (deck, deck), collect=spec.collect)
 
 
