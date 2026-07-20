@@ -3,7 +3,7 @@
 ``singaporean_middleman`` routes here for the whole of our own first turn:
 the setup decisions (turn 0) and our first playing turn — engine turn 1 when
 we go first, turn 2 when we go second (the counter is shared across both
-players). Handoff back to the neural agent happens on the next turn change.
+players). Handoff back to the dragapult_default agent happens on the next turn change.
 
 Setup decisions follow the user-specified starting-priority tables directly
 (they're fixed lists — nothing to search). Every in-turn decision runs the

@@ -28,6 +28,7 @@ from .encoder import (
     dreepy_evolve_bonus,
     dreepy_line_active_charge_bonus,
     dreepy_line_bench_charge_bonus,
+    dreepy_line_bench_safety_potential,
     dreepy_line_field_potential,
     encode_decision,
     energy_overattach_penalty,
@@ -82,6 +83,9 @@ class TorchPolicy:
         d.board_setup_potential = dragapult_backup_potential(parsed)
         d.budew_setup_potential = budew_active_second_potential(parsed)
         d.dreepy_line_field_potential = dreepy_line_field_potential(parsed)
+        d.dreepy_line_bench_safety_potential = dreepy_line_bench_safety_potential(
+            parsed
+        )
         d.energy_penalty = energy_overattach_penalty(parsed, res.picks)
         d.budew_bonus = budew_first_turn_attack_bonus(parsed, res.picks)
         d.wrong_type_energy_penalty = wrong_type_energy_penalty(parsed, res.picks)
@@ -136,7 +140,7 @@ class FirstTurnDelegatingPolicy:
     collected into the trajectory (returns `record=None`, exactly like a
     forced pick) -- the policy is only trained on the turns it actually plays,
     matching how `singaporean_middleman` deploys it (turn 1 = scripted, turn
-    2+ = neural)."""
+    2+ = dragapult_default)."""
 
     def __init__(self, inner, first_turn_agent):
         self.inner = inner

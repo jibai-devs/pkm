@@ -18,6 +18,7 @@ POTENTIAL_TERMS: list[tuple[str, str]] = [
     ("board_setup", "board_setup_potential"),
     ("budew_setup", "budew_setup_potential"),
     ("dreepy_field", "dreepy_line_field_potential"),
+    ("dreepy_bench_safety", "dreepy_line_bench_safety_potential"),
 ]
 
 # direct, action-conditioned terms: coef * value, added straight into the
@@ -57,6 +58,7 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     "board_setup": 0.0,
     "budew_setup": 0.0,
     "dreepy_field": 0.0,
+    "dreepy_bench_safety": 0.0,
     "energy_penalty": 0.0,
     "budew_bonus": 0.0,
     "wrong_type_penalty": 0.0,

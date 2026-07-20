@@ -7,7 +7,7 @@ from pkm.data.card_data import get_card_by_id
 from pkm.heuristics.deck_tracker import DeckTracker
 
 from .first_turn_agent import make_first_turn_agent
-from .neural_agent import make_neural_agent
+from .dragapult_default_agent import make_dragapult_default_agent
 from .random_agent import make_random_agent
 
 AgentFn = Callable[[dict], list[int]]
@@ -98,7 +98,7 @@ def _select_agent(obs: dict, agents: dict[str, AgentFn], state: dict) -> str:
         return "first_turn"
     if turn == 2 and first_player == 1 - you:
         return "first_turn"
-    return "neural"
+    return "dragapult_default"
 
 
 def make_singaporean_middleman(
@@ -113,7 +113,7 @@ def make_singaporean_middleman(
         agents
         if agents is not None
         else {
-            "neural": make_neural_agent(deck, weights_path),
+            "dragapult_default": make_dragapult_default_agent(deck, weights_path),
             "random": make_random_agent(deck),
             # pass our sink through so a first-turn search failure (and the
             # random fallback it triggers) shows up in the same log stream
@@ -126,7 +126,31 @@ def make_singaporean_middleman(
         "active": next(iter(registry)),
         "tracker": DeckTracker(deck),
         "announced_side": False,
+        "planner": None,
     }
+
+    def _build_planner():
+        """The turn planner, or None unless PKM_TURN_PLAN_DIR is set.
+
+        Booted here -- at agent construction, i.e. when kaggle imports the
+        agent -- rather than on the first plan. The worker needs a ~3.5s
+        engine load of its own, and starting it now lets that happen in the
+        background while the opening decisions are played, so no decision
+        ever waits on it. Diagnostic only, so failure just disables planning.
+        """
+        try:
+            from .turn_planner import TurnPlanner, plan_dir
+
+            if plan_dir() is None:
+                return None
+            planner = TurnPlanner(deck, weights_path=weights_path, log_sink=log_sink)
+            planner.start()
+            return planner
+        except Exception as exc:
+            _log(f"turn_planner: disabled ({type(exc).__name__}: {exc})", log_sink)
+            return None
+
+    state["planner"] = _build_planner()
 
     def agent(obs: dict) -> list[int]:
         tracker = state["tracker"]
@@ -155,13 +179,31 @@ def make_singaporean_middleman(
         _log_prizes(tracker, log_sink)
 
         turn = obs["current"]["turn"]
-        if turn != state["turn"]:
+        first_decision_of_turn = turn != state["turn"]
+        if first_decision_of_turn:
             state["turn"] = turn
             state["active"] = select_agent(obs, registry, state)
+
+        planner = state["planner"]
+        if planner is not None and first_decision_of_turn:
+            # plan the whole turn up front, in the planner's own engine process
+            try:
+                planner.start_turn(obs)
+            except Exception as exc:
+                _log(f"turn_planner: start_turn failed ({exc})", log_sink)
 
         _log(f"decision made by: {state['active']}", log_sink)
 
         # obs is handed to the chosen sub-agent unmodified either way.
-        return registry[state["active"]](obs)
+        picks = registry[state["active"]](obs)
+
+        if planner is not None:
+            # score what we actually did against what the plan expected
+            try:
+                planner.record_actual(obs, picks, state["active"])
+            except Exception as exc:
+                _log(f"turn_planner: record_actual failed ({exc})", log_sink)
+
+        return picks
 
     return agent

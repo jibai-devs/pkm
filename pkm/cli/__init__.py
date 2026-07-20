@@ -146,8 +146,12 @@ def export(
 
 @app.command()
 def play(
-    p0: str = typer.Option("neural", help="player 0 agent: random|neural|mcts|human"),
-    p1: str = typer.Option("random", help="player 1 agent: random|neural|mcts|human"),
+    p0: str = typer.Option(
+        "dragapult_default", help="player 0 agent: random|dragapult_default|mcts|human"
+    ),
+    p1: str = typer.Option(
+        "random", help="player 1 agent: random|dragapult_default|mcts|human"
+    ),
     agent: str | None = typer.Option(
         None, help="agent profile name (resolves deck + weights)"
     ),

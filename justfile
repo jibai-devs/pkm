@@ -115,11 +115,11 @@ export agent="03_pult_munki":
     pkm export --agent {{agent}} pkm/policy.npz
 
 # play one rendered match and write result.html + replay.json
-play p0="neural" p1="random" agent="02_dragapult":
+play p0="dragapult_default" p1="random" agent="02_dragapult":
     pkm play --agent {{agent}} --p0 {{p0}} --p1 {{p1}}
 
 # head-to-head win rate over N games (no replay files)
-eval p0="neural" p1="random" games="30" agent="02_dragapult":
+eval p0="dragapult_default" p1="random" games="30" agent="02_dragapult":
     pkm play --agent {{agent}} --p0 {{p0}} --p1 {{p1}} --games {{games}}
 
 # open the latest match replay in the browser

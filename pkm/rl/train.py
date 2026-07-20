@@ -192,8 +192,7 @@ def train(
                 # isn't instant -- it finishes the in-flight iteration first,
                 # which is what lets the unconditional save below still run.
                 print(
-                    f"stop file {stop_file} found after {it - 1} iterations; "
-                    "stopping",
+                    f"stop file {stop_file} found after {it - 1} iterations; stopping",
                     flush=True,
                 )
                 break
@@ -286,9 +285,7 @@ def train(
             log.scalar("game/decisions", total_decisions, it)
             log.scalar("time/iter_s", dt, it)
             if row["eval_win_rate"]:
-                log.scalar(
-                    "eval/win_rate_vs_random", float(row["eval_win_rate"]), it
-                )
+                log.scalar("eval/win_rate_vs_random", float(row["eval_win_rate"]), it)
     finally:
         if executor is not None:
             executor.shutdown()
@@ -330,7 +327,9 @@ def main(
     log_dir: str = typer.Option("runs/ppo", help="TensorBoard log directory"),
     init: str | None = typer.Option(None, help="checkpoint to resume from"),
     seed: int = typer.Option(0, help="random seed"),
-    wandb_project: str | None = typer.Option(None, help="wandb project name (enables wandb logging)"),
+    wandb_project: str | None = typer.Option(
+        None, help="wandb project name (enables wandb logging)"
+    ),
     wandb_run_name: str | None = typer.Option(None, help="wandb run name"),
     workers: int = typer.Option(
         1, help="parallel worker processes for self-play rollout (1 = sequential)"
