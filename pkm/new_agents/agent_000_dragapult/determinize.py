@@ -82,9 +82,11 @@ def _visible_card_ids(player: dict) -> list[int]:
     return ids
 
 
-def _shuffled_unknown_pool(player: dict, gen: torch.Generator) -> list[int]:
-    """This player's own DECK_60 copy minus their own publicly-visible cards."""
-    known = collections.Counter(deck.DECK_60)
+def _shuffled_unknown_pool(
+    player: dict, gen: torch.Generator, deck_ids: list[int]
+) -> list[int]:
+    """This player's own deck copy minus their own publicly-visible cards."""
+    known = collections.Counter(deck_ids)
     for cid in _visible_card_ids(player):
         if known[cid] > 0:
             known[cid] -= 1
@@ -103,13 +105,19 @@ def _deal_prize(prize_field: list, pool: list[int]) -> tuple[list[int], list[int
     return prize, rest
 
 
-def sample_world(obs: dict, seat: int, gen: torch.Generator) -> Predictions:
+def sample_world(
+    obs: dict, seat: int, gen: torch.Generator, deck_ids: list[int] | None = None
+) -> Predictions:
+    # Both seats hold a copy of the same 60-card list in mirror self-play; the
+    # caller passes it explicitly so a non-default deck determinizes correctly.
+    # Defaults to the default deck for backward compatibility.
+    deck_ids = deck.DECK_60 if deck_ids is None else deck_ids
     state = obs["current"]
     me = state["players"][seat]
     opp = state["players"][1 - seat]
 
     # --- my own hidden zones ---
-    my_pool = _shuffled_unknown_pool(me, gen)
+    my_pool = _shuffled_unknown_pool(me, gen, deck_ids)
     deck_n = me["deckCount"]
     your_deck, my_pool = my_pool[:deck_n], my_pool[deck_n:]
     your_prize, leftover = _deal_prize(me.get("prize") or [], my_pool)
@@ -128,7 +136,7 @@ def sample_world(obs: dict, seat: int, gen: torch.Generator) -> Predictions:
     # accounting error.
 
     # --- opponent's hidden zones ---
-    opp_pool = _shuffled_unknown_pool(opp, gen)
+    opp_pool = _shuffled_unknown_pool(opp, gen, deck_ids)
 
     opponent_active: list[int] = []
     active = opp.get("active") or []

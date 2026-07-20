@@ -26,6 +26,7 @@ from pkm.new_agents.agent_000_dragapult.aux_tasks import (
     active_tasks,
     default_weights as _default_aux_weights,
 )
+from pkm.new_agents.agent_000_dragapult.deck import DEFAULT_DECK
 from pkm.new_agents.agent_000_dragapult.encoder import StateEncoder
 from pkm.new_agents.agent_000_dragapult.features import FEATURE_VERSION
 from pkm.new_agents.agent_000_dragapult.model import PolicyValueModel
@@ -174,6 +175,11 @@ class RunConfig:
     feature_version: str = FEATURE_VERSION
     checkpoint_every_updates: int = 64
     keep_last: int = 5
+    # Which registered deck (deck.DECKS) both self-play seats pilot for this run.
+    # The learned vocabulary spans *all* decks, so this only chooses the 60-card
+    # list played — not the network shape. Part of the config hash (a run's deck
+    # is part of its identity); old checkpoints without it backfill to the default.
+    deck: str = DEFAULT_DECK
 
 
 def _hash_dict(d: dict[str, Any]) -> str:

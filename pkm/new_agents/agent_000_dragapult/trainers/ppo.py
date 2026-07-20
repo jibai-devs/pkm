@@ -17,7 +17,7 @@ from pkm.new_agents.agent_000_dragapult import deck, policy
 from pkm.new_agents.agent_000_dragapult.config import Config
 from pkm.new_agents.agent_000_dragapult.features import Features, featurize
 from pkm.new_agents.agent_000_dragapult.model import collate
-from pkm.new_agents.agent_000_dragapult.shaping import assign_targets
+from pkm.new_agents.agent_000_dragapult.shaping import HEURISTIC_SHAPERS, assign_targets
 from pkm.rl import encoder as H
 from pkm.types.obs import Observation
 
@@ -94,11 +94,12 @@ def play_game(
     """Play one self-play game; return (recorded steps, result)."""
     steps: list[Step] = []
     dev = next(model.parameters()).device  # cpu for rollout workers; gpu if single-process --device cuda
-    obs, _ = battle_start(deck.DECK_60, deck.DECK_60)
+    deck_60 = deck.deck_60(cfg.run.deck)  # both self-play seats pilot the run's deck
+    obs, _ = battle_start(deck_60, deck_60)
     n_iter = 0
     while obs["current"]["result"] < 0 and n_iter < 100000:
         if obs["select"] is None or obs["current"] is None:
-            obs = battle_select(list(deck.DECK_60))  # deck-selection phase
+            obs = battle_select(list(deck_60))  # deck-selection phase
             n_iter += 1
             continue
         f = featurize(to_observation(obs))
@@ -121,7 +122,7 @@ def play_game(
             value=float(value[0]),
             seat=obs["current"]["yourIndex"],
         )
-        if cfg.train.shaping == "heuristic":
+        if cfg.train.shaping in HEURISTIC_SHAPERS:
             # The heuristics want a pkm.types.obs.Observation (not cabt's own
             # type), parsed straight from the wire dict as pkm/rl/rollout does.
             _fill_heuristics(step, Observation.model_validate(obs), picks)

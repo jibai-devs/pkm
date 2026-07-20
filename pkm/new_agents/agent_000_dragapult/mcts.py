@@ -106,7 +106,13 @@ def search(root_obs: dict, seat: int, model, cfg, gen: torch.Generator) -> np.nd
     `battle_finish` around this call.
     """
     determinize = DETERMINIZERS[cfg.train.determinization]
-    world = determinize(root_obs, seat, gen)
+    # Resolve the seat's deck from the config when present (training passes a full
+    # Config; inference's lightweight search-cfg may carry only cfg.run.deck).
+    # Falls back to the default deck so a bare search-cfg still works.
+    from pkm.new_agents.agent_000_dragapult import deck as _deck
+
+    _deck_name = getattr(getattr(cfg, "run", None), "deck", _deck.DEFAULT_DECK)
+    world = determinize(root_obs, seat, gen, _deck.deck_60(_deck_name))
     root_state = cabt.search_begin(
         root_obs,
         your_deck=world.your_deck,

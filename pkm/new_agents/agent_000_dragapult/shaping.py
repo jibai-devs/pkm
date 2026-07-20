@@ -151,11 +151,22 @@ def heuristic_shaper(
             traj[n - 1].reward += coef * getattr(traj[n - 1], attr, 0.0)
 
 
+# The full reward-term stack (reward_terms.ALL_TERMS) is **Dragapult-specific**
+# (dragapult_bonus, dreepy_*, xerosic, budew_*, phantom_dive, …), so its canonical
+# selector says so. ``"heuristic"`` is kept as a back-compat alias for the older
+# runs/scripts/checkpoints that used that generic name. Deck-agnostic runs (e.g.
+# the alakazam deck) should use ``prize_potential`` (the default), which touches
+# no reward term at all.
 SHAPERS: dict[str, RewardShaper] = {
     "terminal": terminal_shaper,
     "prize_potential": prize_potential_shaper,
-    "heuristic": heuristic_shaper,
+    "dragapult_heuristic": heuristic_shaper,
+    "heuristic": heuristic_shaper,  # deprecated alias → dragapult_heuristic
 }
+
+# Selectors that drive the Dragapult heuristic reward-term stack (need the
+# per-step heuristic scalars filled during rollout).
+HEURISTIC_SHAPERS: frozenset[str] = frozenset({"dragapult_heuristic", "heuristic"})
 
 
 # --------------------------------------------------------------------------- #

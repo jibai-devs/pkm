@@ -231,7 +231,9 @@ def train(
                     eval_model.load_state_dict(
                         {k: v.detach().cpu() for k, v in ts.model.state_dict().items()}
                     )
-                ev = winrate_vs_random(eval_model, n_games=eval_games)
+                ev = winrate_vs_random(
+                    eval_model, n_games=eval_games, deck_name=ts.cfg.run.deck
+                )
                 stats["eval_win_rate"] = ev["win_rate"]
 
             # notify() isolates ordinary sink errors but re-raises StopTraining

@@ -4,6 +4,26 @@ Full project guide (structure, RL training, decks, submission): @AGENTS.md
 
 ## Active Context
 
+- **Multi-deck support shipped (2026-07-21):** agent_000 now plays **more than one
+  deck** without a per-deck agent. Two concepts split cleanly: (a) *a deck* — a
+  60-card list in the `deck.DECKS` registry (`dragapult` + new `alakazam` = Mega
+  Alakazam/Dudunsparce psychic control); (b) *the vocabulary* — the **superset**
+  of distinct card IDs over ALL registered decks (now 44 → `VOCAB_SIZE=45`, was
+  27), sizing the own-card embedding + hand-histogram. One trained net has learned
+  rows for every deck's cards; unused rows are inert (gather, not softmax — zero
+  gradient, no learning-difficulty cost). Adding a *new* deck with new cards grows
+  the vocab → forces a retrain; reusing known cards is free. Cards resolved by
+  name+text vs `replay/cards.json` (source-list set/collector numbers do NOT map to
+  engine IDs). `--deck {dragapult,alakazam}` on `train`/`eval` picks the played
+  list; it's in `RunConfig.deck` + the config hash (old ckpts backfill to
+  `dragapult`). `determinize.py`/`mcts.search` are deck-aware (unblocks future
+  cross-deck/mixed self-play). Idempotent `scripts/gen_vocab.py` writes/inspects
+  `vocab.json` (drift-guarded by `test_deck_vocab.py`); `test_deck_routing.py`
+  locks routing. **Also fixed a pre-existing bug:** `eval` built the MCTS
+  `InferenceConfig` but never passed it to the winrate fns, so `eval --inference
+  mcts -K` silently ran the plain policy. **Not yet done:** train the alakazam
+  deck (`train --deck alakazam …`, generic `prize_potential` shaping) — a fresh
+  PPO run; the old 600 ckpt is incompatible (VOCAB_SIZE changed) and retired.
 - **agent_000 status (2026-07-20):** stuck at Kaggle **600** across small/large nets —
   it's an **eval ceiling**, not capacity: training is mirror self-play but the metric
   was vs *random* (saturates ~100%). Fixes shipped: head-to-head eval

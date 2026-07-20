@@ -31,7 +31,7 @@ from typing import Any
 import torch
 
 from pkm.new_agents.agent_000_dragapult.cabt import to_observation
-from pkm.new_agents.agent_000_dragapult.deck import DECK_60
+from pkm.new_agents.agent_000_dragapult.deck import DEFAULT_DECK, deck_60
 from pkm.new_agents.agent_000_dragapult.features import featurize
 from pkm.new_agents.agent_000_dragapult.model import PolicyValueModel, collate
 
@@ -77,11 +77,14 @@ class DragapultAgent:
         seed: int | None = None,
         device: str = "cpu",
         inference: InferenceConfig | None = None,
+        deck: str = DEFAULT_DECK,
     ):
         self.device = torch.device(device)
         self.model = (model or PolicyValueModel()).to(self.device).eval()
         self.greedy = greedy
         self.inference = inference or InferenceConfig()
+        # The 60-card list this agent submits at the deck-selection phase.
+        self.deck_ids = deck_60(deck)
         self.gen = None
         if seed is not None:
             self.gen = torch.Generator(device=self.device).manual_seed(seed)
@@ -97,7 +100,9 @@ class DragapultAgent:
                     mcts_c_puct=self.inference.c_puct,
                     mcts_temperature=self.inference.temperature,
                     determinization=self.inference.determinization,
-                )
+                ),
+                # So mcts.search determinizes hidden zones from the played deck.
+                run=SimpleNamespace(deck=deck),
             )
 
     @classmethod
@@ -108,6 +113,15 @@ class DragapultAgent:
         # device the weights were trained on.
         blob = torch.load(path, map_location="cpu", weights_only=False)
         bundle_inference: InferenceConfig | None = None
+        # Default the played deck from the checkpoint's own config unless the
+        # caller overrides it (a bundle may record its deck at pack time).
+        if isinstance(blob, dict) and "deck" not in kw:
+            _cfg = blob.get("config")
+            _deck = (
+                _cfg.get("run", {}).get("deck") if isinstance(_cfg, dict) else None
+            ) or blob.get("deck")
+            if _deck:
+                kw["deck"] = _deck
         if isinstance(blob, dict) and "state_dict" in blob:
             # Bundle format: weights + the architecture they were trained with,
             # so a non-default (e.g. large / deeper) net rebuilds correctly.
@@ -142,7 +156,7 @@ class DragapultAgent:
     def __call__(self, obs_dict: dict[str, Any]) -> list[int]:
         # Deck-selection phase: no board / no choice list yet -> submit the deck.
         if obs_dict.get("select") is None or obs_dict.get("current") is None:
-            return list(DECK_60)
+            return list(self.deck_ids)
 
         feats = featurize(to_observation(obs_dict))
         n = feats.n_options

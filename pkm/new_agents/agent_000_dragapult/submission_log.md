@@ -15,6 +15,7 @@ Recent policy-only baseline (for comparison), newest first:
 
 | Date (UTC+8) | Checkpoint | Inference | Bundle | Message | Score |
 |---|---|---|---|---|---|
+| 2026-07-21 01:11 | `007_alakazam_large/latest.pt` (256 upd) | **MCTS K=1** | `submission_20260721_011110.tar.gz` | **NEW DECK: alakazam** (Mega Alakazam/Dudunsparce) · large + base_residual · prize_potential shaping · MCTS K=1 | _rejected: HTTP 400 at CreateSubmission (upload OK); likely daily submission-limit — retry when the window resets_ |
 | 2026-07-20 21:30 | `007_xl_residual/latest.pt` (256 upd) | **MCTS K=1** | `submission_20260720_213058.tar.gz` | 007 xl + base_residual (skip conns) + swept trial-16 + prize_margin aux + MCTS K=1 | _pending_ |
 | 2026-07-20 20:12 | `003_aux_loss/latest.pt` (1024 upd) | **MCTS K=1** | `submission_20260720_201252.tar.gz` | 003_aux_loss latest (large + heuristic + prize_margin aux) + MCTS K=1 | _pending_ |
 | 2026-07-20 09:06 | `002_large_tuned/ckpt_512.pt` | **MCTS K=4** | `submission_20260720_090651.tar.gz` | 002_large_tuned ckpt_512 + MCTS K=4 (more search than the K=1) | **448.9** |
