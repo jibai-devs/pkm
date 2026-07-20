@@ -241,6 +241,8 @@ def _build_config(
     minibatch_size: int,
     seed: int,
     ckpt_every: int,
+    lr_schedule: str = "constant",
+    lr_min: float = 0.0,
     shaping: str = "prize_potential",
     shaping_coef: float = 1.0,
     reward_weights: dict[str, float] | None = None,
@@ -299,6 +301,8 @@ def _build_config(
         epochs_per_update=epochs,
         minibatch_size=minibatch_size,
         seed=seed,
+        lr_schedule=lr_schedule,
+        lr_min=lr_min,
         shaping=shaping,
         shaping_coef=shaping_coef,
         reward_weights=weights,
@@ -556,7 +560,16 @@ def train(
     workers: int = typer.Option(
         8, help="Parallel self-play workers (one engine/process; 1 = single-process)."
     ),
-    lr: float = typer.Option(3e-4, help="Adam learning rate."),
+    lr: float = typer.Option(3e-4, help="Adam learning rate (or cosine start)."),
+    lr_schedule: str = typer.Option(
+        "constant",
+        "--lr-schedule",
+        help="LR schedule: 'constant' (default) or 'cosine' (anneal from --lr "
+        "down to --lr-min over the run; good for long runs).",
+    ),
+    lr_min: float = typer.Option(
+        0.0, "--lr-min", help="Cosine floor (eta_min), e.g. 1e-5 for a 1e-4 start."
+    ),
     gamma: float = typer.Option(0.997, help="Discount factor."),
     lam: float = typer.Option(0.95, help="GAE lambda."),
     clip_eps: float = typer.Option(0.2, help="PPO clip epsilon."),
@@ -705,6 +718,8 @@ def train(
     cfg = _build_config(
         workers=workers,
         lr=lr,
+        lr_schedule=lr_schedule,
+        lr_min=lr_min,
         gamma=gamma,
         lam=lam,
         clip_eps=clip_eps,
@@ -1046,6 +1061,11 @@ def sweep(
         DEFAULT_EXPERIMENT, "--experiment", "-e", help=_EXPERIMENT_HELP
     ),
     engine: str = typer.Option(_DEFAULT_ENGINE, help=_ENGINE_HELP),
+    deck: str = typer.Option(
+        "dragapult",
+        "--deck",
+        help="Deck every trial trains + evals on: dragapult (default) or alakazam.",
+    ),
 ) -> None:
     """Optuna hyperparameter sweep — maximize eval win-rate vs random.
 
@@ -1144,6 +1164,7 @@ def sweep(
                 "d_card": d_card,
             },
             ckpt_every=updates,
+            deck=deck,
         )
         trial_dir = p["sweeps"] / study / f"trial_{trial.number}"
         pruning = PruningSink(trial)

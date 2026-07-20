@@ -126,6 +126,11 @@ class TrainConfig:
     minibatch_size: int = 64
     epochs_per_update: int = 4
     lr: float = 3e-4
+    # LR schedule over the run: "constant" (default, v1 — fixed lr) or "cosine"
+    # (CosineAnnealingLR from lr down to lr_min over the planned updates; good for
+    # long runs). Part of the config hash; old checkpoints backfill to constant.
+    lr_schedule: str = "constant"
+    lr_min: float = 0.0  # cosine floor (eta_min); e.g. 1e-5 for a 1e-4 start
     gamma: float = 0.997  # long horizon (~77 decisions/game)
     gae_lambda: float = 0.95
     clip_eps: float = 0.2
