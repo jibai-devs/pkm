@@ -453,20 +453,29 @@ W is baked into the bundle. This is the principled lever for draw uncertainty �
 Tests: `test_inference_mcts.py` (config toggle + W round-trip, bundle round-trip,
 `search_worlds` averaging, engine smoke incl. W=2).
 
-**First head-to-head (2026-07-20, `002_large_tuned/ckpt_512.pt`, 30 games each,
-agent-under-test vs the SAME checkpoint played as plain policy):**
+**Head-to-head (2026-07-20, `002_large_tuned/ckpt_512.pt`, agent-under-test vs
+the SAME checkpoint played as plain policy, matched ~32 searches/decision):**
 
-| inference | searches/decision | win-rate vs policy |
-|---|---|---|
-| `W=1 -K 32` | 32 | 60.0% (18-12) |
-| `W=8 -K 4`  | 32 | 63.3% (19-11) |
+| inference | searches/decision | 30 games | 100 games |
+|---|---|---|---|
+| `W=1 -K 32` | 32 | 60.0% (18-12) | **56.0% (56-44)** |
+| `W=8 -K 4`  | 32 | 63.3% (19-11) | **47.0% (47-53)** |
 
-Takeaways: (1) **real search (K=32) clearly beats the raw policy head** (~60%,
-well above 50%) — the honest signal the leaderboard's moving average couldn't
-give; (2) world-averaging is **directionally** better at matched compute
-(63.3 vs 60.0) as the bias argument predicts, but it's a 1-game gap — inside the
-±9% noise band at n=30, so not yet proven. Needs ~100+ games to separate W=1
-from W=8. Both regimes are a real improvement over policy-only.
+Takeaways (the 100-game numbers are the reliable ones; n=30 was too noisy and
+oversold both):
+
+1. **Real search (K=32) beats the raw policy head** — 56% > 50%. Genuine, if
+   modest — the honest signal the leaderboard's moving average couldn't give.
+2. **World-averaging did NOT help at matched compute** — `W=8 -K 4` fell to 47%
+   (*below* policy). Splitting a fixed budget into 8 worlds starved each search
+   to K=4 — too shallow to produce a useful policy, so averaging 8 weak searches
+   lost to one deep one. **At a fixed budget, depth (K) beat breadth (W).**
+3. This does **not** refute the single-world *bias* argument — the clean test of
+   it is "add worlds at a fixed, adequate K" (`W=8 -K 32`, ~8× the compute), not
+   the matched-budget `W=8 -K 4` that robbed K to pay for W. Whether W>1 helps
+   once each per-world search is already strong is still open (and costs W× time,
+   so it must clear Kaggle's 600 s budget to be usable). For now the submittable
+   regime is **`W=1` with a healthy K**.
 
 ### Next lever (not yet built)
 **Opponent-pool training** — self-play against *past checkpoints*, not just the
