@@ -104,13 +104,20 @@ def _play_pop_chunk(
     indexed_games: list[
         tuple[int, list[int], dict, list[int], dict, tuple[bool, bool]]
     ],
+    archetype_classifier=None,
 ) -> list[tuple[int, GameResult]]:
     """Population-training counterpart to `_play_chunk`. Population training
     has no single shared "current model" opponent pair -- every roster
     member is its own live model -- so each entry carries *both* sides' own
     deck + state_dict directly, and a worker rebuilds exactly the two models
     it needs per game (deliberately decoupled from PopulationMember/PopSpec
-    in population_train.py, which import from here, not the reverse)."""
+    in population_train.py, which import from here, not the reverse).
+
+    `archetype_classifier`, when given, is attached to **both** sides --
+    unlike `_play_chunk`'s trainee-only convention, population training has
+    no frozen opponent: every roster member is simultaneously being trained,
+    so each one computes its own live belief about whoever it's facing (see
+    docs/superpowers/plans/2026-07-20-belief-classifier-routing.md)."""
     model_a = PolicyValueNet()
     model_b = PolicyValueNet()
     results = []
@@ -120,7 +127,10 @@ def _play_pop_chunk(
         model_b.load_state_dict(state_b)
         model_b.eval()
         result = play_game(
-            (TorchPolicy(model_a), TorchPolicy(model_b)),
+            (
+                TorchPolicy(model_a, archetype_classifier=archetype_classifier),
+                TorchPolicy(model_b, archetype_classifier=archetype_classifier),
+            ),
             (deck_a, deck_b),
             collect=collect,
         )
@@ -149,11 +159,22 @@ def collect_pop_parallel(
     executor: ProcessPoolExecutor,
     num_workers: int,
     games: list[PopGame],
+    archetype_classifier=None,
 ) -> list[GameResult]:
     """Play every (deck_a, state_a, deck_b, state_b, collect) tuple in
-    `games` across the pool; returns results in the same order as `games`."""
+    `games` across the pool; returns results in the same order as `games`.
+
+    `archetype_classifier` is the same object for every chunk (unlike the
+    per-game state dicts), passed once per `executor.submit` rather than
+    duplicated into every `PopGame` tuple -- it's a plain numpy object
+    (NumpyArchetypeClassifier), already confirmed to pickle cleanly across
+    worker processes (see `_play_chunk`'s equivalent, train.py's
+    `--archetype-belief` path, smoke-tested under `--workers 2`)."""
     chunks = _chunk_pop_games(games, num_workers)
-    futures = [executor.submit(_play_pop_chunk, chunk) for chunk in chunks]
+    futures = [
+        executor.submit(_play_pop_chunk, chunk, archetype_classifier)
+        for chunk in chunks
+    ]
     results: list[GameResult | None] = [None] * len(games)
     for future in futures:
         for idx, result in future.result():

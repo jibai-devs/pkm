@@ -68,6 +68,114 @@ def test_population_trajectory_routing():
     assert sum(game_stats[bot.name]) == 2
 
 
+def _tiny_archetype_classifier(tmp_path):
+    """Same helper as tests/test_rl.py -- a cheap real (not mocked)
+    NumpyArchetypeClassifier, avoids depending on the gitignored
+    pkm/archetype.npz export existing on disk."""
+    from pkm.archetype.export import export_npz
+    from pkm.archetype.numpy_model import NumpyArchetypeClassifier
+    from pkm.archetype.train import train as train_archetype
+
+    model, _ = train_archetype(
+        n_per_class=5, epochs=1, batch_size=32, log_every=0, seed=0
+    )
+    path = tmp_path / "archetype_test.npz"
+    export_npz(model, str(path))
+    return NumpyArchetypeClassifier.load(str(path))
+
+
+def test_run_pop_iteration_classifier_reaches_both_sides(tmp_path, monkeypatch):
+    """Belief-classifier-routing plan Phase 2: unlike train.py's play_one
+    (trainee only, never the frozen opponent), population training has no
+    frozen side -- every roster member is simultaneously being trained, so
+    archetype_classifier must reach BOTH TorchPolicy instances of every
+    pairing. Sequential path (no executor)."""
+    import pkm.rl.population_train as pop_mod
+
+    classifier = _tiny_archetype_classifier(tmp_path)
+    torch.manual_seed(0)
+    random.seed(0)
+    anchor = _member("00_basic", "deck/00_basic.csv")
+    bot = _member("pool_test_bot", "deck/01_psychic.csv")
+    roster = [anchor, bot]
+    specs = make_pop_specs(games_per_pairing=2, num_members=2)
+
+    seen = []
+    real_init = pop_mod.TorchPolicy.__init__
+
+    def spy_init(self, model, greedy=False, temperature=1.0, archetype_classifier=None):
+        seen.append(archetype_classifier is classifier)
+        real_init(self, model, greedy, temperature, archetype_classifier)
+
+    monkeypatch.setattr(pop_mod.TorchPolicy, "__init__", spy_init)
+
+    pop_mod.run_pop_iteration(
+        roster, specs, gamma=0.99, lam=0.95, archetype_classifier=classifier
+    )
+
+    assert seen and all(seen)  # every TorchPolicy built (both sides) got it
+
+
+def test_run_pop_iteration_no_classifier_by_default(tmp_path, monkeypatch):
+    """The flip side: archetype_classifier=None (the default) must reach
+    neither side, so existing/unflagged runs are unaffected."""
+    import pkm.rl.population_train as pop_mod
+
+    torch.manual_seed(0)
+    random.seed(0)
+    anchor = _member("00_basic", "deck/00_basic.csv")
+    bot = _member("pool_test_bot", "deck/01_psychic.csv")
+    roster = [anchor, bot]
+    specs = make_pop_specs(games_per_pairing=2, num_members=2)
+
+    seen = []
+    real_init = pop_mod.TorchPolicy.__init__
+
+    def spy_init(self, model, greedy=False, temperature=1.0, archetype_classifier=None):
+        seen.append(archetype_classifier is None)
+        real_init(self, model, greedy, temperature, archetype_classifier)
+
+    monkeypatch.setattr(pop_mod.TorchPolicy, "__init__", spy_init)
+
+    pop_mod.run_pop_iteration(roster, specs, gamma=0.99, lam=0.95)
+
+    assert seen and all(seen)
+
+
+def test_play_pop_chunk_classifier_reaches_both_sides(tmp_path, monkeypatch):
+    """Parallel-path counterpart: _play_pop_chunk is what actually runs
+    inside each worker process under --workers > 1. Tested by calling it
+    directly (in-process) rather than through a real ProcessPoolExecutor --
+    it's a plain function, and cross-process pickling of the classifier is
+    already covered by train.py's --archetype-belief --workers 2 smoke
+    test (see AGENTS.md)."""
+    import pkm.rl.parallel_rollout as par_mod
+
+    classifier = _tiny_archetype_classifier(tmp_path)
+    torch.manual_seed(0)
+    random.seed(0)
+    deck_a = Deck.from_csv("deck/00_basic.csv").card_ids
+    deck_b = Deck.from_csv("deck/01_psychic.csv").card_ids
+    model_a = PolicyValueNet()
+    model_b = PolicyValueNet()
+
+    seen = []
+    real_init = par_mod.TorchPolicy.__init__
+
+    def spy_init(self, model, greedy=False, temperature=1.0, archetype_classifier=None):
+        seen.append(archetype_classifier is classifier)
+        real_init(self, model, greedy, temperature, archetype_classifier)
+
+    monkeypatch.setattr(par_mod.TorchPolicy, "__init__", spy_init)
+
+    games = [
+        (0, deck_a, model_a.state_dict(), deck_b, model_b.state_dict(), (True, True))
+    ]
+    par_mod._play_pop_chunk(games, archetype_classifier=classifier)
+
+    assert seen == [True, True]  # both TorchPolicy instances got it
+
+
 def test_population_train_noop_on_solo_path():
     """Importing pkm.rl.population_train must not mutate or share state
     with train.py's existing single-deck/single-model flow."""

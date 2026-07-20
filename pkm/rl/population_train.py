@@ -168,12 +168,19 @@ def run_pop_iteration(
     lam: float,
     executor=None,
     workers: int = 1,
+    archetype_classifier=None,
 ) -> dict[str, tuple[int, int, int]]:
     """Play every spec (sequentially, or across `executor` if given) and
     bucket trajectories into each member's own buffer. Returns per-member
     (wins, losses, draws) for this iteration -- a member absent from the
     dict didn't play (shouldn't happen for a well-formed spec list, but
-    callers shouldn't assume every roster member is a key)."""
+    callers shouldn't assume every roster member is a key).
+
+    `archetype_classifier`, when given, is attached to **both** sides of
+    every pairing -- population training has no frozen opponent the way
+    train.py's trainee-only convention assumes, every roster member is
+    simultaneously being trained (see
+    docs/superpowers/plans/2026-07-20-belief-classifier-routing.md)."""
     for m in roster:
         m.model.eval()
 
@@ -190,13 +197,21 @@ def run_pop_iteration(
             )
             for s in specs
         ]
-        results = collect_pop_parallel(executor, workers, games)
+        results = collect_pop_parallel(
+            executor, workers, games, archetype_classifier=archetype_classifier
+        )
     else:
         results = [
             play_game(
                 (
-                    TorchPolicy(roster[s.member_a_idx].model),
-                    TorchPolicy(roster[s.member_b_idx].model),
+                    TorchPolicy(
+                        roster[s.member_a_idx].model,
+                        archetype_classifier=archetype_classifier,
+                    ),
+                    TorchPolicy(
+                        roster[s.member_b_idx].model,
+                        archetype_classifier=archetype_classifier,
+                    ),
                 ),
                 (roster[s.member_a_idx].deck, roster[s.member_b_idx].deck),
                 collect=s.collect,
@@ -225,13 +240,23 @@ def population_train(
     eval_games: int = 20,
     workers: int = 1,
     seed: int = 0,
+    archetype_classifier=None,
 ) -> list[PopulationMember]:
     """Milestone 9's orchestration loop. Reuses `play_game`/`ppo_update`
     unchanged (`pkm/rl/rollout.py`, `pkm/rl/ppo.py`) and each member's own
     `AgentProfile` dirs for checkpoints -- no new directory convention.
     Metrics land in a *separate* `population_train.csv` per member
     (`profile.metrics_dir`), so a pool bot's Part 3b solo-training history
-    in `ppo_train.csv` is never overwritten by this run."""
+    in `ppo_train.csv` is never overwritten by this run.
+
+    `archetype_classifier` (a NumpyArchetypeClassifier, see
+    pkm.archetype.numpy_model), when given, is attached to both sides of
+    every game -- opt-in, default None (zero belief, the original Milestone
+    9 behavior), same off-by-default convention as train.py's
+    --archetype-belief. See
+    docs/superpowers/plans/2026-07-20-belief-classifier-routing.md for why
+    this stayed unwired until now and why it's opt-in rather than defaulted
+    on the way eval_vs_pool's belief was."""
     random.seed(seed)
     torch.manual_seed(seed)
 
@@ -264,7 +289,13 @@ def population_train(
         for it in range(1, iterations + 1):
             specs = make_pop_specs(games_per_pairing, len(roster))
             game_stats = run_pop_iteration(
-                roster, specs, gamma, lam, executor=executor, workers=workers
+                roster,
+                specs,
+                gamma,
+                lam,
+                executor=executor,
+                workers=workers,
+                archetype_classifier=archetype_classifier,
             )
 
             summary_parts = []
@@ -359,7 +390,26 @@ def main(
         1, help="parallel worker processes for self-play rollout (1 = sequential)"
     ),
     seed: int = typer.Option(0, help="random seed"),
+    use_archetype_belief: bool = typer.Option(
+        False,
+        "--archetype-belief",
+        help="inject the standalone opponent-archetype classifier's belief "
+        "into the encoder for BOTH sides of every pairing (population "
+        "training has no frozen opponent, unlike pkm train's trainee-only "
+        "convention) -- loads --archetype-weights once and reuses it for "
+        "every roster member",
+    ),
+    archetype_weights: str = typer.Option(
+        "pkm/archetype.npz",
+        help="path to the exported NumpyArchetypeClassifier weights, used "
+        "when --archetype-belief is set",
+    ),
 ) -> None:
+    archetype_classifier = None
+    if use_archetype_belief:
+        from pkm.archetype.numpy_model import NumpyArchetypeClassifier
+
+        archetype_classifier = NumpyArchetypeClassifier.load(archetype_weights)
     population_train(
         iterations=iterations,
         games_per_pairing=games_per_pairing,
@@ -374,6 +424,7 @@ def main(
         eval_games=eval_games,
         workers=workers,
         seed=seed,
+        archetype_classifier=archetype_classifier,
     )
 
 

@@ -147,9 +147,29 @@ def population_train_cmd(
         1, help="parallel worker processes for self-play rollout (1 = sequential)"
     ),
     seed: int = typer.Option(0, help="random seed"),
+    use_archetype_belief: bool = typer.Option(
+        False,
+        "--archetype-belief",
+        help="inject the standalone opponent-archetype classifier's belief "
+        "into the encoder for BOTH sides of every pairing (population "
+        "training has no frozen opponent, unlike pkm train's trainee-only "
+        "convention) -- loads --archetype-weights once and reuses it for "
+        "every roster member",
+    ),
+    archetype_weights: str = typer.Option(
+        "pkm/archetype.npz",
+        help="path to the exported NumpyArchetypeClassifier weights, used "
+        "when --archetype-belief is set",
+    ),
 ) -> None:
     """Milestone 9: simultaneous population training (anchor + pool bots)."""
     from pkm.rl.population_train import population_train as _population_train
+
+    archetype_classifier = None
+    if use_archetype_belief:
+        from pkm.archetype.numpy_model import NumpyArchetypeClassifier
+
+        archetype_classifier = NumpyArchetypeClassifier.load(archetype_weights)
 
     _population_train(
         iterations=iterations,
@@ -165,6 +185,7 @@ def population_train_cmd(
         eval_games=eval_games,
         workers=workers,
         seed=seed,
+        archetype_classifier=archetype_classifier,
     )
 
 
