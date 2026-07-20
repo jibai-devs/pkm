@@ -946,7 +946,26 @@ def sweep(
         "--model",
         help="Network size preset every trial trains at: small (v1, default), "
         "medium, large, xl. Architecture is fixed across the sweep; only the "
-        "hyperparameters (and, with --tune-rewards, reward weights) are searched.",
+        "hyperparameters (and, with --tune-rewards, reward weights) are searched. "
+        "Push beyond xl (an 'xxl') with the per-dim overrides below.",
+    ),
+    n_layers: Optional[int] = typer.Option(
+        None, help="Override: trunk attention layers (every trial)."
+    ),
+    d_state: Optional[int] = typer.Option(
+        None, help="Override: state (trunk output) dim (every trial)."
+    ),
+    d_entity: Optional[int] = typer.Option(
+        None, help="Override: per-entity dim (every trial)."
+    ),
+    n_heads: Optional[int] = typer.Option(
+        None, help="Override: attention heads, must divide d_entity (every trial)."
+    ),
+    d_opt: Optional[int] = typer.Option(
+        None, help="Override: option/scorer width (every trial)."
+    ),
+    d_card: Optional[int] = typer.Option(
+        None, help="Override: card embedding dim (every trial)."
     ),
     device: str = typer.Option(
         "cpu",
@@ -1066,6 +1085,14 @@ def sweep(
             shaping=shaping,
             reward_weights=reward_weights,
             model_preset=model,
+            model_overrides={
+                "n_layers": n_layers,
+                "d_state": d_state,
+                "d_entity": d_entity,
+                "n_heads": n_heads,
+                "d_opt": d_opt,
+                "d_card": d_card,
+            },
             ckpt_every=updates,
         )
         trial_dir = p["sweeps"] / study / f"trial_{trial.number}"
