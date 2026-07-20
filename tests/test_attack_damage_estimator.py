@@ -1,4 +1,4 @@
-"""Tests for pkm/rl/attack_damage_estimator.py (Phase 1 of
+"""Tests for pkm/rl/attack_damage_estimator.py (Phases 1 and 2 of
 docs/superpowers/plans/2026-07-20-attack-damage-estimator.md).
 
 Every case below uses a real attackId/text pulled from the live card
@@ -7,6 +7,8 @@ regex patterns parse actual card text correctly, not a hypothetical.
 """
 
 from pkm.data.card_data import get_attack_data
+from pkm.heuristics.context import GameContext
+from pkm.heuristics.deck_tracker import DeckTracker
 from pkm.rl.attack_damage_estimator import (
     MAX_REASONABLE_DAMAGE,
     estimate_attack_damage,
@@ -57,12 +59,20 @@ def _card(card_id, serial, player_index):
     return {"id": card_id, "serial": serial, "playerIndex": player_index}
 
 
-def _player(active, bench=None, discard=None, prize_taken=0, hand_count=0, player_index=0):
+def _player(
+    active,
+    bench=None,
+    discard=None,
+    prize_taken=0,
+    hand_count=0,
+    player_index=0,
+    deck_count=40,
+):
     return {
         "active": [active] if active else [],
         "bench": bench or [],
         "benchMax": 5,
-        "deckCount": 40,
+        "deckCount": deck_count,
         "discard": discard or [],
         "prize": [_card(0, i, player_index) for i in range(6 - prize_taken)],
         "handCount": hand_count,
@@ -84,6 +94,7 @@ def _obs(
     my_prize_taken=0,
     opp_prize_taken=0,
     opp_hand_count=0,
+    my_deck_count=40,
 ) -> Observation:
     return Observation.model_validate(
         {
@@ -108,6 +119,7 @@ def _obs(
                         discard=my_discard,
                         prize_taken=my_prize_taken,
                         player_index=0,
+                        deck_count=my_deck_count,
                     ),
                     _player(
                         opponent_active,
@@ -214,11 +226,12 @@ def test_clamped_to_max_reasonable_damage():
     assert estimate_attack_damage(ATTACKS[MIND_RULER], obs) == MAX_REASONABLE_DAMAGE
 
 
-def test_hammer_lanche_is_phase_2_not_estimated_here():
-    # The motivating example for this whole module -- deliberately still 0,
-    # since the deck-mill estimate is Phase 2, not implemented yet.
+def test_hammer_lanche_without_ctx_stays_zero():
+    # No GameContext -> no deck-composition info -> can't estimate, falls
+    # back to the pre-Phase-2 baseline (never worse than before).
     obs = _bare_obs()
     assert estimate_attack_damage(ATTACKS[HAMMER_LANCHE], obs) == 0.0
+    assert estimate_attack_damage(ATTACKS[HAMMER_LANCHE], obs, ctx=None) == 0.0
 
 
 def test_fallback_to_static_damage_when_no_pattern_matches():
@@ -247,3 +260,65 @@ def test_min_guaranteed_damage_includes_deterministic_patterns():
     my_bench = [_poke(2, serial=10), _poke(2, serial=11)]
     obs2 = _obs(attacker=_poke(1), my_bench=my_bench)
     assert min_guaranteed_damage(ATTACKS[DO_THE_WAVE], obs2) == 20 * 2
+
+
+# --- Phase 2: Hammer-lanche's deck-mill family --------------------------------
+#
+# "Discard the top 6 cards of your deck, and this attack does 100 damage
+# for each Basic {W} Energy card that you discarded in this way."
+#
+# Real card IDs: 1=Basic{G}Energy, 3=Basic{W}Energy (see the engine's
+# all_cards() -- verified during the Phase 1 investigation, only 8 energy
+# cards exist in this database, all "Basic {X} Energy", no specials).
+
+
+def _ctx_with_deck(deck_list: list[int]) -> GameContext:
+    """A GameContext whose tracker has observed nothing yet -- every card in
+    `deck_list` reads as still-in-deck, exactly representing "cards not yet
+    seen anywhere" (hand/board/discard/prize)."""
+    return GameContext(my_deck=deck_list, tracker=DeckTracker(deck_list))
+
+
+def test_deck_mill_expected_value():
+    # 10-card tracked deck, 3 of them Basic {W} Energy: mill 6 -> expected
+    # matches = 6 * 3/10 = 1.8 -> 1.8 * 100 = 180.
+    deck_list = [3, 3, 3] + [1] * 7
+    ctx = _ctx_with_deck(deck_list)
+    obs = _obs(attacker=_poke(1), my_deck_count=10)
+    assert estimate_attack_damage(ATTACKS[HAMMER_LANCHE], obs, ctx) == 180.0
+
+
+def test_deck_mill_capped_by_real_remaining_deck_size():
+    # Same 10-card tracked composition, but the real deck (deckCount) only
+    # has 4 cards left -- can't mill more than that, regardless of what the
+    # tracker's undifferentiated deck-or-prize bucket still contains.
+    deck_list = [3, 3, 3] + [1] * 7
+    ctx = _ctx_with_deck(deck_list)
+    obs = _obs(attacker=_poke(1), my_deck_count=4)
+    # n = min(6, 4) = 4; expected matches = 4 * 3/10 = 1.2 -> 120.0
+    assert estimate_attack_damage(ATTACKS[HAMMER_LANCHE], obs, ctx) == 120.0
+
+
+def test_deck_mill_zero_when_no_energy_in_tracked_deck():
+    deck_list = [1] * 10  # no {W} energy at all
+    ctx = _ctx_with_deck(deck_list)
+    obs = _obs(attacker=_poke(1), my_deck_count=10)
+    assert estimate_attack_damage(ATTACKS[HAMMER_LANCHE], obs, ctx) == 0.0
+
+
+def test_deck_mill_zero_when_tracker_deck_empty():
+    # Every card already observed elsewhere -- no ZeroDivisionError, no
+    # damage claimed.
+    ctx = _ctx_with_deck([])
+    obs = _obs(attacker=_poke(1), my_deck_count=0)
+    assert estimate_attack_damage(ATTACKS[HAMMER_LANCHE], obs, ctx) == 0.0
+
+
+def test_deck_mill_excluded_from_min_guaranteed_damage():
+    # Even with a fully informative ctx, the deck-mill estimate is an
+    # expected value, not a certainty -- must never leak into
+    # min_guaranteed_damage (lethal_this_turn's certainty claim).
+    deck_list = [3, 3, 3] + [1] * 7
+    ctx = _ctx_with_deck(deck_list)
+    obs = _obs(attacker=_poke(1), my_deck_count=10)
+    assert min_guaranteed_damage(ATTACKS[HAMMER_LANCHE], obs, ctx) == 0.0
