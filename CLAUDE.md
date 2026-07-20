@@ -28,6 +28,11 @@ Full project guide (structure, RL training, decks, submission): @AGENTS.md
   rewards + `prize_margin` aux**, packaged as `scripts/003_aux_loss/train.sh`.
   Rationale + menu of future aux tasks (Tier B opponent-belief heads are the real
   ceiling lever): `pkm/new_agents/agent_000_dragapult/docs/00_aux_loss.md`.
+- **Submission logging convention:** every time we submit a bundle to Kaggle,
+  append a row to `pkm/new_agents/agent_000_dragapult/submission_log.md` (date,
+  checkpoint, inference mode/K, bundle filename, message, and the score once it
+  lands) plus a short note on what the run was testing. Keep it up to date so the
+  leaderboard history stays in the repo.
 - **Training/sweep workflow:** always run training runs and Optuna sweeps inside the
   shared **`pkm-train`** tmux session — `tmux new-session -d -s pkm-train` (once),
   launch with `tmux send-keys -t pkm-train "cd <repo> && ./…/train.sh" Enter`, watch
