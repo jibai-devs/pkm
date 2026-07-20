@@ -35,3 +35,7 @@ runs/
 agents/*/train.log
 agents/*/train_stdout.log
 agents/*/train_stderr.log
+
+# agent_001_transformer training output (checkpoints + bundles)
+out_transformer/
+out/
