@@ -19,7 +19,7 @@
 | Belief-in-encoder wired into training (Part 2a → train.py) | **Done (2026-07-19)** | Part 2a's `NumpyArchetypeClassifier`/`compute_belief` were only ever exercised at the `TorchPolicy`-unit level (`tests/test_archetype_integration.py`) — `pkm/rl/train.py` never actually constructed a classifier, so every training run to date (including the original `03_pult_munki` 1000-iter run) saw an all-zero belief feature regardless of the dim-4→26 resize. Now: `pkm train --archetype-belief [--archetype-weights pkm/archetype.npz]` loads the classifier once and attaches it to the trainee's `TorchPolicy` only (never the frozen opponent's) via `play_one`/`parallel_rollout.py` (plumbing verified by `tests/test_rl.py::test_play_one_classifier_reaches_trainee_not_opponent`, a monkeypatch spy test). Smoke-tested standalone, combined with `--archetype-pool`, and under `--workers 2` (confirms the classifier — plain numpy arrays — pickles fine across worker processes). Opt-in, off by default. |
 | `03_pult_munki` full retrain (Milestone 8) | **Done (2026-07-19)** | Fresh run (old checkpoint incompatible, preserved at `agents/03_pult_munki/checkpoints_pre_belief_resize/`): `pkm train --agent 03_pult_munki --iterations 2000 --games 16 --eval-every 10 --archetype-pool --archetype-pool-prob 0.4 --archetype-belief`. `--archetype-pool-prob` bumped from the 0.2 default and iterations doubled from the original run's 1000 — both user calls, not ablation-derived. Finished all 2000 iterations, 100% eval-vs-random. This checkpoint became Milestone 9's population-training starting point (below) — superseded by that run's iter-2370 checkpoint, but still the reference point for the Verification #5 ablation. |
 | Pool bots, 26th addition | **Done (2026-07-19)** | `pool_400_mega_abomasnow_ex` added alongside the original 25: real decklist scraped from a user-supplied limitlesstcg tournament-list URL, solo-trained the same way as Part 3b (100 iters/16 games, 95% eval-vs-random). **Deliberately pool-bot-only, not added to `staples.json`** — no aggregate presence-percentage stats page exists for this archetype (low-representation, ~39% overall win rate on limitlesstcg), and adding it to the classifier would have bumped `BELIEF_DIM` (25→26 archetypes), which is baked into *every* model's input size as a GLOBAL feature (`pkm/rl/features.py:261-262`) — would have invalidated all 26 existing checkpoints simultaneously, including the Milestone 8 retrain that had just finished. Full-archetype/classifier integration for this deck remains a separate, not-yet-done follow-up. |
-| Population training (Milestone 9) | **Run (partial), 2026-07-19/20** | `pkm population-train --iterations 3000 --games-per-pairing 2 --workers 8`, anchor `03_pult_munki` vs all 26 pool bots (25 + Mega Abomasnow). Stopped by user request at iteration ~2375/3000 (not a crash). All 27 members' `ppo_latest.pt` confirmed current as of iteration 2370's checkpoint cycle (verified: present, uniform size, valid stamp sidecars). **Snapshot eval** (`pkm eval-vs-pool --agent 03_pult_munki --games 20`): 60.1% average win rate across the 26 pool bots; best `pool_320_n_s_zoroark_ex` (100%), worst `pool_400_mega_abomasnow_ex` (5%). **This 5% number does not reproduce under the production-faithful eval path and both its likely causes are now root-caused — see "Abomasnow Matchup Investigation" below.** This is the raw material for the plan's Verification #5 ablation (population training vs. Milestone 8's frozen-pool design) once the same eval is run against the Milestone 8 checkpoint. Full plan/status: `docs/opponent-archetype-classifier-plan.md` §3b+3c. |
+| Population training (Milestone 9) | **Run (partial), 2026-07-19/20** | `pkm population-train --iterations 3000 --games-per-pairing 2 --workers 8`, anchor `03_pult_munki` vs all 26 pool bots (25 + Mega Abomasnow). Stopped by user request at iteration ~2375/3000 (not a crash). All 27 members' `ppo_latest.pt` confirmed current as of iteration 2370's checkpoint cycle (verified: present, uniform size, valid stamp sidecars). **Snapshot eval** (`pkm eval-vs-pool --agent 03_pult_munki --games 20`, belief-off, since this predates the Finding-1 fix below): 60.1% average win rate across the 26 pool bots; best `pool_320_n_s_zoroark_ex` (100%), worst `pool_400_mega_abomasnow_ex` (5%). **Corrected (belief-on, matching production) re-run: 62.7% overall, 35% vs `pool_400_mega_abomasnow_ex` — see "Abomasnow Matchup Investigation" below, both findings now root-caused, Finding 1 fixed.** This is the raw material for the plan's Verification #5 ablation (population training vs. Milestone 8's frozen-pool design) once the same eval is run against the Milestone 8 checkpoint. Full plan/status: `docs/opponent-archetype-classifier-plan.md` §3b+3c. |
 | Metrics & monitoring | **Done** | CSV logging + Plotly notebook |
 | Kaggle submission | **Working, verified** | `pkm export --agent <name> pkm/policy.npz` + `bash submit.sh <name>` — see `docs/TRAINING_AND_SUBMISSION.md` for the full runbook |
 
@@ -48,8 +48,8 @@
 7. **Multi-deck training** — all 26 real opponent decklists are sourced (25 from Part 3a + `pool_400_mega_abomasnow_ex`), 26 solo pool bots are trained, cross-archetype sampling is implemented (Part 3c, `pkm train --archetype-pool`), the classifier's belief is wired into training (`--archetype-belief`), Milestone 8's frozen-pool retrain finished (2000 iters), and population training has now actually run (Milestone 9, partial — 2375/3000 iterations, stopped by user; see Current Progress above). **Next:** resume/extend the population-training run if desired, then run the plan's Verification #5 ablation properly (`pkm eval-vs-pool` against both the Milestone 8 checkpoint and the population-trained one, apples-to-apples) before flipping any defaults (Milestone 10). ~~Root-cause the `pool_400_mega_abomasnow_ex` 5%-win-rate outlier~~ — done, see "Abomasnow Matchup Investigation" below: the number itself was an artifact of `eval-vs-pool`'s methodology, and the real (smaller, ~45%) gap traces to a concrete feature bug. See `docs/opponent-archetype-classifier-plan.md` Part 3.
 8. **Bulk-upload the population-trained roster to Hugging Face** — all 27 checkpoints (anchor + 26 pool bots) exist locally only; see "Population-Trained Bot Roster" below for the upload loop and analysis workflow. Not yet done.
 9. **Fix the variable-damage blind spot in `lethal_this_turn`/`attack_damage`** — both features read an attack's static `damage` card-data field, which is `0` for any attack whose real damage is computed from card text at runtime (energy-mill, coin-flip, prize-count-based, etc. — e.g. Mega Abomasnow ex's Hammer-lanche). The network never gets an accurate threat signal for these attacks. See "Abomasnow Matchup Investigation" below for the evidence; not yet fixed.
-10. **Re-measure `eval-vs-pool` with a wired-in archetype classifier** (or accept it as a deliberately belief-off baseline and document that) — right now it silently evaluates every checkpoint with belief≡0, which doesn't match how `pkm play`/Kaggle actually run the same weights. See "Abomasnow Matchup Investigation" below.
-11. **Decide whether `population_train.py` should compute live belief during rollout** — Milestone 8 trained `03_pult_munki` with real `--archetype-belief` values; Milestone 9's `population_train.py` never attaches a classifier, so all 2375 population-training iterations saw belief≡0, likely eroding whatever Milestone 8 learned about that feature before deployment (which does feed it live values). Not yet measured how much this matters.
+10. ~~Re-measure `eval-vs-pool` with a wired-in archetype classifier~~ — done 2026-07-20, now defaults on (`--no-archetype-belief` for the old baseline). See "Abomasnow Matchup Investigation" below.
+11. **Decide whether `population_train.py` should compute live belief during rollout** — Milestone 8 trained `03_pult_munki` with real `--archetype-belief` values; Milestone 9's `population_train.py` never attaches a classifier, so all 2375 population-training iterations saw belief≡0, likely eroding whatever Milestone 8 learned about that feature before deployment (which does feed it live values). Scoped (Phase 2/3) in `docs/superpowers/plans/2026-07-20-belief-classifier-routing.md`; not yet implemented.
 
 ## Build & Run
 ```bash
@@ -300,7 +300,8 @@ are gitignored (local-only) — nothing here is backed up yet.
 ```bash
 # aggregate per-archetype win rate for any profile against the whole pool
 # (torch checkpoints directly, no export needed) -- already run for the
-# anchor above, 60.1% overall
+# anchor above, 62.7% overall (belief-on default as of 2026-07-20; pass
+# --no-archetype-belief for the old zero-belief baseline)
 pkm eval-vs-pool --agent 03_pult_munki --games 20 [--pool-glob "pool_*"]
 
 # a single watchable replay between two specific bots, each on its own deck.
@@ -346,24 +347,33 @@ came out of it — a methodology bug in how that 5% number was measured, and a
 real (much smaller) matchup weakness with a concrete root cause. Neither fix
 has been applied yet; this is diagnostic only.
 
-**Finding 1 — the 5% figure doesn't reproduce; `eval-vs-pool` measures a
-different input distribution than deployment sees.** Ran 20 games through the
-actual production path instead (`pkm play` with each side's exported
-`policy.npz`, alternating who goes first — script:
+**Finding 1 — the 5% figure doesn't reproduce; `eval-vs-pool` measured a
+different input distribution than deployment sees. FIXED 2026-07-20.** Ran 20
+games through the actual production path instead (`pkm play` with each side's
+exported `policy.npz`, alternating who goes first — script:
 `scripts/run_matchup_replays.py`): **9/20 (45%)**, not 5%. Root cause:
-- `pkm/rl/eval_vs_pool.py` builds `TorchPolicy` directly with no archetype
-  classifier attached, so the `opponent_archetype_belief` GLOBAL feature is
-  always zero for every game it plays.
+- `pkm/rl/eval_vs_pool.py` built `TorchPolicy` directly with no archetype
+  classifier attached, so the `opponent_archetype_belief` GLOBAL feature was
+  always zero for every game it played.
 - `pkm/agents/neural_agent.py:make_neural_agent` — what `pkm play`, the above
   script, and **the real Kaggle submission** all use — auto-loads
   `pkm/archetype.npz` by default (it's present in the repo root and gets
   bundled by `submit.sh`) and computes a live, non-zero belief every decision.
-- So `eval-vs-pool`'s numbers (including the 60.1% overall average, not just
-  the 5% outlier) were measured on an input distribution deployment never
-  actually uses. Not yet decided whether to fix `eval-vs-pool` to wire in a
-  classifier or keep it as a deliberate belief-off baseline (see What's Next
-  #10) — either way, don't take its numbers at face value against the real
-  submission until this is resolved.
+
+Fixed by wiring a `NumpyArchetypeClassifier` into both sides of every
+`eval-vs-pool` game (see
+`docs/superpowers/plans/2026-07-20-belief-classifier-routing.md` Phase 1 for
+the full design/rationale — belief now defaults **on** here, unlike
+`pkm train`'s opt-in `--archetype-belief`, specifically because this tool
+exists to measure what a checkpoint actually does and production always
+computes live belief; `--no-archetype-belief` reproduces the old baseline).
+Re-ran the full 26-bot eval after the fix: **62.7% overall** (was 60.1%),
+**35% vs `pool_400_mega_abomasnow_ex` specifically** (was 5%; in the same
+ballpark as the 45% measured via real `pkm play` games above — different
+random sample, same conclusion). The old 5% was a measurement artifact, not
+a real result. Phase 2 (wiring the same classifier into
+`pkm/rl/population_train.py`'s actual training loop, which has the same gap)
+is scoped in that plan file but not yet done.
 
 **Finding 2 — the real, smaller gap traces to a variable-damage blind spot in
 two Tier-1 features.** Decoded the 20 replays' structured `logs` (script:

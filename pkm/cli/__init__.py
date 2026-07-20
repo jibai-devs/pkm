@@ -175,12 +175,33 @@ def eval_vs_pool_cmd(
     pool_glob: str = typer.Option(
         "pool_*", help="glob under agents/ for pool-bot profiles"
     ),
+    use_archetype_belief: bool = typer.Option(
+        True,
+        "--archetype-belief/--no-archetype-belief",
+        help="compute live opponent-archetype belief for both sides, "
+        "matching pkm play/Kaggle (default: on). --no-archetype-belief "
+        "reproduces the old always-zero-belief baseline.",
+    ),
+    archetype_weights: str = typer.Option(
+        "pkm/archetype.npz",
+        help="path to the exported NumpyArchetypeClassifier weights, used "
+        "when --archetype-belief is set",
+    ),
 ) -> None:
     """Per-archetype win rate against every trained agents/pool_*/ bot, on
     each bot's own deck (evaluate_vs_random only covers vs the random agent)."""
+    from pkm.rl.eval_vs_pool import _load_archetype_classifier
     from pkm.rl.eval_vs_pool import eval_vs_pool as _eval_vs_pool
 
-    _eval_vs_pool(agent=agent, games=games, pool_glob=pool_glob)
+    archetype_classifier = (
+        _load_archetype_classifier(archetype_weights) if use_archetype_belief else None
+    )
+    _eval_vs_pool(
+        agent=agent,
+        games=games,
+        pool_glob=pool_glob,
+        archetype_classifier=archetype_classifier,
+    )
 
 
 @app.command(name="exit-train")
@@ -246,6 +267,14 @@ def play(
     agent: str | None = typer.Option(
         None, help="agent profile name (resolves deck + weights)"
     ),
+    p0_agent: str | None = typer.Option(
+        None,
+        "--p0-agent",
+        help="agent profile name for player 0 only (different deck/weights per side)",
+    ),
+    p1_agent: str | None = typer.Option(
+        None, "--p1-agent", help="agent profile name for player 1 only"
+    ),
     deck: str = typer.Option("deck/02_dragapult.csv", help="path to deck CSV"),
     weights: str | None = typer.Option(None, help="path to policy .npz"),
     html: str = typer.Option("result.html", help="HTML replay output path"),
@@ -259,6 +288,8 @@ def play(
         p0=p0,
         p1=p1,
         agent=agent,
+        p0_agent=p0_agent,
+        p1_agent=p1_agent,
         deck=deck,
         weights=weights,
         html=html,
