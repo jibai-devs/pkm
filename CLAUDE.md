@@ -9,8 +9,12 @@ Full project guide (structure, RL training, decks, submission): @AGENTS.md
   was vs *random* (saturates ~100%). Fixes shipped: head-to-head eval
   (`eval --opponent <ckpt>`), configurable net size/depth (`--model`), GPU
   (`--device cuda`), heuristic shaping. Large net trained unstable (lr too high for
-  depth) → `002_large_tuned` (lr 1e-4). Next lever: **opponent-pool training**. Full
-  log: `pkm/new_agents/agent_000_dragapult/TRAINING.md` §10.
+  depth) → `002_large_tuned` (lr 1e-4). **Inference-time MCTS shipped (2026-07-20):**
+  wrap the trained net in PUCT search at decision time, no retrain — `pack
+  --inference mcts -K <sims>` (K=0 = plain policy) bakes it into the bundle;
+  `eval --inference mcts -K <sims>` measures it; `scripts/pack_variants.sh` packs
+  both variants. Search rides Kaggle's own `libcg.so`. Next lever: **opponent-pool
+  training**. Full log: `pkm/new_agents/agent_000_dragapult/TRAINING.md` §10.
 - **Training/sweep workflow:** always run training runs and Optuna sweeps inside the
   shared **`pkm-train`** tmux session — `tmux new-session -d -s pkm-train` (once),
   launch with `tmux send-keys -t pkm-train "cd <repo> && ./…/train.sh" Enter`, watch

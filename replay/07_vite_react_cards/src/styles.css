@@ -208,12 +208,18 @@ body {
 }
 
 /* --- 07 board layout (mockup arrangement) --- */
-.board-cards { --cw: 92px; --ch: 128px; display: flex; flex-direction: column; gap: 8px; }
-.board-cards .card { width: var(--cw); height: var(--ch); }
+/* --card-ratio matches the real card PNGs exactly (396x552). Size every
+   card-shaped box by WIDTH only and let aspect-ratio derive the height, so the
+   box always matches the image — no distortion, no crop. */
+.board-cards { --cw: 92px; --card-ratio: 396 / 552; display: flex; flex-direction: column; gap: 8px; }
+.board-cards .card,
+.board-cards .slot,
+.board-cards .prize-taken { aspect-ratio: var(--card-ratio); height: auto; }
+.board-cards .card { width: var(--cw); }
 /* a full 8-card bench at this size can exceed the band width; scroll instead of squish */
 .board-cards .pl-band { overflow-x: auto; }
 .board-cards .row { flex-wrap: nowrap; }
-.board-cards .card-hand { width: calc(var(--cw) * 0.92); height: calc(var(--ch) * 0.92); }
+.board-cards .card-hand { width: calc(var(--cw) * 0.92); }
 .pl { border: 1px solid rgba(255,255,255,.14); border-radius: 10px; padding: 8px 10px; background: rgba(0,0,0,.12); }
 .pl-active { box-shadow: inset 0 0 0 1px #ffd24a55; }
 .pl-head { display: flex; gap: 10px; align-items: center; font-size: 11px; opacity: .8; margin-bottom: 6px; }
@@ -223,16 +229,16 @@ body {
 .board-cards .zone-label { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; opacity: .6; }
 .board-cards .row { display: flex; gap: 8px; }
 .prizes-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; }
-.prizes-grid .card { width: calc(var(--cw) * 0.66); height: calc(var(--ch) * 0.66); }
+.prizes-grid .card { width: calc(var(--cw) * 0.66); }
 .prize-taken {
-  width: calc(var(--cw) * 0.66); height: calc(var(--ch) * 0.66);
+  width: calc(var(--cw) * 0.66);
   border: 1.5px dashed rgba(255,255,255,.18);
   border-radius: 6px;
   opacity: .3;
 }
 .piles-zone { flex-direction: column; gap: 10px; align-items: center; }
 .pile { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.slot { width: var(--cw); height: var(--ch); border: 1.5px dashed rgba(255,255,255,.28);
+.slot { width: var(--cw); border: 1.5px dashed rgba(255,255,255,.28);
   border-radius: 6px; display: flex; align-items: center; justify-content: center;
   font-size: 9px; opacity: .5; }
 .active-frame { outline: 3px solid #ffd24a; outline-offset: 2px; border-radius: 8px; }

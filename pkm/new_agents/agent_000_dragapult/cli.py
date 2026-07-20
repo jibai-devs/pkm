@@ -775,14 +775,42 @@ def eval(
         DEFAULT_EXPERIMENT, "--experiment", "-e", help=_EXPERIMENT_HELP
     ),
     engine: str = typer.Option(_DEFAULT_ENGINE, help=_ENGINE_HELP),
+    inference: str = typer.Option(
+        "policy",
+        "--inference",
+        help="Decision mode for the agent under test: 'policy' or 'mcts'.",
+    ),
+    mcts_sims: int = typer.Option(
+        0, "--mcts-sims", "-K", help="MCTS simulation budget K (0 = policy only)."
+    ),
+    mcts_c_puct: float = typer.Option(1.25, help="PUCT exploration constant for MCTS."),
+    mcts_temperature: float = typer.Option(
+        0.0, help="Root visit-count temperature for the MCTS pick (0 = most-visited)."
+    ),
 ) -> None:
-    """Report a checkpoint's win-rate vs the random baseline (alternating seats)."""
+    """Report a checkpoint's win-rate vs the random baseline (alternating seats).
+
+    Add ``--inference mcts -K <sims>`` to evaluate the checkpoint with
+    inference-time PUCT search instead of the raw policy head — the direct way
+    to measure whether search actually beats the plain policy for this net.
+    """
     _select_engine(engine)
+    from pkm.new_agents.agent_000_dragapult.agent import InferenceConfig
     from pkm.new_agents.agent_000_dragapult.eval import (
         winrate_vs_checkpoint,
         winrate_vs_random,
     )
     from pkm.new_agents.agent_000_dragapult.train import TrainState
+
+    if inference not in ("policy", "mcts"):
+        console.print(f"[red]--inference must be 'policy' or 'mcts', got[/] {inference!r}")
+        raise typer.Exit(1)
+    inf = InferenceConfig(
+        type=inference,
+        mcts_sims=mcts_sims,
+        c_puct=mcts_c_puct,
+        temperature=mcts_temperature,
+    )
 
     data_dir = _resolve_experiment(data_dir, experiment)
     ckpt = checkpoint or (_paths(data_dir)["ckpt"] / "latest.pt")
@@ -790,6 +818,11 @@ def eval(
         console.print(f"[red]no checkpoint at[/] {ckpt}")
         raise typer.Exit(1)
     model = TrainState.load(ckpt).model
+    if inf.use_mcts:
+        console.print(
+            f"[dim]agent-under-test uses[/] MCTS "
+            f"[dim](K={inf.mcts_sims}, c_puct={inf.c_puct}, temp={inf.temperature})[/]"
+        )
     if opponent is not None:
         if not opponent.exists():
             console.print(f"[red]no opponent checkpoint at[/] {opponent}")
@@ -1173,6 +1206,29 @@ def pack(
     experiment: str = typer.Option(
         DEFAULT_EXPERIMENT, "--experiment", "-e", help=_EXPERIMENT_HELP
     ),
+    inference: str = typer.Option(
+        "policy",
+        "--inference",
+        help="Inference mode baked into the bundle: 'policy' (raw policy head, "
+        "fast) or 'mcts' (PUCT search at decision time — stronger but slower). "
+        "MCTS is also disabled whenever --mcts-sims is 0.",
+    ),
+    mcts_sims: int = typer.Option(
+        0,
+        "--mcts-sims",
+        "-K",
+        help="MCTS simulation budget K per decision. 0 turns MCTS off (so "
+        "'--inference mcts --mcts-sims 0' still deploys as plain policy).",
+    ),
+    mcts_c_puct: float = typer.Option(1.25, help="PUCT exploration constant for MCTS."),
+    mcts_temperature: float = typer.Option(
+        0.0,
+        help="Root visit-count temperature for the MCTS move pick (0 = pick the "
+        "most-visited move, deterministic).",
+    ),
+    determinization: str = typer.Option(
+        "sample", help="Hidden-info determinizer for MCTS (key into DETERMINIZERS)."
+    ),
 ) -> None:
     """Pack the latest weights into a Kaggle submission bundle (.tar.gz).
 
@@ -1180,12 +1236,29 @@ def pack(
     submission ``main.py`` entry point and the ``pkm/`` package, and writes a
     timestamped tarball under <output>/submissions/. Torch is NOT bundled (size
     limit); the bundle relies on torch existing in the cabt sandbox at inference.
+
+    The bundle also records the inference config (policy vs MCTS + the K budget),
+    so the same checkpoint can be packed twice — once plain, once with search —
+    and each submission behaves accordingly with no code change at deploy time.
     """
     import tarfile
     import tempfile
     from datetime import datetime as _dt
 
     import torch
+
+    from pkm.new_agents.agent_000_dragapult.agent import InferenceConfig
+
+    if inference not in ("policy", "mcts"):
+        console.print(f"[red]--inference must be 'policy' or 'mcts', got[/] {inference!r}")
+        raise typer.Exit(1)
+    inf = InferenceConfig(
+        type=inference,
+        mcts_sims=mcts_sims,
+        c_puct=mcts_c_puct,
+        temperature=mcts_temperature,
+        determinization=determinization,
+    )
 
     data_dir = _resolve_experiment(data_dir, experiment)
     p = _paths(data_dir)
@@ -1216,7 +1289,14 @@ def pack(
     out = p["submissions"] / f"submission_{ts}.tar.gz"
     with tempfile.TemporaryDirectory() as tmp:
         weights_file = Path(tmp) / "weights.pt"
-        torch.save({"state_dict": state_dict, "model_config": model_config}, weights_file)
+        torch.save(
+            {
+                "state_dict": state_dict,
+                "model_config": model_config,
+                "inference": inf.to_dict(),
+            },
+            weights_file,
+        )
         with tarfile.open(out, "w:gz") as tar:
             tar.add(template, arcname="main.py")
             tar.add(weights_file, arcname="weights.pt")
@@ -1233,10 +1313,21 @@ def pack(
             else f"[red](> {_MAX_BUNDLE_MIB} limit!)[/]"
         )
     )
+    mode = (
+        f"mcts (K={inf.mcts_sims}, c_puct={inf.c_puct}, temp={inf.temperature})"
+        if inf.use_mcts
+        else "policy (no search)"
+    )
+    console.print(f"[dim]inference:[/] {mode}")
     console.print(
         "[yellow]note:[/] inference uses torch; the bundle assumes the cabt "
         "sandbox provides it (no torch is bundled)."
     )
+    if inf.use_mcts:
+        console.print(
+            "[yellow]note:[/] MCTS runs a forward search per decision — watch "
+            "Kaggle's per-turn + cumulative 600s time budget; tune K accordingly."
+        )
     console.print("[dim]submit with:[/] pkm new_agents 000_dragapult submit")
 
 

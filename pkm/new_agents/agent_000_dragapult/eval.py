@@ -21,7 +21,7 @@ from pkm.new_agents.agent_000_dragapult.cabt import (
     battle_select,
     battle_start,
 )
-from pkm.new_agents.agent_000_dragapult.agent import DragapultAgent
+from pkm.new_agents.agent_000_dragapult.agent import DragapultAgent, InferenceConfig
 from pkm.new_agents.agent_000_dragapult.deck import DECK_60
 
 AgentFn = Callable[[dict[str, Any]], list[int]]
@@ -94,24 +94,38 @@ def evaluate(
 
 @torch.no_grad()
 def winrate_vs_random(
-    model: torch.nn.Module, n_games: int = 100, seed: int = 0
+    model: torch.nn.Module,
+    n_games: int = 100,
+    seed: int = 0,
+    inference: InferenceConfig | None = None,
 ) -> dict[str, float]:
-    """Convenience: greedy agent from `model` vs a RandomAgent baseline."""
-    agent = DragapultAgent(model=model, greedy=True)
+    """Convenience: greedy agent from `model` vs a RandomAgent baseline.
+
+    Pass ``inference`` to evaluate the agent-under-test with MCTS search rather
+    than the raw policy head.
+    """
+    agent = DragapultAgent(model=model, greedy=True, inference=inference)
     return evaluate(agent, RandomAgent(seed=seed), n_games=n_games)
 
 
 @torch.no_grad()
 def winrate_vs_agent(
-    model: torch.nn.Module, opponent: AgentFn, n_games: int = 100
+    model: torch.nn.Module,
+    opponent: AgentFn,
+    n_games: int = 100,
+    inference: InferenceConfig | None = None,
 ) -> dict[str, float]:
     """Win-rate of greedy `model` vs an arbitrary opponent agent callable."""
-    return evaluate(DragapultAgent(model=model, greedy=True), opponent, n_games=n_games)
+    agent = DragapultAgent(model=model, greedy=True, inference=inference)
+    return evaluate(agent, opponent, n_games=n_games)
 
 
 @torch.no_grad()
 def winrate_vs_checkpoint(
-    model: torch.nn.Module, opponent_path: str, n_games: int = 100
+    model: torch.nn.Module,
+    opponent_path: str,
+    n_games: int = 100,
+    inference: InferenceConfig | None = None,
 ) -> dict[str, float]:
     """Win-rate of greedy `model` vs a greedy agent loaded from another checkpoint
     (a training ``ckpt_N.pt`` or a packed ``weights.pt``).
@@ -121,4 +135,4 @@ def winrate_vs_checkpoint(
     other ranks them on a signal that isn't pinned to the random-opponent ceiling.
     """
     opp = DragapultAgent.from_checkpoint(opponent_path, greedy=True)
-    return winrate_vs_agent(model, opp, n_games=n_games)
+    return winrate_vs_agent(model, opp, n_games=n_games, inference=inference)

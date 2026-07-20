@@ -418,6 +418,26 @@ lr was too aggressive for the deeper net. `002_large_tuned` lowers `lr → 1e-4`
 and `scripts/002_large_tuned/`. Whether 002 is *better* (not just stabler) must be
 judged **head-to-head** (`002-final` vs `001-final`), never vs random.
 
+### Inference-time MCTS — `pack --inference mcts -K <sims>` (2026-07-20)
+Wraps the trained net in PUCT search at decision time (README §9 item 1) — a
+strength upgrade with **no retrain**. The choice is baked into the packed bundle
+via an `InferenceConfig` (in `weights.pt`), so one checkpoint can be submitted
+two ways:
+
+- `pack ... --inference mcts -K 32` → search bundle (K = simulations/decision).
+- `pack ...` (default) or `-K 0` / `--inference policy` → plain policy bundle.
+- `scripts/pack_variants.sh [exp] [K]` packs BOTH from the same checkpoint.
+- Measure before submitting: `eval --inference mcts -K 32 --opponent <ckpt>`
+  (head-to-head vs the policy-only agent is the honest "does search help?" test).
+
+How it works: `agent.DragapultAgent._mcts_pick` calls the existing `mcts.search`
+(PUCT over the engine's `Search*` forward model, K=1 determinization for hidden
+cards). At deployment the search symbols come from **Kaggle's own `libcg.so`** —
+no vendored engine is shipped. `submit_main.py` picks up the bundle's inference
+config automatically (via `from_checkpoint`). **Caveat:** MCTS runs a forward
+search per decision — mind Kaggle's per-turn + cumulative 600 s clock; tune K.
+Tests: `test_inference_mcts.py` (config toggle, bundle round-trip, engine smoke).
+
 ### Next lever (not yet built)
 **Opponent-pool training** — self-play against *past checkpoints*, not just the
 current mirror. Improves the training signal AND gives a non-saturated eval; the
