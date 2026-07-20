@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 import torch
@@ -34,6 +34,10 @@ class Step:
     reward: float = 0.0  # filled by the shaper (shaping.assign_targets)
     adv: float = 0.0
     ret: float = 0.0
+    # Auxiliary-task labels, name -> target, filled after each game by the active
+    # aux tasks (see aux_tasks.py). Empty unless an aux task is on; the aux loss
+    # only reads names it activated, so a missing key never matters.
+    aux: dict = field(default_factory=dict)
     # Heuristic scalars, filled by `_fill_heuristics` during rollout and read by
     # the "heuristic" shaper (see shaping.py). Names match reward_terms.ALL_TERMS
     # attrs. All default to 0.0, so a step never touched by _fill_heuristics
@@ -125,8 +129,15 @@ def play_game(
         obs = battle_select(picks)
         n_iter += 1
     result = obs["current"]["result"]
+    terminal_obs = obs  # last observation carries the final prize piles
     battle_finish()
     assign_targets(steps, result, cfg)
+    # Auxiliary-task labels: let each active task read the finished game and
+    # stamp its per-step target. No-op when no aux task is active (the default).
+    from pkm.new_agents.agent_000_dragapult.aux_tasks import AUX_TASKS, active_tasks
+
+    for name in active_tasks(cfg.train.aux_weights):
+        AUX_TASKS[name].assign(steps, terminal_obs)
     return steps, result
 
 
@@ -171,6 +182,14 @@ def _minibatch(steps: list[Step]) -> dict[str, torch.Tensor]:
     b["old_logprob"] = torch.tensor([s.logprob for s in steps], dtype=torch.float32)
     b["adv"] = torch.tensor([s.adv for s in steps], dtype=torch.float32)
     b["ret"] = torch.tensor([s.ret for s in steps], dtype=torch.float32)
+    # Auxiliary labels: one tensor per task present on the steps, keyed
+    # `aux__<name>`. Missing labels default to 0.0 (a step from a game where the
+    # task wasn't active). Iterating the union of keys keeps this task-agnostic.
+    aux_names = {name for s in steps for name in s.aux}
+    for name in aux_names:
+        b[f"aux__{name}"] = torch.tensor(
+            [float(s.aux.get(name, 0.0)) for s in steps], dtype=torch.float32
+        )
     return b
 
 
@@ -186,9 +205,13 @@ def ppo_update(
     idx = np.arange(len(steps))
     adv_all = torch.tensor([s.adv for s in steps], dtype=torch.float32)
     adv_mean, adv_std = adv_all.mean().item(), adv_all.std().item() + 1e-8
+    from pkm.new_agents.agent_000_dragapult.aux_tasks import AUX_TASKS, active_tasks
+
+    aux_names = active_tasks(tc.aux_weights)
     stats = {
         "pol_loss": 0.0,
         "val_loss": 0.0,
+        "aux_loss": 0.0,
         "entropy": 0.0,
         "approx_kl": 0.0,
         "clip_frac": 0.0,
@@ -204,7 +227,11 @@ def ppo_update(
                 continue
             b = _minibatch(mb)
             b = {k: v.to(dev) for k, v in b.items()}
-            logits, value = model(b)
+            # Run the trunk once, then each head, so the aux heads share the same
+            # forward as policy + value (that shared pass is the whole point).
+            state, ent_emb = model.encode(b)
+            logits = model.policy_from_state(state, ent_emb, b)
+            value = model.value_from_state(state)
             new_lp = policy.batched_action_logprob(
                 logits, b["option_mask"], b["actions"], b["action_len"]
             )
@@ -216,7 +243,23 @@ def ppo_update(
             clipped = torch.clamp(ratio, 1 - tc.clip_eps, 1 + tc.clip_eps) * adv
             pol_loss = -torch.min(unclipped, clipped).mean()
             val_loss = (value - b["ret"]).pow(2).mean()
-            loss = pol_loss + tc.value_coef * val_loss - tc.entropy_coef * ent
+            # Auxiliary losses: sum of weight * task.loss(pred, target) over the
+            # active heads. Zero (and no extra compute) when none are active.
+            aux_loss = value.new_zeros(())
+            if aux_names:
+                aux_preds = model.aux_from_state(state)
+                for name in aux_names:
+                    pred, target = aux_preds.get(name), b.get(f"aux__{name}")
+                    if pred is not None and target is not None:
+                        aux_loss = aux_loss + tc.aux_weights[name] * AUX_TASKS[
+                            name
+                        ].loss(pred, target)
+            loss = (
+                pol_loss
+                + tc.value_coef * val_loss
+                + aux_loss
+                - tc.entropy_coef * ent
+            )
             optimizer.zero_grad()
             loss.backward()
             grad_norm = torch.nn.utils.clip_grad_norm_(
@@ -229,6 +272,7 @@ def ppo_update(
                 clip_frac = (ratio - 1).abs().gt(tc.clip_eps).float().mean().item()
             stats["pol_loss"] += pol_loss.item()
             stats["val_loss"] += val_loss.item()
+            stats["aux_loss"] += float(aux_loss.detach())
             stats["entropy"] += ent.item()
             stats["approx_kl"] += approx_kl
             stats["clip_frac"] += clip_frac
@@ -256,6 +300,7 @@ def ppo_update(
     return {
         "pol_loss": stats["pol_loss"] / n,
         "val_loss": stats["val_loss"] / n,
+        "aux_loss": stats["aux_loss"] / n,
         "entropy": stats["entropy"] / n,
         "approx_kl": stats["approx_kl"] / n,
         "clip_frac": stats["clip_frac"] / n,

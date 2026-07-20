@@ -22,6 +22,10 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from pkm.new_agents.agent_000_dragapult.attacks import AttackEncoder
+from pkm.new_agents.agent_000_dragapult.aux_tasks import (
+    active_tasks,
+    default_weights as _default_aux_weights,
+)
 from pkm.new_agents.agent_000_dragapult.encoder import StateEncoder
 from pkm.new_agents.agent_000_dragapult.features import FEATURE_VERSION
 from pkm.new_agents.agent_000_dragapult.model import PolicyValueModel
@@ -141,6 +145,13 @@ class TrainConfig:
     reward_weights: dict[str, float] = field(
         default_factory=lambda: dict(DEFAULT_WEIGHTS)
     )
+    # Auxiliary-loss weights (key into aux_tasks.AUX_TASKS -> coefficient). A task
+    # is active (its head is built + its loss added) iff its weight > 0. Defaults
+    # to every registered task at 0.0, so this field changes nothing unless a
+    # weight is set. Serialized into every checkpoint config (folded into the
+    # config hash), so a run's aux setup is fully reproducible and the model
+    # rebuilt on resume/eval has exactly the same heads. See .aux_tasks.
+    aux_weights: dict[str, float] = field(default_factory=_default_aux_weights)
     # --- training method selector (key into trainers.TRAINERS) ---
     method: str = "ppo"
     # MCTS expert-iteration knobs (inert unless method == "exit").
@@ -202,9 +213,16 @@ def build_model(cfg: Config | ModelConfig | None = None) -> PolicyValueModel:
         ff_mult=mc.ff_mult,
         dropout=mc.dropout,
     )
+    # Auxiliary heads are a *training* concern, so they're built only when a full
+    # Config (with a TrainConfig) is given — i.e. training / resume / eval / the
+    # rollout workers, which all rebuild from the same cfg so their state_dicts
+    # match. Inference rebuilds from a bare ModelConfig (no train config), so it
+    # gets no aux heads — matching the bundle whose aux keys pack.py stripped.
+    aux = active_tasks(cfg.train.aux_weights) if isinstance(cfg, Config) else []
     return PolicyValueModel(
         encoder=encoder,
         d_opt=mc.d_opt,
         d_ctx=mc.d_ctx,
         attack_enc=AttackEncoder(d_atk=mc.d_atk),
+        aux_tasks=aux,
     )

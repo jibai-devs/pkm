@@ -15,6 +15,19 @@ Full project guide (structure, RL training, decks, submission): @AGENTS.md
   `eval --inference mcts -K <sims>` measures it; `scripts/pack_variants.sh` packs
   both variants. Search rides Kaggle's own `libcg.so`. Next lever: **opponent-pool
   training**. Full log: `pkm/new_agents/agent_000_dragapult/TRAINING.md` §10.
+- **Auxiliary losses shipped (2026-07-20) + NEW DEFAULT recipe.** Config-driven
+  registry `aux_tasks.py` (mirrors the reward-term registry): each `AuxTask`
+  bundles a head factory + per-step labeller + loss; `TrainConfig.aux_weights`
+  (name→weight, in the config hash) turns tasks on (weight>0), default all-zero
+  = off = v1 behaviour. Enable via `train --aux-weight prize_margin=0.25`
+  (repeatable). Heads are **training-only**: built only when a full `Config`
+  reaches `build_model`, so inference (bare `ModelConfig`) gets none; `pack`
+  strips `aux_heads.*` from the bundle → zero inference/parity/size cost. First
+  task: `prize_margin` (predict final prize-count margin, dense −6..+6, terminal
+  label). **The new default training = large net + tuned low-LR PPO + heuristic
+  rewards + `prize_margin` aux**, packaged as `scripts/003_aux_loss/train.sh`.
+  Rationale + menu of future aux tasks (Tier B opponent-belief heads are the real
+  ceiling lever): `pkm/new_agents/agent_000_dragapult/docs/00_aux_loss.md`.
 - **Training/sweep workflow:** always run training runs and Optuna sweeps inside the
   shared **`pkm-train`** tmux session — `tmux new-session -d -s pkm-train` (once),
   launch with `tmux send-keys -t pkm-train "cd <repo> && ./…/train.sh" Enter`, watch

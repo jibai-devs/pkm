@@ -202,6 +202,32 @@ def _parse_reward_weights(pairs: list[str]) -> dict[str, float]:
     return out
 
 
+def _parse_aux_weights(pairs: list[str]) -> dict[str, float]:
+    """Parse ``--aux-weight name=value`` pairs into a dict, validating names
+    against the aux-task registry and values as floats."""
+    from pkm.new_agents.agent_000_dragapult.aux_tasks import task_names
+
+    names = set(task_names())
+    out: dict[str, float] = {}
+    for pair in pairs:
+        if "=" not in pair:
+            console.print(f"[red]--aux-weight expects name=value, got:[/] {pair!r}")
+            raise typer.Exit(1)
+        name, _, raw = pair.partition("=")
+        name = name.strip()
+        if name not in names:
+            console.print(
+                f"[red]unknown aux task[/] {name!r}; choose from {sorted(names)}"
+            )
+            raise typer.Exit(1)
+        try:
+            out[name] = float(raw)
+        except ValueError:
+            console.print(f"[red]aux weight for {name!r} is not a number:[/] {raw!r}")
+            raise typer.Exit(1) from None
+    return out
+
+
 def _build_config(
     *,
     workers: int,
@@ -218,6 +244,7 @@ def _build_config(
     shaping: str = "prize_potential",
     shaping_coef: float = 1.0,
     reward_weights: dict[str, float] | None = None,
+    aux_weights: dict[str, float] | None = None,
     method: str = "ppo",
     mcts_simulations: int = 32,
     mcts_c_puct: float = 1.25,
@@ -246,6 +273,12 @@ def _build_config(
     if reward_weights:
         weights.update(reward_weights)
 
+    # Same overlay for aux weights: start from the all-zero default so unset
+    # tasks stay off, then apply CLI overrides.
+    aux = dict(TrainConfig().aux_weights)
+    if aux_weights:
+        aux.update(aux_weights)
+
     train = dataclasses.replace(
         TrainConfig(),
         num_workers=workers,
@@ -261,6 +294,7 @@ def _build_config(
         shaping=shaping,
         shaping_coef=shaping_coef,
         reward_weights=weights,
+        aux_weights=aux,
         method=method,
         mcts_simulations=mcts_simulations,
         mcts_c_puct=mcts_c_puct,
@@ -301,6 +335,9 @@ def _config_table(cfg: Config) -> Table:
     if tc.shaping == "heuristic":
         active = {k: v for k, v in sorted(tc.reward_weights.items()) if v}
         t.add_row("reward_weights", str(active) if active else "(all 0.0)")
+    aux = {k: v for k, v in sorted(tc.aux_weights.items()) if v}
+    if aux:
+        t.add_row("aux_weights", str(aux))
     return t
 
 
@@ -534,6 +571,13 @@ def train(
         "e.g. --reward-weight dragapult_bonus=0.3. Only used when "
         "--shaping heuristic.",
     ),
+    aux_weight: list[str] = typer.Option(
+        [],
+        "--aux-weight",
+        help="Enable/weight an auxiliary loss as name=value (repeatable), e.g. "
+        "--aux-weight prize_margin=0.25. Weight > 0 turns the task on. Default: "
+        "all off. Aux heads are training-only (stripped from the Kaggle bundle).",
+    ),
     model: str = typer.Option(
         "small",
         "--model",
@@ -647,6 +691,7 @@ def train(
         shaping=shaping,
         shaping_coef=shaping_coef,
         reward_weights=_parse_reward_weights(reward_weight),
+        aux_weights=_parse_aux_weights(aux_weight),
         method=method,
         mcts_simulations=mcts_simulations,
         mcts_c_puct=mcts_c_puct,
@@ -1275,6 +1320,13 @@ def pack(
     # rebuilds a non-default (e.g. large/deeper) net correctly at inference.
     blob = torch.load(ckpt, map_location="cpu", weights_only=False)
     state_dict = blob["model"] if isinstance(blob, dict) and "model" in blob else blob
+    # Auxiliary heads are training-only: the inference model rebuilds from the
+    # bare ModelConfig (no aux heads), so drop their weights here or a strict
+    # load_state_dict would reject the unexpected keys. See aux_tasks.py.
+    aux_keys = [k for k in state_dict if k.startswith("aux_heads.")]
+    if aux_keys:
+        state_dict = {k: v for k, v in state_dict.items() if not k.startswith("aux_heads.")}
+        console.print(f"[dim]stripped {len(aux_keys)} aux-head tensors (training-only)[/]")
     model_config = (
         (blob.get("config") or {}).get("model") if isinstance(blob, dict) else None
     )
