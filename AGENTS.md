@@ -47,10 +47,11 @@
 6. **Larger model** — wider MLP, more embedding dims, attention over options
 7. **Multi-deck training** — all 26 real opponent decklists are sourced (25 from Part 3a + `pool_400_mega_abomasnow_ex`), 26 solo pool bots are trained, cross-archetype sampling is implemented (Part 3c, `pkm train --archetype-pool`), the classifier's belief is wired into training (`--archetype-belief`), Milestone 8's frozen-pool retrain finished (2000 iters), and population training has now actually run (Milestone 9, partial — 2375/3000 iterations, stopped by user; see Current Progress above). **Next:** resume/extend the population-training run if desired, then run the plan's Verification #5 ablation properly (`pkm eval-vs-pool` against both the Milestone 8 checkpoint and the population-trained one, apples-to-apples) before flipping any defaults (Milestone 10). ~~Root-cause the `pool_400_mega_abomasnow_ex` 5%-win-rate outlier~~ — done, see "Abomasnow Matchup Investigation" below: the number itself was an artifact of `eval-vs-pool`'s methodology, and the real (smaller, ~45%) gap traces to a concrete feature bug. See `docs/opponent-archetype-classifier-plan.md` Part 3.
 8. **Bulk-upload the population-trained roster to Hugging Face** — all 27 checkpoints (anchor + 26 pool bots) exist locally only; see "Population-Trained Bot Roster" below for the upload loop and analysis workflow. Not yet done.
-9. ~~Fix the variable-damage blind spot in `lethal_this_turn`/`attack_damage`~~ — **Phase 1 and Phase 2 done 2026-07-20** (`pkm/rl/attack_damage_estimator.py`, 15 patterns incl. Hammer-lanche's own deck-mill estimate, 175 tests passing). Retraining on the changed feature is Phase 3, not yet done — needs to bundle both phases' fixes into one retrain-and-measure pass, not two. See "Abomasnow Matchup Investigation" below and `docs/superpowers/plans/2026-07-20-attack-damage-estimator.md`.
+9. ~~Fix the variable-damage blind spot in `lethal_this_turn`/`attack_damage`~~ — **Phase 1 and Phase 2 done 2026-07-20** (`pkm/rl/attack_damage_estimator.py`, 15 patterns incl. Hammer-lanche's own deck-mill estimate, 175 tests passing). **Phase 3 (retrain-and-measure) also done 2026-07-20 — and it didn't help.** Two retrain attempts (300 then 1500 more iterations, bundling both this fix and belief-classifier-routing's) showed no real improvement on the matchup that motivated all of this; a post-retrain replay re-analysis found the underlying casualty pattern unchanged. See "Abomasnow Matchup Investigation" below for the full numbers, and What's Next #13 for the follow-up direction this points to.
 10. ~~Re-measure `eval-vs-pool` with a wired-in archetype classifier~~ — done 2026-07-20, now defaults on (`--no-archetype-belief` for the old baseline). See "Abomasnow Matchup Investigation" below.
 11. **Decide whether `population_train.py` should compute live belief during rollout** — Milestone 8 trained `03_pult_munki` with real `--archetype-belief` values; Milestone 9's `population_train.py` never attaches a classifier, so all 2375 population-training iterations saw belief≡0, likely eroding whatever Milestone 8 learned about that feature before deployment (which does feed it live values). Scoped (Phase 2/3) in `docs/superpowers/plans/2026-07-20-belief-classifier-routing.md`; not yet implemented.
 12. **Rethink how attack card text reaches the network at all — the regex approach has a real, structural ceiling, not just a to-do list of missing patterns.** Checked directly (2026-07-20, not just inferred): of the 195 real attacks whose damage is computed from card text, `pkm/rl/attack_damage_estimator.py`'s 14 patterns match only **86 (44%)** by direct text search, not the "broader than expected" coverage first claimed (that claim was measured against an artificially empty test board, which hid the gap). Of the 109 unmatched: ~25 are correctly still 0 (pure heals/status effects, not damage), ~35-40 are real misses worth adding as more patterns (damage scaled by counters already on a Pokémon, energy attached to the *opponent's* side, "discard up to N energy" — the player's own free choice, so fully computable, not random like Hammer-lanche), and ~40-45 need either a card name a substring the data doesn't tag ("Ancient", "Team Rocket's", specific species names) or genuinely hidden information (opponent's hand *contents*, not just size). That last bucket is the real signal: **hand-writing a regex pattern per mechanism doesn't converge** — every card-set update adds new phrasings, and there will always be a tail no formula-per-shape approach reaches. Worth exploring a fundamentally different representation before sinking more effort into pattern #16, #17, ...: e.g. a one-time LLM-assisted pass that extracts a structured formula for every attack (not just the ones regex happens to recognize, and reviewable/verifiable per-card rather than inferred), and/or feeding a text embedding of the card's raw text as a supplementary network input so the model has *some* signal about mechanics nobody's hand-modeled yet, instead of a hard 0. Not scoped yet — this is a flag to think about the architecture before continuing to extend the current approach piecemeal.
+13. **Give the network a direct, dense training signal for card/attack importance, instead of relying on diffuse win/loss to teach it indirectly.** Motivated by the Abomasnow replay re-analysis (2026-07-20, see "Abomasnow Matchup Investigation" below): after both the attack-damage-estimator fix (Hammer-lanche's real expected damage is now visible via `attack_damage`) and ~1800 additional training iterations with equal-odds exposure to all 26 pool decks, `03_pult_munki` still loses its entire fragile support line to Hammer-lanche at basically the same rate as before (76 vs. 73 KOs scored against it, Hammer-lanche still the dominant/most-decisive move in nearly every game) — the fix changed what the feature *reports*, not what the AI actually *does*. Card ID embeddings (used for board_cards/hand_cards/etc.) could in principle learn "this specific card tends to be dangerous" purely through experience, but the only signal currently reaching them is the final win/loss (+ potential-based shaping) at the end of a ~100-turn game — a very indirect path for a gradient to travel to connect one early/mid-game card to a late-game loss. The archetype-belief head (Task 8) already demonstrates a better pattern for exactly this problem: instead of hoping archetype-recognition would emerge from the policy/value loss alone, it got its own auxiliary training objective (predict the archetype), a much denser and more direct teacher. The same approach could apply to card/attack danger: an auxiliary head trained to predict something like "how much damage will this Pokémon end up dealing this game" or "was this card involved in a KO," giving the embeddings a direct reason to encode danger rather than waiting for it to fall out of diffuse reward. Would pair naturally with #12 above if the auxiliary objective is trained on card-text embeddings rather than card ID alone — the network could then generalize "cards whose text looks like this tend to be dangerous" across cards it's rarely played against, not just ones it's memorized through repeated exposure. Not scoped yet.
 
 ## Build & Run
 ```bash
@@ -434,6 +435,37 @@ passing. **Retraining on the changed feature (Phase 3) is still not done**
 — this only changes what the feature *reports*; the current checkpoint
 hasn't learned to respond to the new values yet. Bundle both phases' fixes
 into one retrain-and-measure pass, not two, when that happens.
+
+**Phase 3 (retrain-and-measure) result: run, and it didn't work — 2026-07-20.**
+Resumed `03_pult_munki` from `ppo_latest.pt` with both fixes bundled in
+(`pkm train --archetype-pool --archetype-pool-prob 1.0 --archetype-belief`,
+switched from `population-train` to `train`'s frozen-pool mode specifically
+for speed — cut a ~90 min run down to ~7 min/300 iterations). Two attempts,
+300 then 1500 more iterations (`archetype-pool-prob` raised from 0.4 to 1.0
+between them so every game samples one of the 26 decks with equal
+probability, not mostly self-mirror). Neither moved the needle: Abomasnow-specific
+win rate (n=100, the only trustworthy sample size here) went 28.0% (before
+Phase 3) → 22.0% (attempt 1) → 29.0% (attempt 2) — back to baseline, no real
+gain. Overall pool average stayed flat at 60-62% throughout every change made
+today. Re-ran the replay/log analysis on fresh post-retrain games and found
+the underlying pattern **completely unchanged**: KOs scored against
+`03_pult_munki` actually ticked up slightly (76 vs. the original 73),
+Hammer-lanche is still the dominant, most-decisive move in nearly every game,
+and the same fragile support line (Budew/Drakloak/Dreepy/Munkidori/Meowth
+ex/Moltres/Fezandipiti ex) still dies repeatedly. Conclusion: the fix changed
+what the `attack_damage` feature *reports*, not what the AI actually *does*
+— giving it an accurate magnitude estimate didn't translate into different
+in-game behavior, most likely because `lethal_this_turn` (the feature that
+actually drives defensive play) deliberately excludes Hammer-lanche as
+non-deterministic, and/or because per-opponent training exposure is too thin
+to teach a narrow tactical lesson. See What's Next #13 for the follow-up
+direction (a denser, more direct training signal for card/attack danger,
+instead of relying on diffuse win/loss to teach it). Checkpoints/metrics
+from both Phase 3 attempts were backed up before each run
+(`agents/03_pult_munki/checkpoints/ppo_latest_pre_phase3_2026-07-20.pt`,
+`ppo_latest_post_phase3_attempt1_2026-07-20.pt`,
+`agents/03_pult_munki/metrics/ppo_train_milestone8_pre_phase3_2026-07-20.csv`,
+`ppo_train_phase3_attempt1_2026-07-20.csv`) — all gitignored, local only.
 
 **Artifacts** (not committed, useful for repeating/extending this):
 - `scripts/run_matchup_replays.py <agent_a> <agent_b> --games N` — plays N
