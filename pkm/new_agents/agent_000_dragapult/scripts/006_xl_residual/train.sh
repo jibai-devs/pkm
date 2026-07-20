@@ -20,6 +20,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 REPO_ROOT="$(cd "$AGENT_DIR/../../.." && pwd)"
 
+# NixOS: PyPI torch can't find the NVIDIA driver's libcuda.so on the default path,
+# so torch.cuda.is_available() is False and --device cuda silently falls back to
+# CPU. The driver libs live at /run/opengl-driver/lib — put them on the loader
+# path so the GPU (RTX 3090) is actually usable.
+export LD_LIBRARY_PATH="/run/opengl-driver/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
 MODE="${1:-train}"
 EXP="${2:-006_xl_residual}"
 UPDATES="${3:-256}"
@@ -73,6 +79,7 @@ CMD=(uv run pkm new_agents 000_dragapult "$MODE"
      --experiment "$EXP" --updates "$UPDATES" --games "$GAMES" --workers "$WORKERS")
 if [[ "$MODE" == "train" ]]; then
     CMD+=("${MODEL_FLAGS[@]}" "${TUNED_FLAGS[@]}" "${AUX_FLAGS[@]}" "${REWARD_FLAGS[@]}")
+    CMD+=(--device cuda)  # learner on GPU (rollout workers + eval stay on CPU)
 fi
 CMD+=(--engine "$ENGINE")
 if [[ "$MODE" == "train" && -n "$FORCE" ]]; then

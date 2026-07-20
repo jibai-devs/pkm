@@ -29,6 +29,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 REPO_ROOT="$(cd "$AGENT_DIR/../../.." && pwd)"
 
+# NixOS: expose the NVIDIA driver's libcuda.so so torch can use the GPU (else
+# --device cuda silently falls back to CPU).
+export LD_LIBRARY_PATH="/run/opengl-driver/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
 MODE="${1:-train}"
 EXP="${2:-005_swept_xxl}"
 UPDATES="${3:-1024}"
@@ -94,6 +98,7 @@ CMD=(uv run pkm new_agents 000_dragapult "$MODE"
      --experiment "$EXP" --updates "$UPDATES" --games "$GAMES" --workers "$WORKERS")
 if [[ "$MODE" == "train" ]]; then
     CMD+=("${MODEL_FLAGS[@]}" "${TUNED_FLAGS[@]}" "${AUX_FLAGS[@]}" "${REWARD_FLAGS[@]}")
+    CMD+=(--device cuda)  # learner on GPU (rollout workers + eval stay on CPU)
 fi
 CMD+=(--engine "$ENGINE")
 if [[ "$MODE" == "train" && -n "$FORCE" ]]; then

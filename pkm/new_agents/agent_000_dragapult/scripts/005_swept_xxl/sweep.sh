@@ -32,6 +32,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 REPO_ROOT="$(cd "$AGENT_DIR/../../.." && pwd)"
 
+# NixOS: expose the NVIDIA driver's libcuda.so so torch can use the GPU (else
+# --device cuda silently falls back to CPU).
+export LD_LIBRARY_PATH="/run/opengl-driver/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
 EXP="${1:-005_swept_xxl}"
 TRIALS="${2:-12}"
 UPDATES="${3:-8}"
@@ -62,6 +66,7 @@ CMD=(uv run pkm new_agents 000_dragapult sweep
      --objective "$OBJECTIVE"
      --tune-rewards
      "${XXL_FLAGS[@]}"
+     --device cuda
      --engine "$ENGINE")
 
 echo "==============================================================================="
