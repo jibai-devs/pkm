@@ -47,7 +47,7 @@
 6. **Larger model** — wider MLP, more embedding dims, attention over options
 7. **Multi-deck training** — all 26 real opponent decklists are sourced (25 from Part 3a + `pool_400_mega_abomasnow_ex`), 26 solo pool bots are trained, cross-archetype sampling is implemented (Part 3c, `pkm train --archetype-pool`), the classifier's belief is wired into training (`--archetype-belief`), Milestone 8's frozen-pool retrain finished (2000 iters), and population training has now actually run (Milestone 9, partial — 2375/3000 iterations, stopped by user; see Current Progress above). **Next:** resume/extend the population-training run if desired, then run the plan's Verification #5 ablation properly (`pkm eval-vs-pool` against both the Milestone 8 checkpoint and the population-trained one, apples-to-apples) before flipping any defaults (Milestone 10). ~~Root-cause the `pool_400_mega_abomasnow_ex` 5%-win-rate outlier~~ — done, see "Abomasnow Matchup Investigation" below: the number itself was an artifact of `eval-vs-pool`'s methodology, and the real (smaller, ~45%) gap traces to a concrete feature bug. See `docs/opponent-archetype-classifier-plan.md` Part 3.
 8. **Bulk-upload the population-trained roster to Hugging Face** — all 27 checkpoints (anchor + 26 pool bots) exist locally only; see "Population-Trained Bot Roster" below for the upload loop and analysis workflow. Not yet done.
-9. **Fix the variable-damage blind spot in `lethal_this_turn`/`attack_damage`** — both features read an attack's static `damage` card-data field, which is `0` for any attack whose real damage is computed from card text at runtime (energy-mill, coin-flip, prize-count-based, etc. — e.g. Mega Abomasnow ex's Hammer-lanche). The network never gets an accurate threat signal for these attacks. See "Abomasnow Matchup Investigation" below for the evidence; not yet fixed.
+9. ~~Fix the variable-damage blind spot in `lethal_this_turn`/`attack_damage`~~ — **Phase 1 done 2026-07-20** (`pkm/rl/attack_damage_estimator.py`, 14 patterns, 170 tests passing). Hammer-lanche's own deck-mill family is Phase 2, not yet done; retraining on the changed feature is Phase 3, also not done. See "Abomasnow Matchup Investigation" below and `docs/superpowers/plans/2026-07-20-attack-damage-estimator.md`.
 10. ~~Re-measure `eval-vs-pool` with a wired-in archetype classifier~~ — done 2026-07-20, now defaults on (`--no-archetype-belief` for the old baseline). See "Abomasnow Matchup Investigation" below.
 11. **Decide whether `population_train.py` should compute live belief during rollout** — Milestone 8 trained `03_pult_munki` with real `--archetype-belief` values; Milestone 9's `population_train.py` never attaches a classifier, so all 2375 population-training iterations saw belief≡0, likely eroding whatever Milestone 8 learned about that feature before deployment (which does feed it live values). Scoped (Phase 2/3) in `docs/superpowers/plans/2026-07-20-belief-classifier-routing.md`; not yet implemented.
 
@@ -376,7 +376,7 @@ a real result. Phase 2 (wiring the same classifier into
 is scoped in that plan file but not yet done.
 
 **Finding 2 — the real, smaller gap traces to a variable-damage blind spot in
-two Tier-1 features.** Decoded the 20 replays' structured `logs` (script:
+two Tier-1 features. Phase 1 FIXED 2026-07-20.** Decoded the 20 replays' structured `logs` (script:
 `scripts/analyze_matchup_replays.py`; a player's `observation.logs` is a
 since-last-decision buffer, only fresh at that player's `ACTIVE` steps —
 concatenating both players' ACTIVE-step logs and de-duping the union
@@ -405,7 +405,25 @@ This is a **general limitation**, not an Abomasnow-specific one: any attack
 whose real damage is computed from card text rather than a flat `damage`
 field (energy-mill, coin-flip, prize-count-based, etc.) defeats both
 features the same way. Abomasnow just leans on this attack shape harder than
-anything else currently in the pool. Not yet fixed — see What's Next #9.
+anything else currently in the pool.
+
+Fixed (Phase 1 of `docs/superpowers/plans/2026-07-20-attack-damage-estimator.md`)
+by a new `pkm/rl/attack_damage_estimator.py`: 14 regex patterns over real
+card text, verified against all 1556 attacks in the card database (0
+exceptions), covering everything computable from the observation alone --
+coin flips (expected value), fixed damage-counter placement, energy attached
+to the attacker, discard-pile energy counts, benched-Pokémon count, prizes
+taken, teammate-has-a-named-attack, opponent hand size, Pokémon Tool count,
+and a general fixed "this attack does N damage to ..." constant (the single
+biggest coverage win). `_attack_damage` and `lethal_this_turn` both wired in;
+the latter uses a separate `min_guaranteed_damage` that excludes the 3
+coin-flip patterns, so an attack whose *expected* damage clears the KO
+threshold isn't claimed as a guaranteed kill. **Hammer-lanche itself is
+still not fixed** — it's a deck-mill effect (damage depends on the
+attacker's unrevealed remaining deck order), scoped as Phase 2 in the plan
+doc, not yet implemented. Retraining on the changed feature (Phase 3) is
+also not done — this only changes what the feature *reports*; the current
+checkpoint hasn't learned to respond to the new values yet.
 
 **Artifacts** (not committed, useful for repeating/extending this):
 - `scripts/run_matchup_replays.py <agent_a> <agent_b> --games N` — plays N
