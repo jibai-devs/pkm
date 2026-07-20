@@ -605,6 +605,13 @@ def train(
     dropout: Optional[float] = typer.Option(
         None, help="Override: dropout in the extra transformer layers (regularization)."
     ),
+    base_residual: Optional[bool] = typer.Option(
+        None,
+        "--base-residual/--no-base-residual",
+        help="Override: pre-LN residual around the base attention (uniform-residual "
+        "trunk). Recommended for deep large/xxl nets. Off = v1. Changes params, so "
+        "a flag-on checkpoint isn't interchangeable with a flag-off one.",
+    ),
     device: str = typer.Option(
         "cpu",
         "--device",
@@ -706,6 +713,7 @@ def train(
             "d_opt": d_opt,
             "d_card": d_card,
             "dropout": dropout,
+            "base_residual": base_residual,
         },
         ckpt_every=ckpt_every,
     )

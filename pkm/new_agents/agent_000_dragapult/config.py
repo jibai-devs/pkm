@@ -52,6 +52,11 @@ class ModelConfig:
     n_layers: int = 1
     ff_mult: int = 4  # FFN width = ff_mult * d_entity in the extra layers
     dropout: float = 0.0  # dropout in the extra transformer layers
+    # Pre-LN residual around the base attention layer. False == v1 (no skip there;
+    # only the extra transformer layers are residual). True makes the whole trunk
+    # uniformly residual — recommended for deep (large/xxl) nets. Changes params
+    # (adds a LayerNorm), so it's part of the config hash and checkpoint identity.
+    base_residual: bool = False
 
 
 # Named size presets for one-word scaling from the CLI (`--model <name>`).
@@ -212,6 +217,7 @@ def build_model(cfg: Config | ModelConfig | None = None) -> PolicyValueModel:
         n_layers=mc.n_layers,
         ff_mult=mc.ff_mult,
         dropout=mc.dropout,
+        base_residual=mc.base_residual,
     )
     # Auxiliary heads are a *training* concern, so they're built only when a full
     # Config (with a TrainConfig) is given — i.e. training / resume / eval / the
