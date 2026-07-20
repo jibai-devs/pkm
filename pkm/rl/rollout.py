@@ -155,13 +155,35 @@ class FirstTurnDelegatingPolicy:
 
 
 def make_training_first_turn_agent(deck: list[int]):
-    """A first-turn agent tuned for self-play speed (a small search budget),
-    not deployment strength: it's called on both sides of every game, so the
-    full 6s/decision deployment budget would throttle rollout to a crawl.
-    Setup picks are priority-table lookups either way; only the in-turn MCTS
-    scales with these knobs."""
+    """The first-turn agent as used inside self-play.
+
+    Matches deployment on the two knobs that decide *what the search finds*
+    (determinizations and simulations), and caps wall-clock only as a safety
+    net -- 40 simulations resolve in ~10ms/decision here, so the budget
+    effectively never binds.
+
+    It used to run at 1 determinization / 6 simulations for speed, and that
+    was a real train-deploy mismatch rather than a harmless economy. Measured
+    over 50 handoffs, the weak search left a *charged* Dreepy on the bench
+    4% of the time versus 38% at this budget -- same rubric, same deck, purely
+    a matter of whether the search explored the line. Because energy survives
+    evolution, that one statistic gates the whole Dragapult plan: the setup
+    agent gets a single attachment per turn, so it can only finish a
+    Fire+Psychic Drakloak if turn 1 already charged the Dreepy. Training
+    against the throttled opening meant the setup agent's main objective was
+    ~1% reachable and it plateaued against a board it would never actually
+    face.
+
+    The honest cost is ~4x slower rollout (0.7s -> 3.1s per 16-episode
+    iteration). Worth it: the cheap budget was not buying speed so much as
+    training the wrong game.
+    """
+    # Kept deliberately equal to `make_first_turn_agent`'s deployment defaults.
+    # Any gap here is a train-deploy mismatch, which is precisely the bug
+    # described above -- so if the deployment simulation count moves, this
+    # moves with it.
     return make_first_turn_agent(
-        deck, n_determinizations=1, n_simulations=6, time_budget_s=0.75
+        deck, n_determinizations=2, n_simulations=100, time_budget_s=1.0
     )
 
 

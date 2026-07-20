@@ -225,6 +225,43 @@ class TurnPlanner:
             return
         self._ensure_worker()
 
+    def phantom_dive_odds(self, obs: dict, sims: int = 12) -> dict | None:
+        """Probability that Phantom Dive is reachable this turn.
+
+        Plays the turn out `sims` times, resampling the hidden zones each
+        time, and reports how often Phantom Dive became legal. That spread is
+        the point: reachability can hinge on what Lillie's Determination
+        draws or what Drakloak's ability finds, so a single lookahead would
+        report a coin flip as a certainty. Returns None if planning is off or
+        the worker is unavailable -- never raises into the match.
+        """
+        if plan_dir() is None:
+            return None
+        if not self._ensure_worker():
+            return None
+        try:
+            self._send(
+                {
+                    "cmd": "phantom_dive_odds",
+                    "obs": obs,
+                    "seed": self.rng.randrange(2**31),
+                    "sims": sims,
+                }
+            )
+            reply = self._await_reply()
+        except Exception as exc:
+            self._broken = True
+            self._log(f"turn_planner: worker died ({type(exc).__name__}: {exc})")
+            return None
+        if reply is None:
+            self._broken = True
+            self._log(f"turn_planner: no reply within {self.timeout_s}s -- disabled")
+            return None
+        if not reply.get("ok"):
+            self._log(f"turn_planner: odds failed ({reply.get('error')})")
+            return None
+        return reply["odds"]
+
     def start_turn(self, obs: dict) -> None:
         """Called on the first decision of a new turn: plan the whole turn."""
         self._flush()  # persist the turn that just ended

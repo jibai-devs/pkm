@@ -90,7 +90,12 @@ def _setup_bench(obs: dict, sel: dict, went_first: bool) -> list[int]:
 def make_first_turn_agent(
     deck: list[int],
     n_determinizations: int = 2,
-    n_simulations: int = 40,
+    # 40 simulations resolved in ~21ms/decision -- 0.35% of the 6s cap, so the
+    # budget was never the binding constraint, the simulation count was. And
+    # depth demonstrably matters on this turn: going 6 -> 40 took the rate of
+    # leaving a *charged* Dreepy on the bench from 4% to 38%. 100 costs
+    # ~50ms/decision, still ~1% of the cap.
+    n_simulations: int = 100,
     time_budget_s: float = 6.0,
     seed: int | None = None,
     log_sink: Callable[[str], None] | None = None,

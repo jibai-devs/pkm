@@ -1,0 +1,554 @@
+Warning! The implementation of 'quoridor' has known issues. Please see the games list on github or the code for details.
+Warning! The implementation of 'quoridor' has known issues. Please see the games list on github or the code for details.
+Warning! The implementation of 'quoridor' has known issues. Please see the games list on github or the code for details.
+OpenSpiel exception: Unknown game 'universal_poker'. Available games are:
+2048
+add_noise
+amazons
+amazons_proxy
+ant_foraging_arena
+antichess
+backgammon
+backgammon_proxy
+banqi
+bargaining
+bargaining_proxy
+battleship
+blackjack
+blotto
+breakthrough
+breakthrough_proxy
+bridge
+bridge_arena
+bridge_uncontested_bidding
+cached_tree
+catch
+chat_game
+checkers
+checkers_proxy
+chess
+chinese_checkers
+cliff_walking
+clobber
+clobber_proxy
+coin_game
+coin_game_arena
+coin_game_proxy
+colored_trails
+connect_four
+connect_four_proxy
+coop_box_pushing
+coop_to_1p
+coordinated_mp
+crazy_eights
+crazyhouse
+cribbage
+cursor_go
+dark_chess
+dark_hex
+dark_hex_ir
+dark_hex_proxy
+deep_sea
+dots_and_boxes
+dots_and_boxes_proxy
+dou_dizhu
+efg_game
+einstein_wurfelt_nicht
+euchre
+first_sealed_auction
+gin_rummy
+gin_rummy_proxy
+go
+go_proxy
+gomoku
+goofspiel
+havannah
+havannah_proxy
+hearts
+hex
+hive
+hive_proxy
+kriegspiel
+kuhn_poker
+laser_tag
+latent_ttt
+leduc_poker
+lewis_signaling
+liars_dice
+liars_dice_ir
+lines_of_action
+lines_of_action_proxy
+maedn
+mancala
+mancala_proxy
+markov_soccer
+matching_pennies_3p
+matrix_bos
+matrix_brps
+matrix_cd
+matrix_coordination
+matrix_mp
+matrix_pd
+matrix_rps
+matrix_rpsw
+matrix_sh
+matrix_shapleys_game
+mfg_crowd_modelling
+mfg_crowd_modelling_2d
+mfg_dynamic_routing
+mfg_garnet
+misere
+mnk
+morpion_solitaire
+negotiation
+negotiation_proxy
+nfg_game
+nim
+nine_mens_morris
+normal_form_extensive_game
+oh_hell
+oshi_zumo
+oshi_zumo_proxy
+othello
+oware
+pathfinding
+pentago
+phantom_go
+phantom_ttt
+phantom_ttt_ir
+pig
+python_ant_foraging
+python_ant_foraging_proxy
+python_block_dominoes
+python_dynamic_routing
+python_hangman
+python_iterated_prisoners_dilemma
+python_kuhn_poker
+python_liars_poker
+python_pokerkit_wrapper
+python_pokerkit_wrapper_acpc_style
+python_repeated_pokerkit
+python_team_dominoes
+python_tic_tac_toe
+quoridor
+quoridor_proxy
+rbc
+repeated_game
+repeated_leduc_poker
+restricted_nash_response
+sheriff
+shogi
+skat
+snake
+snake_proxy
+solitaire
+spades
+start_at
+stones_and_gems
+tarok
+tic_tac_toe
+tiny_bridge_2p
+tiny_bridge_4p
+tiny_hanabi
+trade_comm
+turn_based_simultaneous_game
+twixt
+ultimate_tic_tac_toe
+ultimate_tic_tac_toe_proxy
+xiangqi
+y
+y_proxy
+yacht
+zerosum
+OpenSpiel exception: Unknown game 'repeated_poker'. Available games are:
+2048
+add_noise
+amazons
+amazons_proxy
+ant_foraging_arena
+antichess
+backgammon
+backgammon_proxy
+banqi
+bargaining
+bargaining_proxy
+battleship
+blackjack
+blotto
+breakthrough
+breakthrough_proxy
+bridge
+bridge_arena
+bridge_uncontested_bidding
+cached_tree
+catch
+chat_game
+checkers
+checkers_proxy
+chess
+chinese_checkers
+cliff_walking
+clobber
+clobber_proxy
+coin_game
+coin_game_arena
+coin_game_proxy
+colored_trails
+connect_four
+connect_four_proxy
+coop_box_pushing
+coop_to_1p
+coordinated_mp
+crazy_eights
+crazyhouse
+cribbage
+cursor_go
+dark_chess
+dark_hex
+dark_hex_ir
+dark_hex_proxy
+deep_sea
+dots_and_boxes
+dots_and_boxes_proxy
+dou_dizhu
+efg_game
+einstein_wurfelt_nicht
+euchre
+first_sealed_auction
+gin_rummy
+gin_rummy_proxy
+go
+go_proxy
+gomoku
+goofspiel
+havannah
+havannah_proxy
+hearts
+hex
+hive
+hive_proxy
+kriegspiel
+kuhn_poker
+laser_tag
+latent_ttt
+leduc_poker
+lewis_signaling
+liars_dice
+liars_dice_ir
+lines_of_action
+lines_of_action_proxy
+maedn
+mancala
+mancala_proxy
+markov_soccer
+matching_pennies_3p
+matrix_bos
+matrix_brps
+matrix_cd
+matrix_coordination
+matrix_mp
+matrix_pd
+matrix_rps
+matrix_rpsw
+matrix_sh
+matrix_shapleys_game
+mfg_crowd_modelling
+mfg_crowd_modelling_2d
+mfg_dynamic_routing
+mfg_garnet
+misere
+mnk
+morpion_solitaire
+negotiation
+negotiation_proxy
+nfg_game
+nim
+nine_mens_morris
+normal_form_extensive_game
+oh_hell
+oshi_zumo
+oshi_zumo_proxy
+othello
+oware
+pathfinding
+pentago
+phantom_go
+phantom_ttt
+phantom_ttt_ir
+pig
+python_ant_foraging
+python_ant_foraging_proxy
+python_block_dominoes
+python_dynamic_routing
+python_hangman
+python_iterated_prisoners_dilemma
+python_kuhn_poker
+python_liars_poker
+python_pokerkit_wrapper
+python_pokerkit_wrapper_acpc_style
+python_repeated_pokerkit
+python_team_dominoes
+python_tic_tac_toe
+quoridor
+quoridor_proxy
+rbc
+repeated_game
+repeated_leduc_poker
+restricted_nash_response
+sheriff
+shogi
+skat
+snake
+snake_proxy
+solitaire
+spades
+start_at
+stones_and_gems
+tarok
+tic_tac_toe
+tiny_bridge_2p
+tiny_bridge_4p
+tiny_hanabi
+trade_comm
+turn_based_simultaneous_game
+twixt
+ultimate_tic_tac_toe
+ultimate_tic_tac_toe_proxy
+xiangqi
+y
+y_proxy
+yacht
+zerosum
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO: Successfully loaded OpenSpiel environments: 35.
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_amazons
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_ant_foraging_arena
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_backgammon
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_bargaining
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_python_ant_foraging
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_breakthrough
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_bridge_arena
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_checkers
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_chess
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_clobber
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_coin_game
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_coin_game_arena
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_connect_four
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_dark_hex
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_dots_and_boxes
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_gin_rummy
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_go
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_goofspiel
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_havannah
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_hearts
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_hex
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_hive
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_lines_of_action
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_mancala
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_matching_pennies_3p
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_negotiation
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_oshi_zumo
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_othello
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_quoridor
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_repeated_game
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_tic_tac_toe
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_ultimate_tic_tac_toe
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_snake
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_y
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    open_spiel_python_repeated_pokerkit
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO: OpenSpiel games skipped: 2.
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    universal_poker(betting=nolimit,bettingAbstraction=fullgame,blind=2 1,firstPlayer=2 1 1 1,numBoardCards=0 3 1 1,numHoleCards=2,numPlayers=2,numRanks=13,numRounds=4,numSuits=4,stack=200 200,calcOddsNumSims=1000000)
+[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO:    repeated_poker(max_num_hands=100,reset_stacks=True,rotate_dealer=True,universal_poker_game_string=universal_poker(betting=nolimit,bettingAbstraction=fullgame,blind=2 1,firstPlayer=2 1 1 1,numBoardCards=0 3 1 1,numHoleCards=2,numPlayers=2,numRanks=13,numRounds=4,numSuits=4,stack=200 200,calcOddsNumSims=1000000))
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/deepseek/deepseek-v3.2-speciale not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/qwen/qwen3-max not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/z-ai/glm-4.5 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/z-ai/glm-4.5-air not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/qwen/qwen3-30b-a3b not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/x-ai/grok-4-fast not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/moonshotai/kimi-k2-thinking not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/google/gemini-2.5-flash-lite not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openrouter/meituan/longcat-flash-chat not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-3-5-haiku@20241022 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-3-5-sonnet-v2@20241022 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-opus-4@20250514 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-opus-4-1@20250805 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-sonnet-4@20250514 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-sonnet-4-5@20250929 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-sonnet-4-6@default not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-opus-4-5@20251101 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/anthropic/claude-opus-4-6@default not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/deepseek-ai/deepseek-r1-0528 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/deepseek-ai/deepseek-v3.1 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-1.5-flash not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-1.5-pro not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-2.0-flash-001 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-2.0-flash-lite not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-2.5-flash not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-2.5-flash-lite not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-2.5-pro not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-3-pro-preview not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-3.1-pro-preview not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/google/gemini-3-flash-preview not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/meta/llama-3.1-70b not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/openai/gpt-oss-20b not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/openai/gpt-oss-120b not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+[92m03:31:16 - LiteLLM:WARNING[0m: utils.py:2705 - register_model: model=openai/qwen/qwen3-235b-a22b-instruct-2507 not in built-in cost map and no prefix/region variant matched; cache cost fields will default to 0. To track cache cost, add cache_creation_input_token_cost and cache_read_input_token_cost to model_info
+setup training: agent=03_pult_munki_setup deck=deck/03_pult_munki.csv episodes/iter=16 shaping_scale=0.25
+iter     1 | score  +11.38 (1st +11.35 / 2nd +11.40) | itchy 0.09 | drakloak +1.38 | ready +0.00/+0.00 | ent 1.659 | 4.8s
+iter     2 | score  +11.47 (1st +11.06 / 2nd +11.88) | itchy 0.09 | drakloak +0.97 | ready +0.00/+0.00 | ent 1.708 | 5.5s
+iter     3 | score  +12.58 (1st +13.12 / 2nd +12.04) | itchy 0.22 | drakloak +1.69 | ready +0.00/+0.00 | ent 1.677 | 4.3s
+iter     4 | score  +12.07 (1st +11.52 / 2nd +12.63) | itchy 0.06 | drakloak +1.09 | ready +0.00/+0.00 | ent 1.632 | 4.8s
+iter     5 | score  +12.48 (1st +11.70 / 2nd +13.26) | itchy 0.12 | drakloak +1.41 | ready +0.00/+0.00 | ent 1.698 | 6.0s
+iter     6 | score  +11.69 (1st +11.18 / 2nd +12.21) | itchy 0.12 | drakloak +1.47 | ready +0.00/+0.12 | ent 1.600 | 4.7s
+iter     7 | score  +11.07 (1st  +9.49 / 2nd +12.66) | itchy 0.09 | drakloak +0.69 | ready +0.00/+0.00 | ent 1.729 | 4.5s
+iter     8 | score  +12.35 (1st +13.41 / 2nd +11.29) | itchy 0.12 | drakloak +1.16 | ready +0.00/+0.00 | ent 1.637 | 4.3s
+iter     9 | score  +10.39 (1st +10.46 / 2nd +10.32) | itchy 0.03 | drakloak +1.12 | ready +0.00/+0.00 | ent 1.657 | 4.8s
+iter    10 | score  +12.64 (1st +11.53 / 2nd +13.74) | itchy 0.12 | drakloak +1.53 | ready +0.00/+0.12 | ent 1.662 | 5.2s
+iter    11 | score  +12.65 (1st +11.99 / 2nd +13.30) | itchy 0.12 | drakloak +1.03 | ready +0.00/+0.00 | ent 1.774 | 4.8s
+iter    12 | score  +13.30 (1st +12.68 / 2nd +13.92) | itchy 0.16 | drakloak +1.28 | ready +0.00/+0.00 | ent 1.739 | 4.1s
+iter    13 | score  +10.86 (1st +10.44 / 2nd +11.28) | itchy 0.06 | drakloak +0.97 | ready +0.00/+0.00 | ent 1.696 | 3.9s
+iter    14 | score  +10.78 (1st  +9.22 / 2nd +12.34) | itchy 0.03 | drakloak +1.66 | ready +0.00/+0.00 | ent 1.676 | 5.1s
+iter    15 | score  +13.90 (1st +14.28 / 2nd +13.53) | itchy 0.19 | drakloak +1.06 | ready +0.00/+0.00 | ent 1.575 | 4.3s
+iter    16 | score  +13.92 (1st +15.77 / 2nd +12.06) | itchy 0.16 | drakloak +1.12 | ready +0.00/+0.00 | ent 1.753 | 3.9s
+iter    17 | score  +10.88 (1st +10.29 / 2nd +11.46) | itchy 0.03 | drakloak +0.53 | ready +0.00/+0.00 | ent 1.743 | 4.5s
+iter    18 | score  +13.68 (1st +11.56 / 2nd +15.79) | itchy 0.16 | drakloak +1.03 | ready +0.00/+0.00 | ent 1.679 | 5.4s
+iter    19 | score  +13.94 (1st +14.69 / 2nd +13.19) | itchy 0.12 | drakloak +0.56 | ready +0.00/+0.00 | ent 1.700 | 4.2s
+iter    20 | score  +14.78 (1st +15.51 / 2nd +14.04) | itchy 0.25 | drakloak +1.22 | ready +0.00/+0.00 | ent 1.712 | 4.8s
+iter    21 | score  +14.36 (1st +13.25 / 2nd +15.46) | itchy 0.12 | drakloak +0.56 | ready +0.19/+0.00 | ent 1.685 | 4.3s
+iter    22 | score  +12.45 (1st +12.44 / 2nd +12.46) | itchy 0.16 | drakloak +0.38 | ready +0.00/+0.00 | ent 1.678 | 5.3s
+iter    23 | score  +14.74 (1st +13.51 / 2nd +15.97) | itchy 0.28 | drakloak +0.31 | ready +0.00/+0.00 | ent 1.674 | 4.5s
+iter    24 | score  +12.99 (1st +15.62 / 2nd +10.37) | itchy 0.19 | drakloak +0.44 | ready +0.00/+0.00 | ent 1.635 | 4.7s
+iter    25 | score  +12.44 (1st +12.06 / 2nd +12.82) | itchy 0.12 | drakloak +1.38 | ready +0.00/+0.25 | ent 1.580 | 4.5s
+iter    26 | score  +12.73 (1st +12.74 / 2nd +12.73) | itchy 0.19 | drakloak +0.56 | ready +0.00/+0.00 | ent 1.690 | 5.0s
+iter    27 | score  +13.31 (1st +11.64 / 2nd +14.97) | itchy 0.12 | drakloak +0.97 | ready +0.19/+0.00 | ent 1.676 | 5.4s
+iter    28 | score  +14.62 (1st +12.89 / 2nd +16.36) | itchy 0.31 | drakloak +0.47 | ready +0.00/+0.00 | ent 1.583 | 4.1s
+iter    29 | score  +14.88 (1st +14.22 / 2nd +15.53) | itchy 0.25 | drakloak +0.97 | ready +0.00/+0.00 | ent 1.574 | 4.8s
+iter    30 | score  +14.99 (1st +13.71 / 2nd +16.27) | itchy 0.25 | drakloak +0.72 | ready +0.00/+0.00 | ent 1.508 | 3.8s
+iter    31 | score  +14.98 (1st +13.75 / 2nd +16.21) | itchy 0.31 | drakloak +0.66 | ready +0.00/+0.00 | ent 1.441 | 3.7s
+iter    32 | score  +15.37 (1st +15.21 / 2nd +15.53) | itchy 0.25 | drakloak +1.47 | ready +0.00/+0.00 | ent 1.577 | 4.3s
+iter    33 | score  +14.16 (1st +14.55 / 2nd +13.77) | itchy 0.19 | drakloak +0.69 | ready +0.00/+0.12 | ent 1.539 | 4.8s
+iter    34 | score  +14.08 (1st +15.01 / 2nd +13.16) | itchy 0.22 | drakloak +0.78 | ready +0.00/+0.00 | ent 1.494 | 4.6s
+iter    35 | score  +14.43 (1st +15.11 / 2nd +13.74) | itchy 0.22 | drakloak +0.28 | ready +0.00/+0.00 | ent 1.485 | 4.3s
+iter    36 | score  +16.26 (1st +16.51 / 2nd +16.00) | itchy 0.34 | drakloak +0.44 | ready +0.00/+0.00 | ent 1.341 | 4.9s
+iter    37 | score  +14.97 (1st +14.28 / 2nd +15.67) | itchy 0.25 | drakloak +0.28 | ready +0.00/+0.00 | ent 1.324 | 4.9s
+iter    38 | score  +14.87 (1st +15.14 / 2nd +14.59) | itchy 0.19 | drakloak +1.16 | ready +0.00/+0.00 | ent 1.558 | 6.2s
+iter    39 | score  +13.34 (1st +13.90 / 2nd +12.79) | itchy 0.16 | drakloak +1.16 | ready +0.00/+0.00 | ent 1.381 | 3.9s
+iter    40 | score  +13.88 (1st +13.38 / 2nd +14.39) | itchy 0.12 | drakloak +0.38 | ready +0.00/+0.00 | ent 1.400 | 4.8s
+iter    41 | score  +17.08 (1st +17.65 / 2nd +16.52) | itchy 0.38 | drakloak +0.56 | ready +0.00/+0.12 | ent 1.225 | 5.2s
+iter    42 | score  +17.71 (1st +19.07 / 2nd +16.34) | itchy 0.44 | drakloak +0.41 | ready +0.00/+0.00 | ent 1.020 | 3.9s
+iter    43 | score  +18.17 (1st +18.26 / 2nd +18.08) | itchy 0.41 | drakloak +0.69 | ready +0.00/+0.12 | ent 1.065 | 3.8s
+iter    44 | score  +17.28 (1st +18.37 / 2nd +16.20) | itchy 0.38 | drakloak +0.53 | ready +0.00/+0.12 | ent 1.146 | 4.6s
+iter    45 | score  +16.82 (1st +18.09 / 2nd +15.56) | itchy 0.31 | drakloak +1.22 | ready +0.00/+0.00 | ent 1.149 | 4.2s
+iter    46 | score  +17.37 (1st +17.50 / 2nd +17.23) | itchy 0.34 | drakloak +1.22 | ready +0.00/+0.00 | ent 1.154 | 3.6s
+iter    47 | score  +15.68 (1st +17.41 / 2nd +13.95) | itchy 0.34 | drakloak +0.50 | ready +0.00/+0.00 | ent 1.197 | 4.9s
+iter    48 | score  +16.23 (1st +15.44 / 2nd +17.02) | itchy 0.44 | drakloak +0.72 | ready +0.00/+0.00 | ent 1.158 | 5.9s
+iter    49 | score  +15.88 (1st +15.54 / 2nd +16.21) | itchy 0.19 | drakloak +1.53 | ready +0.00/+0.12 | ent 1.311 | 6.0s
+iter    50 | score  +17.08 (1st +19.20 / 2nd +14.96) | itchy 0.41 | drakloak +0.72 | ready +0.00/+0.00 | ent 1.160 | 3.9s
+iter    51 | score  +16.76 (1st +16.62 / 2nd +16.89) | itchy 0.41 | drakloak +0.75 | ready +0.00/+0.00 | ent 1.187 | 4.4s
+iter    52 | score  +14.71 (1st +15.89 / 2nd +13.53) | itchy 0.22 | drakloak +1.03 | ready +0.00/+0.12 | ent 1.204 | 5.4s
+iter    53 | score  +16.01 (1st +14.65 / 2nd +17.36) | itchy 0.31 | drakloak +0.88 | ready +0.00/+0.00 | ent 1.173 | 4.2s
+iter    54 | score  +17.97 (1st +17.81 / 2nd +18.12) | itchy 0.41 | drakloak +1.28 | ready +0.00/+0.12 | ent 1.096 | 4.1s
+iter    55 | score  +16.57 (1st +16.76 / 2nd +16.38) | itchy 0.28 | drakloak +0.84 | ready +0.00/+0.00 | ent 1.119 | 4.8s
+iter    56 | score  +16.24 (1st +16.91 / 2nd +15.57) | itchy 0.28 | drakloak +1.66 | ready +0.00/+0.00 | ent 1.056 | 5.8s
+iter    57 | score  +17.33 (1st +16.91 / 2nd +17.76) | itchy 0.38 | drakloak +1.25 | ready +0.00/+0.00 | ent 0.969 | 4.0s
+iter    58 | score  +17.47 (1st +18.16 / 2nd +16.77) | itchy 0.31 | drakloak +1.59 | ready +0.00/+0.12 | ent 0.997 | 5.0s
+iter    59 | score  +16.76 (1st +18.04 / 2nd +15.48) | itchy 0.22 | drakloak +2.06 | ready +0.00/+0.12 | ent 1.116 | 5.5s
+iter    60 | score  +16.18 (1st +15.49 / 2nd +16.87) | itchy 0.19 | drakloak +2.00 | ready +0.00/+0.00 | ent 1.090 | 4.7s
+iter    61 | score  +15.19 (1st +15.00 / 2nd +15.38) | itchy 0.25 | drakloak +1.38 | ready +0.00/+0.00 | ent 0.981 | 4.7s
+iter    62 | score  +16.38 (1st +15.64 / 2nd +17.11) | itchy 0.28 | drakloak +1.59 | ready +0.00/+0.00 | ent 0.997 | 5.5s
+iter    63 | score  +16.24 (1st +18.21 / 2nd +14.26) | itchy 0.31 | drakloak +1.66 | ready +0.00/+0.25 | ent 0.992 | 4.0s
+iter    64 | score  +16.45 (1st +15.43 / 2nd +17.48) | itchy 0.34 | drakloak +0.81 | ready +0.00/+0.00 | ent 0.902 | 4.3s
+iter    65 | score  +17.96 (1st +17.80 / 2nd +18.12) | itchy 0.31 | drakloak +1.72 | ready +0.00/+0.00 | ent 0.910 | 4.8s
+iter    66 | score  +17.65 (1st +17.50 / 2nd +17.80) | itchy 0.34 | drakloak +0.81 | ready +0.00/+0.00 | ent 0.867 | 4.4s
+iter    67 | score  +18.02 (1st +19.74 / 2nd +16.30) | itchy 0.28 | drakloak +1.78 | ready +0.00/+0.00 | ent 0.913 | 4.6s
+iter    68 | score  +16.58 (1st +17.70 / 2nd +15.46) | itchy 0.31 | drakloak +0.81 | ready +0.00/+0.12 | ent 0.741 | 4.6s
+iter    69 | score  +16.93 (1st +15.47 / 2nd +18.39) | itchy 0.28 | drakloak +1.31 | ready +0.00/+0.12 | ent 0.789 | 4.3s
+iter    70 | score  +17.21 (1st +17.67 / 2nd +16.75) | itchy 0.31 | drakloak +1.31 | ready +0.00/+0.12 | ent 0.784 | 4.8s
+iter    71 | score  +16.67 (1st +18.10 / 2nd +15.24) | itchy 0.25 | drakloak +1.66 | ready +0.00/+0.25 | ent 0.795 | 4.5s
+iter    72 | score  +17.52 (1st +17.44 / 2nd +17.59) | itchy 0.34 | drakloak +1.16 | ready +0.00/+0.00 | ent 0.755 | 5.3s
+iter    73 | score  +17.82 (1st +17.57 / 2nd +18.08) | itchy 0.34 | drakloak +1.03 | ready +0.19/+0.00 | ent 0.708 | 4.7s
+iter    74 | score  +17.20 (1st +18.43 / 2nd +15.96) | itchy 0.28 | drakloak +1.78 | ready +0.00/+0.00 | ent 0.693 | 5.7s
+iter    75 | score  +14.74 (1st +16.67 / 2nd +12.82) | itchy 0.12 | drakloak +1.44 | ready +0.00/+0.00 | ent 0.779 | 5.1s
+iter    76 | score  +17.89 (1st +19.04 / 2nd +16.74) | itchy 0.34 | drakloak +0.88 | ready +0.00/+0.00 | ent 0.713 | 5.0s
+iter    77 | score  +19.54 (1st +18.93 / 2nd +20.16) | itchy 0.44 | drakloak +1.25 | ready +0.00/+0.00 | ent 0.622 | 4.3s
+iter    78 | score  +16.37 (1st +16.30 / 2nd +16.44) | itchy 0.25 | drakloak +2.12 | ready +0.00/+0.12 | ent 0.721 | 4.9s
+iter    79 | score  +17.48 (1st +17.69 / 2nd +17.26) | itchy 0.28 | drakloak +1.53 | ready +0.00/+0.12 | ent 0.672 | 4.8s
+iter    80 | score  +18.01 (1st +18.46 / 2nd +17.55) | itchy 0.31 | drakloak +1.56 | ready +0.00/+0.12 | ent 0.694 | 4.7s
+iter    81 | score  +16.98 (1st +17.15 / 2nd +16.81) | itchy 0.34 | drakloak +1.62 | ready +0.00/+0.12 | ent 0.653 | 4.0s
+iter    82 | score  +17.50 (1st +18.15 / 2nd +16.84) | itchy 0.28 | drakloak +1.84 | ready +0.00/+0.25 | ent 0.692 | 5.1s
+iter    83 | score  +17.49 (1st +18.07 / 2nd +16.90) | itchy 0.25 | drakloak +1.16 | ready +0.00/+0.12 | ent 0.535 | 5.0s
+iter    84 | score  +17.33 (1st +16.25 / 2nd +18.41) | itchy 0.38 | drakloak +0.84 | ready +0.00/+0.00 | ent 0.596 | 4.0s
+iter    85 | score  +16.85 (1st +16.73 / 2nd +16.98) | itchy 0.28 | drakloak +1.97 | ready +0.00/+0.12 | ent 0.678 | 5.1s
+iter    86 | score  +18.92 (1st +18.51 / 2nd +19.32) | itchy 0.34 | drakloak +0.97 | ready +0.00/+0.00 | ent 0.579 | 5.0s
+iter    87 | score  +17.42 (1st +17.51 / 2nd +17.34) | itchy 0.41 | drakloak +1.47 | ready +0.00/+0.00 | ent 0.524 | 4.5s
+iter    88 | score  +18.64 (1st +18.59 / 2nd +18.69) | itchy 0.31 | drakloak +1.25 | ready +0.00/+0.00 | ent 0.579 | 4.1s
+iter    89 | score  +18.76 (1st +18.27 / 2nd +19.24) | itchy 0.38 | drakloak +1.56 | ready +0.00/+0.00 | ent 0.613 | 4.9s
+iter    90 | score  +19.03 (1st +17.81 / 2nd +20.24) | itchy 0.41 | drakloak +1.47 | ready +0.00/+0.00 | ent 0.502 | 5.2s
+iter    91 | score  +15.49 (1st +15.79 / 2nd +15.19) | itchy 0.22 | drakloak +1.78 | ready +0.00/+0.12 | ent 0.530 | 5.5s
+iter    92 | score  +17.98 (1st +19.26 / 2nd +16.71) | itchy 0.28 | drakloak +1.12 | ready +0.00/+0.00 | ent 0.550 | 5.2s
+iter    93 | score  +18.38 (1st +17.31 / 2nd +19.44) | itchy 0.34 | drakloak +1.34 | ready +0.00/+0.00 | ent 0.511 | 4.7s
+iter    94 | score  +18.18 (1st +19.26 / 2nd +17.09) | itchy 0.38 | drakloak +1.34 | ready +0.00/+0.00 | ent 0.504 | 4.4s
+iter    95 | score  +18.21 (1st +19.47 / 2nd +16.95) | itchy 0.25 | drakloak +2.28 | ready +0.00/+0.00 | ent 0.455 | 4.3s
+iter    96 | score  +17.57 (1st +18.32 / 2nd +16.81) | itchy 0.19 | drakloak +2.12 | ready +0.00/+0.12 | ent 0.541 | 3.8s
+iter    97 | score  +19.40 (1st +19.94 / 2nd +18.86) | itchy 0.38 | drakloak +1.53 | ready +0.00/+0.25 | ent 0.495 | 3.8s
+iter    98 | score  +17.75 (1st +17.27 / 2nd +18.23) | itchy 0.34 | drakloak +1.19 | ready +0.00/+0.25 | ent 0.457 | 4.5s
+iter    99 | score  +17.52 (1st +18.02 / 2nd +17.01) | itchy 0.38 | drakloak +1.28 | ready +0.00/+0.00 | ent 0.410 | 4.9s
+iter   100 | score  +17.60 (1st +17.39 / 2nd +17.81) | itchy 0.19 | drakloak +2.62 | ready +0.00/+0.38 | ent 0.514 | 5.1s
+iter   101 | score  +19.18 (1st +19.49 / 2nd +18.86) | itchy 0.25 | drakloak +2.47 | ready +0.00/+0.12 | ent 0.516 | 4.6s
+iter   102 | score  +19.06 (1st +20.48 / 2nd +17.65) | itchy 0.28 | drakloak +2.12 | ready +0.00/+0.38 | ent 0.468 | 4.6s
+iter   103 | score  +15.83 (1st +16.16 / 2nd +15.51) | itchy 0.22 | drakloak +1.34 | ready +0.00/+0.00 | ent 0.440 | 4.6s
+iter   104 | score  +19.71 (1st +19.40 / 2nd +20.01) | itchy 0.28 | drakloak +2.88 | ready +0.00/+0.00 | ent 0.500 | 4.7s
+iter   105 | score  +17.58 (1st +17.88 / 2nd +17.29) | itchy 0.28 | drakloak +1.78 | ready +0.00/+0.25 | ent 0.436 | 4.8s
+iter   106 | score  +17.07 (1st +17.98 / 2nd +16.17) | itchy 0.31 | drakloak +1.84 | ready +0.00/+0.12 | ent 0.438 | 4.9s
+iter   107 | score  +17.56 (1st +17.23 / 2nd +17.89) | itchy 0.34 | drakloak +1.34 | ready +0.00/+0.00 | ent 0.540 | 4.0s
+iter   108 | score  +18.06 (1st +17.01 / 2nd +19.10) | itchy 0.41 | drakloak +1.09 | ready +0.00/+0.12 | ent 0.463 | 4.4s
+iter   109 | score  +18.38 (1st +19.35 / 2nd +17.42) | itchy 0.38 | drakloak +2.00 | ready +0.00/+0.12 | ent 0.525 | 4.6s
+iter   110 | score  +18.78 (1st +19.17 / 2nd +18.38) | itchy 0.34 | drakloak +2.25 | ready +0.00/+0.25 | ent 0.545 | 4.6s
+iter   111 | score  +18.74 (1st +17.25 / 2nd +20.23) | itchy 0.38 | drakloak +1.50 | ready +0.00/+0.00 | ent 0.599 | 4.7s
+iter   112 | score  +17.07 (1st +16.88 / 2nd +17.26) | itchy 0.28 | drakloak +1.25 | ready +0.00/+0.12 | ent 0.603 | 4.7s
+iter   113 | score  +18.16 (1st +19.06 / 2nd +17.25) | itchy 0.34 | drakloak +1.78 | ready +0.00/+0.12 | ent 0.627 | 3.6s
+iter   114 | score  +17.14 (1st +18.68 / 2nd +15.60) | itchy 0.28 | drakloak +2.12 | ready +0.00/+0.12 | ent 0.530 | 4.3s
+iter   115 | score  +18.62 (1st +18.38 / 2nd +18.86) | itchy 0.38 | drakloak +1.59 | ready +0.00/+0.25 | ent 0.516 | 4.7s
+iter   116 | score  +16.27 (1st +15.46 / 2nd +17.09) | itchy 0.25 | drakloak +1.66 | ready +0.00/+0.25 | ent 0.559 | 3.6s
+iter   117 | score  +18.84 (1st +19.29 / 2nd +18.39) | itchy 0.41 | drakloak +2.34 | ready +0.00/+0.00 | ent 0.571 | 3.9s
+iter   118 | score  +16.69 (1st +16.06 / 2nd +17.32) | itchy 0.31 | drakloak +1.00 | ready +0.00/+0.00 | ent 0.584 | 3.8s
+iter   119 | score  +18.53 (1st +18.88 / 2nd +18.18) | itchy 0.38 | drakloak +1.34 | ready +0.00/+0.00 | ent 0.555 | 4.6s
+iter   120 | score  +18.51 (1st +18.48 / 2nd +18.54) | itchy 0.25 | drakloak +2.22 | ready +0.00/+0.12 | ent 0.637 | 5.0s
+iter   121 | score  +18.21 (1st +17.77 / 2nd +18.66) | itchy 0.22 | drakloak +2.19 | ready +0.00/+0.25 | ent 0.569 | 4.5s
+iter   122 | score  +18.92 (1st +18.96 / 2nd +18.88) | itchy 0.28 | drakloak +2.91 | ready +0.00/+0.25 | ent 0.604 | 4.3s
+iter   123 | score  +19.52 (1st +19.25 / 2nd +19.78) | itchy 0.44 | drakloak +1.41 | ready +0.00/+0.00 | ent 0.497 | 3.9s
+iter   124 | score  +17.94 (1st +17.69 / 2nd +18.19) | itchy 0.25 | drakloak +1.84 | ready +0.00/+0.38 | ent 0.532 | 3.9s
+iter   125 | score  +17.99 (1st +17.38 / 2nd +18.60) | itchy 0.19 | drakloak +3.22 | ready +0.00/+0.12 | ent 0.567 | 5.2s
+iter   126 | score  +19.24 (1st +17.31 / 2nd +21.18) | itchy 0.34 | drakloak +2.50 | ready +0.00/+0.00 | ent 0.666 | 5.0s
+iter   127 | score  +19.16 (1st +21.11 / 2nd +17.21) | itchy 0.34 | drakloak +2.31 | ready +0.00/+0.12 | ent 0.620 | 4.9s
+iter   128 | score  +17.62 (1st +17.60 / 2nd +17.64) | itchy 0.28 | drakloak +1.47 | ready +0.00/+0.00 | ent 0.602 | 3.6s
+iter   129 | score  +16.61 (1st +16.41 / 2nd +16.81) | itchy 0.16 | drakloak +1.94 | ready +0.00/+0.12 | ent 0.545 | 6.1s
+iter   130 | score  +17.17 (1st +17.62 / 2nd +16.72) | itchy 0.28 | drakloak +1.66 | ready +0.00/+0.12 | ent 0.513 | 4.4s
+iter   131 | score  +18.44 (1st +17.18 / 2nd +19.71) | itchy 0.28 | drakloak +2.22 | ready +0.00/+0.38 | ent 0.588 | 4.5s
+iter   132 | score  +19.60 (1st +18.21 / 2nd +20.99) | itchy 0.31 | drakloak +2.31 | ready +0.00/+0.25 | ent 0.546 | 4.3s
+iter   133 | score  +18.53 (1st +19.39 / 2nd +17.68) | itchy 0.41 | drakloak +1.34 | ready +0.00/+0.00 | ent 0.591 | 4.5s
+iter   134 | score  +19.94 (1st +20.88 / 2nd +19.01) | itchy 0.41 | drakloak +1.78 | ready +0.00/+0.00 | ent 0.578 | 6.0s
+iter   135 | score  +17.67 (1st +16.64 / 2nd +18.70) | itchy 0.25 | drakloak +2.00 | ready +0.00/+0.00 | ent 0.516 | 5.9s
+iter   136 | score  +18.28 (1st +19.31 / 2nd +17.26) | itchy 0.38 | drakloak +1.94 | ready +0.00/+0.12 | ent 0.517 | 3.6s
+iter   137 | score  +17.22 (1st +18.38 / 2nd +16.06) | itchy 0.22 | drakloak +2.28 | ready +0.00/+0.12 | ent 0.503 | 4.3s
+iter   138 | score  +18.45 (1st +19.63 / 2nd +17.26) | itchy 0.28 | drakloak +1.38 | ready +0.00/+0.38 | ent 0.499 | 4.4s
+iter   139 | score  +20.03 (1st +22.06 / 2nd +18.00) | itchy 0.47 | drakloak +1.53 | ready +0.00/+0.00 | ent 0.560 | 4.0s
+iter   140 | score  +18.63 (1st +20.96 / 2nd +16.30) | itchy 0.28 | drakloak +1.53 | ready +0.00/+0.25 | ent 0.454 | 4.9s
+iter   141 | score  +18.82 (1st +19.32 / 2nd +18.32) | itchy 0.34 | drakloak +2.28 | ready +0.00/+0.12 | ent 0.631 | 4.9s
+iter   142 | score  +19.37 (1st +18.81 / 2nd +19.93) | itchy 0.31 | drakloak +3.06 | ready +0.00/+0.12 | ent 0.529 | 4.8s
+iter   143 | score  +17.11 (1st +20.36 / 2nd +13.86) | itchy 0.22 | drakloak +1.25 | ready +0.00/+0.12 | ent 0.543 | 4.2s
+iter   144 | score  +18.81 (1st +18.23 / 2nd +19.39) | itchy 0.28 | drakloak +1.91 | ready +0.00/+0.12 | ent 0.540 | 4.3s
+iter   145 | score  +16.21 (1st +15.81 / 2nd +16.61) | itchy 0.25 | drakloak +1.81 | ready +0.00/+0.00 | ent 0.588 | 4.9s
+iter   146 | score  +18.26 (1st +17.98 / 2nd +18.54) | itchy 0.41 | drakloak +0.72 | ready +0.00/+0.00 | ent 0.505 | 4.1s
+iter   147 | score  +17.38 (1st +15.89 / 2nd +18.88) | itchy 0.28 | drakloak +1.84 | ready +0.00/+0.12 | ent 0.552 | 6.0s
+iter   148 | score  +20.23 (1st +21.09 / 2nd +19.36) | itchy 0.28 | drakloak +1.91 | ready +0.00/+0.38 | ent 0.437 | 5.1s
+iter   149 | score  +20.11 (1st +21.91 / 2nd +18.32) | itchy 0.53 | drakloak +1.62 | ready +0.00/+0.00 | ent 0.533 | 4.8s
+iter   150 | score  +19.55 (1st +19.79 / 2nd +19.31) | itchy 0.28 | drakloak +3.00 | ready +0.00/+0.12 | ent 0.573 | 4.8s
+iter   151 | score  +18.36 (1st +19.05 / 2nd +17.66) | itchy 0.34 | drakloak +2.19 | ready +0.00/+0.12 | ent 0.480 | 4.5s
+iter   152 | score  +16.82 (1st +17.22 / 2nd +16.42) | itchy 0.28 | drakloak +0.84 | ready +0.00/+0.00 | ent 0.381 | 3.3s
+iter   153 | score  +20.10 (1st +17.97 / 2nd +22.23) | itchy 0.38 | drakloak +2.09 | ready +0.00/+0.12 | ent 0.477 | 4.3s
+iter   154 | score  +18.28 (1st +19.09 / 2nd +17.46) | itchy 0.19 | drakloak +2.97 | ready +0.00/+0.25 | ent 0.521 | 4.9s
+iter   155 | score  +18.84 (1st +20.98 / 2nd +16.71) | itchy 0.28 | drakloak +2.19 | ready +0.00/+0.38 | ent 0.428 | 3.8s
+iter   156 | score  +17.58 (1st +16.98 / 2nd +18.18) | itchy 0.22 | drakloak +2.03 | ready +0.00/+0.25 | ent 0.455 | 4.5s
+iter   157 | score  +19.22 (1st +19.27 / 2nd +19.17) | itchy 0.34 | drakloak +2.69 | ready +0.00/+0.12 | ent 0.520 | 4.7s
+iter   158 | score  +19.74 (1st +19.38 / 2nd +20.11) | itchy 0.28 | drakloak +3.03 | ready +0.00/+0.12 | ent 0.474 | 4.0s
+iter   159 | score  +19.00 (1st +19.15 / 2nd +18.85) | itchy 0.34 | drakloak +2.22 | ready +0.00/+0.00 | ent 0.500 | 4.4s

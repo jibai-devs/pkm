@@ -25,6 +25,13 @@ from typing import Any
 
 MAX_SIM_DECISIONS = 200
 
+# Dragapult ex's Phantom Dive (Fire + Psychic). Whether it is reachable on a
+# given turn is genuinely stochastic -- it can depend on what Lillie's
+# Determination draws, or on what Drakloak's ability digs up -- so the honest
+# answer is a probability over sampled worlds, not a yes/no.
+PHANTOM_DIVE_ATTACK_ID = 154
+OPTION_TYPE_ATTACK = 13
+
 # Loaded weights, reused across plans. The *agent* is still rebuilt per plan --
 # only the immutable policy is shared. Re-reading policy.npz every plan cost
 # ~6.6ms of a ~8.4ms plan, i.e. most of the work was redundant disk I/O.
@@ -150,6 +157,114 @@ def _plan_turn(obs: dict, deck: list[int], seed: int, weights_path: str | None) 
     }
 
 
+def _phantom_dive_offered(sim: dict) -> bool:
+    """Whether Phantom Dive is a legal option at this decision point."""
+    sel = sim.get("select") or {}
+    for opt in sel.get("option") or []:
+        if (
+            opt.get("type") == OPTION_TYPE_ATTACK
+            and opt.get("attackId") == PHANTOM_DIVE_ATTACK_ID
+        ):
+            return True
+    return False
+
+
+def _simulate_turn_once(
+    obs: dict, deck: list[int], seed: int, weights_path: str | None
+) -> tuple[bool, bool]:
+    """Play this turn out once in a sampled world.
+
+    Returns (offered, used): whether Phantom Dive ever became legal, and
+    whether the policy actually chose it. `offered` is the answer to "could
+    I have", which is what the caller is asking; `used` says whether the
+    policy found it, which is a different question and worth seeing too.
+    """
+    import random as _random
+
+    from pkm.agents.dragapult_default_agent import make_dragapult_default_agent
+    from pkm.engine import search_begin, search_end, search_step
+    from pkm.mcts.determinize import infer_opponent_decklist, sample_determinization
+    from pkm.types.obs import forced_picks
+
+    rng = _random.Random(seed)
+    state0 = obs["current"]
+    me = state0["yourIndex"]
+    turn = state0["turn"]
+    policy = make_dragapult_default_agent(
+        deck, weights_path, policy=_cached_policy(weights_path)
+    )
+
+    det = sample_determinization(obs, deck, infer_opponent_decklist(obs), rng)
+    search_state = search_begin(obs, **det)
+    offered = used = False
+    try:
+        for _ in range(MAX_SIM_DECISIONS):
+            sim = search_state.raw_observation
+            cur = sim.get("current") or {}
+            if cur.get("result", -1) >= 0 or sim.get("select") is None:
+                break
+            if cur.get("turn") != turn:
+                break
+            seat = cur.get("yourIndex")
+            if seat == me and _phantom_dive_offered(sim):
+                offered = True
+
+            forced = forced_picks(sim["select"])
+            if forced is not None:
+                picks = forced
+            elif seat != me:
+                sel = sim["select"]
+                n = len(sel["option"])
+                lo = min(max(int(sel.get("minCount") or 0), 0), n)
+                k = min(max(int(sel.get("maxCount") or 0), lo), n)
+                picks = rng.sample(range(n), k)
+            else:
+                picks = policy(sim)
+                if seat == me:
+                    options = sim["select"]["option"]
+                    for i in picks:
+                        if 0 <= i < len(options):
+                            o = options[i]
+                            if (
+                                o.get("type") == OPTION_TYPE_ATTACK
+                                and o.get("attackId") == PHANTOM_DIVE_ATTACK_ID
+                            ):
+                                used = True
+            search_state = search_step(search_state.search_id, list(picks))
+    finally:
+        search_end()
+    return offered, used
+
+
+def _phantom_dive_odds(
+    obs: dict, deck: list[int], seed: int, weights_path: str | None, n_sims: int
+) -> dict:
+    """Fraction of sampled worlds in which Phantom Dive is reachable this turn.
+
+    Each simulation redraws the hidden zones, so the spread across them *is*
+    the answer: it captures exactly the "only if Lillie's hits" uncertainty
+    that makes a single lookahead misleading.
+    """
+    offered = used = 0
+    errors = 0
+    for i in range(n_sims):
+        try:
+            o, u = _simulate_turn_once(obs, deck, seed + i, weights_path)
+            offered += int(o)
+            used += int(u)
+        except Exception:
+            errors += 1
+    ok = max(1, n_sims - errors)
+    return {
+        "sims": n_sims,
+        "errors": errors,
+        "offered": offered,
+        "used": used,
+        "p_offered": offered / ok,
+        "p_used": used / ok,
+    }
+
+
 def main() -> None:
     """Child entry point: newline-delimited JSON over stdin/stdout.
 
@@ -195,9 +310,15 @@ def main() -> None:
             _warm_up(weights_path)
             continue
         try:
-            plan = _plan_turn(msg["obs"], deck, msg["seed"], weights_path)
-            reply({"ok": True, "plan": plan})
-        except Exception as exc:  # a failed plan must not kill the worker
+            if msg.get("cmd") == "phantom_dive_odds":
+                odds = _phantom_dive_odds(
+                    msg["obs"], deck, msg["seed"], weights_path, msg.get("sims", 12)
+                )
+                reply({"ok": True, "odds": odds})
+            else:
+                plan = _plan_turn(msg["obs"], deck, msg["seed"], weights_path)
+                reply({"ok": True, "plan": plan})
+        except Exception as exc:  # a failed request must not kill the worker
             reply({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
 
 
