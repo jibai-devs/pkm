@@ -48,6 +48,7 @@ class InferenceConfig:
 
     type: str = "policy"  # "policy" | "mcts"
     mcts_sims: int = 0  # the "K" search budget per decision; 0 disables MCTS
+    mcts_worlds: int = 1  # IS-MCTS determinizations to average per decision (W)
     c_puct: float = 1.25
     temperature: float = 0.0  # 0 => pick the most-visited move (deterministic)
     determinization: str = "sample"  # key into mcts/determinize.DETERMINIZERS
@@ -171,7 +172,10 @@ class DragapultAgent:
         seat = obs_dict["current"]["yourIndex"]
         gen = self.gen or torch.Generator(device=self.device)
         pi = torch.from_numpy(
-            mcts.search(obs_dict, seat, self.model, self._search_cfg, gen)
+            mcts.search_worlds(
+                obs_dict, seat, self.model, self._search_cfg, gen,
+                n_worlds=self.inference.mcts_worlds,
+            )
         )
         pi = pi[:n]
         if self.greedy:

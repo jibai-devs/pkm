@@ -836,6 +836,13 @@ def eval(
     mcts_sims: int = typer.Option(
         0, "--mcts-sims", "-K", help="MCTS simulation budget K (0 = policy only)."
     ),
+    mcts_worlds: int = typer.Option(
+        1,
+        "--mcts-worlds",
+        "-W",
+        help="IS-MCTS determinizations averaged per decision (W>1 de-biases the "
+        "single guessed world). Costs W× the search time.",
+    ),
     mcts_c_puct: float = typer.Option(1.25, help="PUCT exploration constant for MCTS."),
     mcts_temperature: float = typer.Option(
         0.0, help="Root visit-count temperature for the MCTS pick (0 = most-visited)."
@@ -861,6 +868,7 @@ def eval(
     inf = InferenceConfig(
         type=inference,
         mcts_sims=mcts_sims,
+        mcts_worlds=mcts_worlds,
         c_puct=mcts_c_puct,
         temperature=mcts_temperature,
     )
@@ -874,7 +882,8 @@ def eval(
     if inf.use_mcts:
         console.print(
             f"[dim]agent-under-test uses[/] MCTS "
-            f"[dim](K={inf.mcts_sims}, c_puct={inf.c_puct}, temp={inf.temperature})[/]"
+            f"[dim](K={inf.mcts_sims}, W={inf.mcts_worlds}, "
+            f"c_puct={inf.c_puct}, temp={inf.temperature})[/]"
         )
     if opponent is not None:
         if not opponent.exists():
@@ -1300,6 +1309,15 @@ def pack(
         help="MCTS simulation budget K per decision. 0 turns MCTS off (so "
         "'--inference mcts --mcts-sims 0' still deploys as plain policy).",
     ),
+    mcts_worlds: int = typer.Option(
+        1,
+        "--mcts-worlds",
+        "-W",
+        help="IS-MCTS determinizations averaged per decision (W). 1 = single "
+        "guessed world (biased); W>1 re-samples the hidden info W times and "
+        "averages, so a move must be good across many possible draws. Costs W× "
+        "the search time — trade against -K under the time budget.",
+    ),
     mcts_c_puct: float = typer.Option(1.25, help="PUCT exploration constant for MCTS."),
     mcts_temperature: float = typer.Option(
         0.0,
@@ -1335,6 +1353,7 @@ def pack(
     inf = InferenceConfig(
         type=inference,
         mcts_sims=mcts_sims,
+        mcts_worlds=mcts_worlds,
         c_puct=mcts_c_puct,
         temperature=mcts_temperature,
         determinization=determinization,
@@ -1401,7 +1420,8 @@ def pack(
         )
     )
     mode = (
-        f"mcts (K={inf.mcts_sims}, c_puct={inf.c_puct}, temp={inf.temperature})"
+        f"mcts (K={inf.mcts_sims}, W={inf.mcts_worlds}, "
+        f"c_puct={inf.c_puct}, temp={inf.temperature})"
         if inf.use_mcts
         else "policy (no search)"
     )
@@ -1412,8 +1432,8 @@ def pack(
     )
     if inf.use_mcts:
         console.print(
-            "[yellow]note:[/] MCTS runs a forward search per decision — watch "
-            "Kaggle's per-turn + cumulative 600s time budget; tune K accordingly."
+            "[yellow]note:[/] MCTS runs W×K forward searches per decision — watch "
+            "Kaggle's per-turn + cumulative 600s time budget; tune K and W accordingly."
         )
     console.print("[dim]submit with:[/] pkm new_agents 000_dragapult submit")
 

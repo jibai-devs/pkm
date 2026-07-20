@@ -172,3 +172,39 @@ def search(root_obs: dict, seat: int, model, cfg, gen: torch.Generator) -> np.nd
     else:
         counts = (root.N == root.N.max()).astype(np.float32)
     return (counts / counts.sum()).astype(np.float32)
+
+
+def search_worlds(
+    root_obs: dict, seat: int, model, cfg, gen: torch.Generator, n_worlds: int = 1
+) -> np.ndarray:
+    """Average the root visit policy over ``n_worlds`` independent determinizations.
+
+    This is IS-MCTS with W>1 worlds (the full version the module docstring
+    promises drops in behind the `DETERMINIZERS` seam). A single-sample
+    determinization (`search`, W=1) is *biased*: the search optimizes hard for
+    the one guessed layout (deck order / opponent hand), so its move looks great
+    only if that exact guess holds. Re-sampling W worlds and averaging their
+    per-option root policies makes a move earn its rank across *many* possible
+    draws, not one — the errors from any single unlucky/lucky guess wash out.
+
+    Each world re-samples hidden info (advancing ``gen`` and thus the engine
+    world) and runs a full independent PUCT `search`; the root option set is the
+    real observation's legal options, identical across worlds, so the returned
+    per-option policies are directly averageable. ``n_worlds <= 1`` is exactly
+    `search`. Cost scales linearly in W (W searches per decision) — trade it
+    against `mcts_simulations` under a fixed time budget.
+    """
+    if n_worlds <= 1:
+        return search(root_obs, seat, model, cfg, gen)
+    acc = search(root_obs, seat, model, cfg, gen).astype(np.float64)
+    for _ in range(n_worlds - 1):
+        pi = search(root_obs, seat, model, cfg, gen)
+        if pi.shape == acc.shape:
+            acc += pi
+        else:
+            # Root options are the real obs's legal choices and must not vary by
+            # determinized world; if they somehow do, align on the shorter length
+            # rather than crash (a single-sample approximation is already lossy).
+            m = min(acc.shape[0], pi.shape[0])
+            acc = acc[:m] + pi[:m]
+    return (acc / n_worlds).astype(np.float32)
