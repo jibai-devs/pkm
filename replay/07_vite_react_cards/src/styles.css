@@ -214,7 +214,12 @@ body {
 .board-cards { --cw: 92px; --card-ratio: 396 / 552; display: flex; flex-direction: column; gap: 8px; }
 .board-cards .card,
 .board-cards .slot,
-.board-cards .prize-taken { aspect-ratio: var(--card-ratio); height: auto; }
+.board-cards .prize-taken {
+  aspect-ratio: var(--card-ratio); height: auto;
+  /* never let a flex row shrink a card's width — that would shrink its
+     aspect-derived height too, truncating the card. The row scrolls instead. */
+  flex: 0 0 auto;
+}
 .board-cards .card { width: var(--cw); }
 /* a full 8-card bench at this size can exceed the band width; scroll instead of squish */
 .board-cards .pl-band { overflow-x: auto; }
