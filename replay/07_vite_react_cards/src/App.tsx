@@ -3,6 +3,8 @@ import { Board } from "./components/Board";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { DiffPanel } from "./components/DiffPanel";
 import { LogPanel } from "./components/LogPanel";
+import { ReplayChooser } from "./components/ReplayChooser";
+import { SubAgentPanel } from "./components/SubAgentPanel";
 import { StatsPanel } from "./components/StatsPanel";
 import { Timeline } from "./components/Timeline";
 import { CardDb, loadCardDb } from "./data/cardDb";
@@ -147,6 +149,7 @@ function Viewer({ replay, db, source, error, onPickFile }: ViewerProps) {
       <header className="topbar">
         <div className="topline">
           <h1>{replay.title || replay.name || "PTCG Replay"}</h1>
+          <ReplayChooser />
           <FilePicker source={source} error={error} onPickFile={onPickFile} />
           <ViewControls backend={backend} setBackend={setBackend} reveal={reveal} setReveal={setReveal} />
         </div>
@@ -158,6 +161,9 @@ function Viewer({ replay, db, source, error, onPickFile }: ViewerProps) {
           <Board step={step} db={db} diff={diff} backend={backend} reveal={reveal} />
         </ErrorBoundary>
         <aside className="sidebar">
+          {replay.subAgentLog && (
+            <SubAgentPanel log={replay.subAgentLog[pb.index]} index={pb.index} />
+          )}
           <LogPanel step={step} db={db} />
           <StatsPanel stats={stats[pb.index]} />
           <DiffPanel diff={diff} />

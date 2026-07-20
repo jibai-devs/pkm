@@ -35,3 +35,11 @@ runs/
 agents/*/train.log
 agents/*/train_stdout.log
 agents/*/train_stderr.log
+
+# Replay recordings
+replay/05_vite_react
+replay/05_vite_react_app/
+replay/07_vite_react_cards
+
+# Ian tools
+ian_tools/

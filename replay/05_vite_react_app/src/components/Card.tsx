@@ -47,8 +47,22 @@ export function Card({ card, db, variant, hpDelta, appeared }: Props) {
     .filter(Boolean)
     .join(" ");
 
+  // Card art is served from public/cards/<id>.png (fetched by
+  // replay/fetch_card_images.py). If an id has no image on disk the <img>
+  // 404s -> onError hides just the image, leaving the name/hp/pips fallback.
+  const imgSrc = `/cards/${card.id}.png`;
+
   return (
     <div className={cls} tabIndex={0}>
+      <img
+        className="card-img"
+        src={imgSrc}
+        alt={name}
+        loading="lazy"
+        onError={(e) => {
+          e.currentTarget.style.display = "none";
+        }}
+      />
       <div className="card-name">{name}</div>
       {variant !== "hand" && card.maxHp > 0 && (
         <div className="hp">
@@ -71,6 +85,14 @@ export function Card({ card, db, variant, hpDelta, appeared }: Props) {
 
       {def && (
         <div className="card-pop">
+          <img
+            className="pop-img"
+            src={imgSrc}
+            alt=""
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+          />
           <div className="pop-title">{def.name}</div>
           <div className="pop-meta">
             HP {def.hp} · retreat {def.retreat_cost}

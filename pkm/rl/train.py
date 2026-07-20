@@ -388,6 +388,7 @@ def main(
         workers=workers,
         first_turn_delegate=first_turn_delegate,
         max_seconds=max_seconds,
+        stop_file=stop_file,
     )
 
 

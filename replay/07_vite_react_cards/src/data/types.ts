@@ -99,6 +99,10 @@ export interface Replay {
   steps: Step[];
   rewards?: number[];
   statuses?: unknown[];
+  // Optional per-step sub-agent routing log, indexed to match steps[].
+  // Written by ian_tools/generate_vite_replays.py; each entry is the lines the
+  // middleman logged for that decision (e.g. "decision made by: first_turn").
+  subAgentLog?: string[][];
 }
 
 // ---- cards.json: STATIC card dictionary ----
