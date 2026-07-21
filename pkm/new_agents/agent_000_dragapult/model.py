@@ -15,10 +15,25 @@ encoder, heads) so methods can swap/extend pieces (multi-net designs) later.
     board entity the option references** (grounded pointer, via
     ``option_entity_slot``; :meth:`_gather_entity`). This is what makes the
     encoder's set attention pay off — the per-entity embeddings are now consumed.
-  * Multi-select (``maxCount > 1``) is left to the sampling layer (the agent);
-    the model emits per-option logits only. Sequential, in-network conditioning
-    on already-picked options (a STOP token + running pick summary) is a planned
-    upgrade. `[DECIDE]`
+  * Multi-select (``maxCount > 1``) is handled one of two ways, chosen by
+    ``ModelConfig.policy_head``:
+      - ``"marginal"`` (default, v1): the model emits per-option logits only and
+        multi-select is left to the sampling layer (fixed-logit Plackett–Luce,
+        no conditioning on already-picked options).
+      - ``"autoreg"``: :class:`AutoregPolicyHead` scores each pick **conditioned
+        on the running set of already-picked options** (a pooled-pick summary
+        ``g``) and emits a **STOP** logit, so the count is learned (it can pick
+        fewer than ``maxCount`` once ``minCount`` is met). This is the upgrade
+        the v1 docstring flagged as planned.
+
+**One meaning for the [B,L] head.** ``policy_from_state``/``forward``/
+``evaluate`` always return *step-0 per-option logits* — for ``"autoreg"`` that's
+the conditional scorer with an empty picked-set and STOP masked out. So every
+consumer of the ``[B,L]`` marginal (MCTS priors, the ExIt cross-entropy target,
+inference-time MCTS) is identical across heads. The autoregressive conditioning
+is an *extra* capability exposed via :meth:`PolicyValueModel.policy_step`, used
+only by rollout sampling, the PPO log-prob recompute, and the non-MCTS
+inference pick (see ``policy.py`` / ``agent.py``).
 """
 
 from __future__ import annotations
@@ -89,6 +104,10 @@ def collate(batch: list[Features]) -> dict[str, torch.Tensor]:
         select_context=torch.tensor(
             [f.select_context for f in batch], dtype=torch.long
         ),
+        # Selection-count bounds, used by the autoregressive head's STOP-legality
+        # mask (inert for the marginal head). minCount<=picks<=maxCount.
+        min_count=torch.tensor([f.min_count for f in batch], dtype=torch.long),
+        max_count=torch.tensor([f.max_count for f in batch], dtype=torch.long),
     )
     return s
 
@@ -135,6 +154,75 @@ class OptionEncoder(nn.Module):
         )  # [B,L,d_opt]
 
 
+class AutoregPolicyHead(nn.Module):
+    """Autoregressive STOP-token multi-select head.
+
+    Scores a pick **conditioned on the set of already-picked options** and emits
+    a STOP logit so the pick count is learned. The already-picked set enters as a
+    single summary vector ``g`` = a projection of the *mean of the picked
+    options' encoded vectors* (an empty set pools to zero, so ``g`` is then just
+    ``pick_proj``'s bias — a learned "nothing picked yet" vector, no special
+    case).
+
+    Two scorers, both fed ``g``:
+      * ``opt_scorer([option_vec, state, ctx, referenced-entity, g]) -> logit``
+        per option (same grounded inputs as the marginal scorer, plus ``g``);
+      * ``stop_scorer([state, ctx, g]) -> logit`` — one STOP score per row.
+
+    It owns no option/entity encoding: the model passes in the already-computed
+    ``opt`` / ``ctx`` / ``ent_vec`` (shared with the value/marginal paths) so the
+    trunk still runs once per decision. Padding/legality masks are applied by the
+    caller, not here.
+    """
+
+    def __init__(
+        self,
+        d_opt: int,
+        d_state: int,
+        d_ctx_total: int,
+        d_entity: int,
+        d_g: int | None = None,
+    ):
+        super().__init__()
+        self.d_g = d_g or d_opt
+        self.pick_proj = nn.Linear(d_opt, self.d_g)  # pooled picked vecs -> g
+        self.opt_scorer = nn.Sequential(
+            nn.Linear(d_opt + d_state + d_ctx_total + d_entity + self.d_g, d_opt),
+            nn.ReLU(),
+            nn.Linear(d_opt, 1),
+        )
+        self.stop_scorer = nn.Sequential(
+            nn.Linear(d_state + d_ctx_total + self.d_g, d_opt),
+            nn.ReLU(),
+            nn.Linear(d_opt, 1),
+        )
+
+    def summary(self, opt: torch.Tensor, picked_mask: torch.Tensor) -> torch.Tensor:
+        """Summary ``g`` ``[B, d_g]`` of the picked set (mean of picked option vecs)."""
+        w = picked_mask.unsqueeze(-1)  # [B,L,1]
+        denom = picked_mask.sum(-1, keepdim=True).clamp(min=1.0)  # empty set -> 1
+        pooled = (w * opt).sum(1) / denom  # [B,d_opt]; empty set -> 0
+        return self.pick_proj(pooled)  # [B,d_g]
+
+    def score(
+        self,
+        opt: torch.Tensor,  # [B,L,d_opt]
+        state: torch.Tensor,  # [B,d_state]
+        ctx: torch.Tensor,  # [B,d_ctx_total]
+        ent_vec: torch.Tensor,  # [B,L,d_entity]
+        g: torch.Tensor,  # [B,d_g]
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Return (per-option logits ``[B,L]``, STOP logit ``[B]``) given ``g``."""
+        bsz, lmax = opt.shape[0], opt.shape[1]
+        cond = torch.cat([state, ctx], dim=-1).unsqueeze(1).expand(bsz, lmax, -1)
+        g_exp = g.unsqueeze(1).expand(bsz, lmax, -1)
+        opt_logits = self.opt_scorer(
+            torch.cat([opt, cond, ent_vec, g_exp], dim=-1)
+        ).squeeze(-1)  # [B,L]
+        stop_logit = self.stop_scorer(torch.cat([state, ctx, g], dim=-1)).squeeze(-1)
+        return opt_logits, stop_logit
+
+
 class PolicyValueModel(nn.Module):
     """Encoder + option encoder + policy scorer + value head.
 
@@ -151,6 +239,7 @@ class PolicyValueModel(nn.Module):
         d_ctx: int = D_CTX,
         attack_enc: AttackEncoder | None = None,
         aux_tasks: list[str] | tuple[str, ...] = (),
+        policy_head: str = "marginal",
     ):
         super().__init__()
         self.encoder = encoder or StateEncoder()
@@ -167,13 +256,24 @@ class PolicyValueModel(nn.Module):
         # (YES/NO, NUMBER, deck/hand picks, …). Gathered in place of a real
         # per-entity vector so the scorer input is always the same width.
         self.null_entity = nn.Parameter(torch.zeros(d_entity))
-        # policy scorer: per-option MLP over
-        #   [option_vec, state, decision-context, referenced-entity]
-        self.scorer = nn.Sequential(
-            nn.Linear(d_opt + d_state + 2 * d_ctx + d_entity, d_opt),
-            nn.ReLU(),
-            nn.Linear(d_opt, 1),
-        )
+        # Policy head selection. Build ONLY the chosen head so state_dict keys are
+        # unambiguous per architecture (the config hash pins which one). "marginal"
+        # = the v1 per-option scorer; "autoreg" = the STOP-token multi-select head.
+        if policy_head not in ("marginal", "autoreg"):
+            raise ValueError(
+                f"unknown policy_head {policy_head!r}; choose 'marginal' or 'autoreg'"
+            )
+        self.policy_head = policy_head
+        if policy_head == "autoreg":
+            self.autoreg = AutoregPolicyHead(d_opt, d_state, 2 * d_ctx, d_entity)
+        else:
+            # policy scorer: per-option MLP over
+            #   [option_vec, state, decision-context, referenced-entity]
+            self.scorer = nn.Sequential(
+                nn.Linear(d_opt + d_state + 2 * d_ctx + d_entity, d_opt),
+                nn.ReLU(),
+                nn.Linear(d_opt, 1),
+            )
         self.value_head = nn.Sequential(
             nn.Linear(d_state, d_state),
             nn.ReLU(),
@@ -229,9 +329,11 @@ class PolicyValueModel(nn.Module):
         null = self.null_entity.expand_as(gathered)
         return torch.where(has.unsqueeze(-1), gathered, null)
 
-    def policy_from_state(
-        self, state: torch.Tensor, ent: torch.Tensor, b: dict[str, torch.Tensor]
-    ) -> torch.Tensor:
+    def _option_pieces(
+        self, ent: torch.Tensor, b: dict[str, torch.Tensor]
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Per-option inputs shared by both heads: (opt ``[B,L,d_opt]``, ctx
+        ``[B,2*d_ctx]``, referenced-entity ``[B,L,d_entity]``)."""
         opt = self.option_enc(
             b["option_type"],
             b["option_feat"],
@@ -246,11 +348,49 @@ class PolicyValueModel(nn.Module):
             ],
             dim=-1,
         )  # [B,2*d_ctx]
-        bsz, lmax = opt.shape[0], opt.shape[1]
-        cond = torch.cat([state, ctx], dim=-1).unsqueeze(1).expand(bsz, lmax, -1)
         ent_vec = self._gather_entity(ent, b)  # [B,L,d_entity]
-        logits = self.scorer(torch.cat([opt, cond, ent_vec], dim=-1)).squeeze(-1)  # [B,L]
+        return opt, ctx, ent_vec
+
+    def policy_from_state(
+        self, state: torch.Tensor, ent: torch.Tensor, b: dict[str, torch.Tensor]
+    ) -> torch.Tensor:
+        """Step-0 per-option logits ``[B,L]`` (padding-masked).
+
+        For BOTH heads this is the marginal "probability each option is the first
+        pick": the marginal scorer directly, or the autoregressive scorer with an
+        empty picked-set (and STOP excluded). Every ``[B,L]`` consumer (MCTS
+        priors, ExIt target, inference-MCTS) reads this identically.
+        """
+        opt, ctx, ent_vec = self._option_pieces(ent, b)
+        if self.policy_head == "autoreg":
+            g0 = self.autoreg.summary(opt, torch.zeros_like(b["option_mask"]))
+            logits, _stop = self.autoreg.score(opt, state, ctx, ent_vec, g0)
+        else:
+            bsz, lmax = opt.shape[0], opt.shape[1]
+            cond = torch.cat([state, ctx], dim=-1).unsqueeze(1).expand(bsz, lmax, -1)
+            logits = self.scorer(torch.cat([opt, cond, ent_vec], dim=-1)).squeeze(-1)
         return logits.masked_fill(b["option_mask"] == 0, MASK_FILL)  # mask padding
+
+    def policy_step(
+        self,
+        state: torch.Tensor,
+        ent: torch.Tensor,
+        b: dict[str, torch.Tensor],
+        picked_mask: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Autoregressive step: score the next pick given ``picked_mask``.
+
+        Returns (per-option logits ``[B,L]`` padding-masked, STOP logit ``[B]``).
+        Only valid for the ``"autoreg"`` head. The caller applies the
+        already-picked and STOP-legality masks; padding is masked here.
+        """
+        if self.policy_head != "autoreg":
+            raise RuntimeError("policy_step requires policy_head='autoreg'")
+        opt, ctx, ent_vec = self._option_pieces(ent, b)
+        g = self.autoreg.summary(opt, picked_mask)
+        opt_logits, stop_logit = self.autoreg.score(opt, state, ctx, ent_vec, g)
+        opt_logits = opt_logits.masked_fill(b["option_mask"] == 0, MASK_FILL)
+        return opt_logits, stop_logit
 
     def forward(self, b: dict[str, torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
         state, ent = self.encode(b)

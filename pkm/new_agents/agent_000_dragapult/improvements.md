@@ -37,7 +37,23 @@ already feed the net. The expensive part is built.
 - **Effort:** medium. **Risk:** low — additive, gated behind a trainer choice;
   PPO stays.
 
-### ② Combination-scoring / STOP-conditioned policy head (multi-select)
+### ② Combination-scoring / STOP-conditioned policy head (multi-select) — ✅ SHIPPED (2026-07-22)
+
+**Status: done, opt-in.** Autoregressive STOP-token head landed as
+`ModelConfig.policy_head` (`"marginal"` default = v1, `"autoreg"` = new). Enable
+with `train --policy-head autoreg`. Implementation: `model.AutoregPolicyHead`
+(conditions each pick on a pooled summary of already-picked options + a learned
+STOP logit); sampler/logprob/entropy in `policy.py`
+(`sample_action_autoreg` / `batched_action_logprob_autoreg` /
+`batched_entropy_autoreg`); wired into PPO rollout+update (`trainers/ppo.py`) and
+inference (`agent.py`). Key design: `policy_from_state`/`forward`/`evaluate` keep
+returning step-0 per-option logits, so **MCTS, the ExIt trainer, and
+inference-time MCTS were untouched**. Config-hashed + checkpoint-compatible (old
+ckpts backfill to `"marginal"`); packed bundles rebuild the head automatically
+(it's in the serialized `model_config`). Tests: `test_autoreg_head.py` (19,
+incl. sample↔recompute logprob consistency, STOP legality, full inference game).
+**Not yet done:** actually *train* an autoreg run and A/B it on the leaderboard
+vs marginal.
 
 - **What:** replace (or add a mode to) the marginal pointer so multi-select
   decisions are scored as a *set*, not N independent options.

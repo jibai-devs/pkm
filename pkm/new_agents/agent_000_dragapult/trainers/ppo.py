@@ -110,11 +110,22 @@ def play_game(
             continue
         b = {k: v.to(dev) for k, v in collate([f]).items()}
         with torch.no_grad():
-            logits, value = model(b)
-        k = policy.select_count(f.min_count, f.max_count, n)
-        valid = torch.zeros(logits.shape[1], dtype=torch.bool, device=logits.device)
-        valid[:n] = True
-        picks, logprob = policy.sample_action(logits[0], valid, k, gen=gen)
+            state, ent = model.encode(b)
+            value = model.value_from_state(state)
+            if getattr(model, "policy_head", "marginal") == "autoreg":
+                # Autoregressive multi-select: the head samples its own count
+                # (may pick fewer than maxCount, incl. nothing when minCount==0).
+                picks, logprob = policy.sample_action_autoreg(
+                    model, state, ent, b, gen=gen
+                )
+            else:
+                logits = model.policy_from_state(state, ent, b)
+                k = policy.select_count(f.min_count, f.max_count, n)
+                valid = torch.zeros(
+                    logits.shape[1], dtype=torch.bool, device=logits.device
+                )
+                valid[:n] = True
+                picks, logprob = policy.sample_action(logits[0], valid, k, gen=gen)
         step = Step(
             features=f,
             action=picks,
@@ -231,12 +242,18 @@ def ppo_update(
             # Run the trunk once, then each head, so the aux heads share the same
             # forward as policy + value (that shared pass is the whole point).
             state, ent_emb = model.encode(b)
-            logits = model.policy_from_state(state, ent_emb, b)
             value = model.value_from_state(state)
-            new_lp = policy.batched_action_logprob(
-                logits, b["option_mask"], b["actions"], b["action_len"]
-            )
-            ent = policy.batched_entropy(logits, b["option_mask"]).mean()
+            if getattr(model, "policy_head", "marginal") == "autoreg":
+                new_lp = policy.batched_action_logprob_autoreg(
+                    model, state, ent_emb, b, b["actions"], b["action_len"]
+                )
+                ent = policy.batched_entropy_autoreg(model, state, ent_emb, b).mean()
+            else:
+                logits = model.policy_from_state(state, ent_emb, b)
+                new_lp = policy.batched_action_logprob(
+                    logits, b["option_mask"], b["actions"], b["action_len"]
+                )
+                ent = policy.batched_entropy(logits, b["option_mask"]).mean()
             adv = (b["adv"] - adv_mean) / adv_std
             logratio = new_lp - b["old_logprob"]
             ratio = logratio.exp()

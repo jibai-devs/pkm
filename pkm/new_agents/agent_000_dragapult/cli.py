@@ -253,7 +253,7 @@ def _build_config(
     mcts_temperature: float = 1.0,
     determinization: str = "sample",
     model_preset: str = "small",
-    model_overrides: dict[str, int | float | None] | None = None,
+    model_overrides: dict[str, int | float | str | None] | None = None,
     deck: str = "dragapult",
 ) -> Config:
     from pkm.new_agents.agent_000_dragapult.config import (
@@ -643,6 +643,14 @@ def train(
         "trunk). Recommended for deep large/xxl nets. Off = v1. Changes params, so "
         "a flag-on checkpoint isn't interchangeable with a flag-off one.",
     ),
+    policy_head: Optional[str] = typer.Option(
+        None,
+        "--policy-head",
+        help="Policy head: 'marginal' (default, v1 — per-option scorer, multi-select "
+        "left to sampling) or 'autoreg' (STOP-token head that conditions each pick on "
+        "the already-picked set and learns the count). Changes params, so a "
+        "checkpoint is tied to its head; part of the config hash.",
+    ),
     device: str = typer.Option(
         "cpu",
         "--device",
@@ -747,6 +755,7 @@ def train(
             "d_card": d_card,
             "dropout": dropout,
             "base_residual": base_residual,
+            "policy_head": policy_head,
         },
         ckpt_every=ckpt_every,
         deck=deck,

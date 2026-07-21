@@ -58,6 +58,14 @@ class ModelConfig:
     # uniformly residual — recommended for deep (large/xxl) nets. Changes params
     # (adds a LayerNorm), so it's part of the config hash and checkpoint identity.
     base_residual: bool = False
+    # Policy-head style. "marginal" (default, v1) scores each presented option
+    # independently and leaves multi-select to the sampling layer (fixed-logit
+    # Plackett–Luce). "autoreg" adds an autoregressive STOP-token head that
+    # conditions each pick on the running set of already-picked options and can
+    # stop early (learned count) — see model.AutoregPolicyHead. Different params
+    # (a whole extra head), so it's part of the config hash and checkpoint
+    # identity; old checkpoints lack the field and backfill to "marginal".
+    policy_head: str = "marginal"
 
 
 # Named size presets for one-word scaling from the CLI (`--model <name>`).
@@ -99,7 +107,8 @@ def resolve_device(name: str = "cpu") -> str:
 
 
 def build_model_config(
-    preset: str = "small", overrides: dict[str, int | float | None] | None = None
+    preset: str = "small",
+    overrides: dict[str, int | float | str | None] | None = None,
 ) -> "ModelConfig":
     """Resolve a `ModelConfig` from a named size preset plus per-field overrides.
 
@@ -111,10 +120,10 @@ def build_model_config(
         raise ValueError(
             f"unknown model preset {preset!r}; choose from {sorted(MODEL_PRESETS)}"
         )
-    fields: dict[str, int | float] = dict(MODEL_PRESETS[preset])
+    fields: dict[str, int | float | str] = dict(MODEL_PRESETS[preset])
     if overrides:
         fields.update({k: v for k, v in overrides.items() if v is not None})
-    return ModelConfig(**fields)  # type: ignore[arg-type]  # dropout is float, dims int
+    return ModelConfig(**fields)  # type: ignore[arg-type]  # dropout float, dims int, policy_head str
 
 
 @dataclass(frozen=True)
@@ -242,4 +251,5 @@ def build_model(cfg: Config | ModelConfig | None = None) -> PolicyValueModel:
         d_ctx=mc.d_ctx,
         attack_enc=AttackEncoder(d_atk=mc.d_atk),
         aux_tasks=aux,
+        policy_head=mc.policy_head,
     )
