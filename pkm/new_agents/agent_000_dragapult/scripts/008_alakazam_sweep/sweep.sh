@@ -26,7 +26,9 @@ STUDY="${STUDY:-alakazam_ppo}"        # resumable Optuna study (sqlite)
 OUTPUT="${OUTPUT:-}"
 ENGINE="${ENGINE:-local-nix}"
 TMUX_SESSION="${TMUX_SESSION:-}"
-LOG="${LOG:-$AGENT_DIR/logs/${EXP}.log}"
+# tmux stdout mirror lives WITH the run's artifacts under pkm_data (not the source tree).
+DATA_ROOT="${OUTPUT:-$REPO_ROOT/pkm_data/new_agents/agent_000_dragapult}"
+LOG="${LOG:-$DATA_ROOT/experiments/$EXP/logs/stdout.log}"
 
 DEVICE="${DEVICE:-cuda}"
 MODEL="${MODEL:-xl}"                  # sweep at the deployment net for transferable params

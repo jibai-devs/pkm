@@ -33,7 +33,9 @@ ENGINE="${ENGINE:-local-nix}"         # engine backend (local-nix | vendored | k
 # tail LOG or `tmux attach -t <name>` to watch). NB: do NOT use "pkm-train" — that
 # session hosts Claude Code itself.
 TMUX_SESSION="${TMUX_SESSION:-}"
-LOG="${LOG:-$AGENT_DIR/logs/${EXP}.log}"   # stdout mirror when running in tmux
+# tmux stdout mirror lives WITH the run's artifacts under pkm_data (not the source tree).
+DATA_ROOT="${OUTPUT:-$REPO_ROOT/pkm_data/new_agents/agent_000_dragapult}"
+LOG="${LOG:-$DATA_ROOT/experiments/$EXP/logs/stdout.log}"
 
 # Compute
 DEVICE="${DEVICE:-cuda}"              # cuda | cpu | auto (auto: cuda if available)

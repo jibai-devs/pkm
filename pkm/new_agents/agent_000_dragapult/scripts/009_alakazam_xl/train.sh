@@ -27,7 +27,10 @@ OUTPUT="${OUTPUT:-}"                   # artifact root (empty = repo default)
 FORCE="${FORCE:-0}"                   # 1 = overwrite existing experiment ckpt
 ENGINE="${ENGINE:-local-nix}"
 TMUX_SESSION="${TMUX_SESSION:-}"      # non-empty = launch detached in that tmux session
-LOG="${LOG:-$AGENT_DIR/logs/${EXP}.log}"
+# tmux stdout mirror lives WITH the run's other artifacts under pkm_data (not the
+# source tree): <output>/experiments/<EXP>/logs/stdout.log.
+DATA_ROOT="${OUTPUT:-$REPO_ROOT/pkm_data/new_agents/agent_000_dragapult}"
+LOG="${LOG:-$DATA_ROOT/experiments/$EXP/logs/stdout.log}"
 
 DEVICE="${DEVICE:-cuda}"
 WORKERS="${WORKERS:-8}"
