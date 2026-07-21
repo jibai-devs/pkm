@@ -80,12 +80,6 @@ def _went_first_or_second(obs: dict) -> str:
     return "unknown"  # not yet resolved (shouldn't happen once a real decision exists)
 
 
-# Below this sampled chance of reaching a Phantom Dive, the turn is better
-# spent building the board than looking for an attack that probably isn't
-# there -- so routing hands it to the setup agent.
-PHANTOM_DIVE_SETUP_THRESHOLD = 0.80
-
-
 def _phantom_dive_odds(planner, obs: dict, log_sink) -> dict | None:
     """Sampled Phantom Dive odds for this turn, or None if unavailable.
 
@@ -133,23 +127,19 @@ def _select_agent(obs: dict, agents: dict[str, AgentFn], state: dict) -> str:
         return "first_turn"
     if turn == 2 and first_player == 1 - you:
         return "first_turn"
-    # Setup vs default is decided by how likely a Phantom Dive is this turn.
-    # While that chance is poor there is no attack to build a turn around, so
-    # the setup agent's job -- bench charged Drakloaks behind a disposable
-    # staller (pkm/rl/setup_train.py) -- is the better use of it.
+    # The setup agent runs on each side's own *second* turn and nowhere else:
+    # engine turn 3 going first, turn 4 going second (the turn counter is
+    # shared, so "the second turn" is not turn 2). That is precisely the turn
+    # it was trained on -- a 2-turn episode scored by an end-of-turn board
+    # rubric (pkm/rl/setup_train.py) -- and it has no training signal for any
+    # other point in the game.
     #
-    # `state["pd_odds"]` is measured once per turn by the agent loop before
-    # this runs. It is None when the turn planner is unavailable (it is
-    # env-gated, and the planner's own worker calls this with an empty state
-    # -- which also stops a simulation from recursing into more simulations).
-    # In that case fall back to the turn the setup agent was trained for:
-    # each side's own second turn, engine turn 3 going first, 4 going second.
-    odds = (state or {}).get("pd_odds")
-    if odds is None:
-        if turn == _own_second_turn(you, first_player):
-            return "dragapult_setup"
-        return "dragapult_default"
-    if odds.get("p_offered", 1.0) < PHANTOM_DIVE_SETUP_THRESHOLD:
+    # This previously routed on a sampled Phantom Dive probability instead.
+    # That was dropped: it made routing depend on the turn planner, which is
+    # env-gated, so the rule silently reverted to this one whenever planning
+    # was off -- including in every evaluation. A routing rule that only
+    # applies sometimes is worse than the simple one it falls back to.
+    if turn == _own_second_turn(you, first_player):
         return "dragapult_setup"
     return "dragapult_default"
 
@@ -240,9 +230,10 @@ def make_singaporean_middleman(
 
         if first_decision_of_turn:
             state["turn"] = turn
-            # Measured *before* routing, because `_select_agent` reads it to
-            # choose between the setup and default agents. Once per turn --
-            # each call is a batch of whole-turn simulations.
+            # Purely observational now -- routing no longer reads this (see
+            # `_select_agent`). Costs a batch of whole-turn simulations, so it
+            # only runs at all when the turn planner is switched on, and is
+            # skipped entirely otherwise.
             state["pd_odds"] = _phantom_dive_odds(planner, obs, log_sink)
             state["active"] = select_agent(obs, registry, state)
             odds = state["pd_odds"]

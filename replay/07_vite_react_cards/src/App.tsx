@@ -82,7 +82,11 @@ function initialStep(): number {
 function Viewer({ replay, db, source, error, onPickFile }: ViewerProps) {
   const pb = usePlayback(replay.steps.length, initialStep());
   const [backend, setBackend] = useState<CardBackend>(defaultBackend());
-  const [reveal, setReveal] = useState<"realistic" | "full-info">("realistic");
+  // Default to full information: these replays are used to debug our own
+  // agents, where seeing what the opponent actually held is the whole point.
+  // Switch the header's Hidden control back to "realistic" to view a game the
+  // way a player would have experienced it.
+  const [reveal, setReveal] = useState<"realistic" | "full-info">("full-info");
   const stats = useMemo(() => computeStats(replay), [replay]);
 
   const step = useMemo(() => mergeStep(replay, pb.index), [replay, pb.index]);
