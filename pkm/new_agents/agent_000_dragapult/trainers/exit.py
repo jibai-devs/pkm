@@ -44,6 +44,10 @@ class ExItSample:
     policy_target: np.ndarray  # over the node's options; sums to 1
     seat: int
     value_target: float = 0.0  # filled at game end
+    # MCTS-refined root value at this state (acting seat's perspective), captured
+    # during search. Only populated + used by the "tdlambda" value-target scheme
+    # (the bootstrap for the TD(λ) blend); ignored under the default "mc" scheme.
+    root_value: float = 0.0
 
 
 def _play_game(model, cfg, gen) -> tuple[list[ExItSample], int]:
@@ -63,8 +67,21 @@ def _play_game(model, cfg, gen) -> tuple[list[ExItSample], int]:
             n_iter += 1
             continue
         seat = obs["current"]["yourIndex"]
-        pi = mcts.search(obs, seat, model, cfg, gen)  # [n]
-        samples.append(ExItSample(features=featurize(o), policy_target=pi, seat=seat))
+        # W-world IS-MCTS (W=1 == plain single-world search). Ask for the refined
+        # root value only when the TD(λ) scheme needs it as a bootstrap.
+        w = cfg.train.mcts_worlds
+        if cfg.train.exit_value_target == "tdlambda":
+            pi, root_v = mcts.search_worlds(
+                obs, seat, model, cfg, gen, n_worlds=w, return_value=True
+            )
+        else:
+            pi = mcts.search_worlds(
+                obs, seat, model, cfg, gen, n_worlds=w, return_value=False
+            )
+            root_v = 0.0
+        samples.append(
+            ExItSample(features=featurize(o), policy_target=pi, seat=seat, root_value=root_v)
+        )
         # play a move sampled from π (respecting the multi-select count)
         k = policy.select_count(o.select.minCount, o.select.maxCount, n)
         k = max(1, min(k, n))
@@ -73,9 +90,35 @@ def _play_game(model, cfg, gen) -> tuple[list[ExItSample], int]:
         n_iter += 1
     result = obs["current"]["result"]
     battle_finish()
-    for s in samples:  # Monte-Carlo value target = game outcome
-        s.value_target = _seat_reward(result, s.seat)
+    _assign_value_targets(samples, result, cfg)
     return samples, result
+
+
+def _assign_value_targets(samples: list[ExItSample], result: int, cfg) -> None:
+    """Fill each sample's value target.
+
+    "mc" (default): the raw game outcome (±1/0) for the acting seat.
+    "tdlambda": blend the outcome with the MCTS-refined root value backward along
+    each seat's own trajectory (agent_001's scheme). Per seat, walking from the
+    last decision to the first::
+
+        value := outcome(seat)
+        label := (value + root_value) / 2
+        value := λ·value + (1-λ)·root_value
+
+    so early-game targets lean on the search-refined value while late-game ones
+    stay anchored to the true outcome — lower variance than pure Monte-Carlo.
+    """
+    if cfg.train.exit_value_target != "tdlambda":
+        for s in samples:  # Monte-Carlo value target = game outcome
+            s.value_target = _seat_reward(result, s.seat)
+        return
+    lam = cfg.train.exit_lambda
+    for seat in (0, 1):
+        value = _seat_reward(result, seat)
+        for s in reversed([s for s in samples if s.seat == seat]):
+            s.value_target = (value + s.root_value) * 0.5
+            value = value * lam + s.root_value * (1.0 - lam)
 
 
 class ExItTrainer:

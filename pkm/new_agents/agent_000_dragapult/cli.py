@@ -252,6 +252,9 @@ def _build_config(
     mcts_c_puct: float = 1.25,
     mcts_temperature: float = 1.0,
     determinization: str = "sample",
+    mcts_worlds: int = 1,
+    exit_value_target: str = "mc",
+    exit_lambda: float = 0.9,
     model_preset: str = "small",
     model_overrides: dict[str, int | float | str | None] | None = None,
     deck: str = "dragapult",
@@ -312,6 +315,9 @@ def _build_config(
         mcts_c_puct=mcts_c_puct,
         mcts_temperature=mcts_temperature,
         determinization=determinization,
+        mcts_worlds=mcts_worlds,
+        exit_value_target=exit_value_target,
+        exit_lambda=exit_lambda,
     )
     run = dataclasses.replace(
         RunConfig(), checkpoint_every_updates=ckpt_every, deck=deck
@@ -671,6 +677,20 @@ def train(
     determinization: str = typer.Option(
         "sample", help="Hidden-state determinizer (exit)."
     ),
+    mcts_worlds: int = typer.Option(
+        1,
+        help="ExIt: determinized worlds averaged per decision (IS-MCTS). 1 = "
+        "single-world (v1). >1 averages the root policy over W hidden layouts "
+        "(mcts.search_worlds); cost scales linearly in W.",
+    ),
+    exit_value_target: str = typer.Option(
+        "mc",
+        help="ExIt value target: 'mc' (raw game outcome, v1) or 'tdlambda' "
+        "(blend outcome with the MCTS-refined root value along each trajectory).",
+    ),
+    exit_lambda: float = typer.Option(
+        0.9, help="ExIt tdlambda EMA factor (inert unless --exit-value-target tdlambda)."
+    ),
     eval_every: int = typer.Option(
         16, help="Evaluate vs random every N updates (0 = never)."
     ),
@@ -745,6 +765,9 @@ def train(
         mcts_c_puct=mcts_c_puct,
         mcts_temperature=mcts_temperature,
         determinization=determinization,
+        mcts_worlds=mcts_worlds,
+        exit_value_target=exit_value_target,
+        exit_lambda=exit_lambda,
         model_preset=model,
         model_overrides={
             "n_layers": n_layers,

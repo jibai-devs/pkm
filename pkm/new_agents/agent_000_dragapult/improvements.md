@@ -70,7 +70,16 @@ vs marginal.
 - **Effort:** high. **Risk:** medium — model change → retrain, config-hash bump,
   checkpoint incompatibility.
 
-### ③ TD(λ) value targets
+### ③ TD(λ) value targets — ✅ SHIPPED (2026-07-22)
+
+**Status: done, opt-in.** `TrainConfig.exit_value_target` (`"mc"` default = v1
+raw outcome, `"tdlambda"` = the blend) + `exit_lambda` (0.9). Enable with
+`train --method exit --exit-value-target tdlambda`. `mcts.search` now optionally
+returns the MCTS-refined root value (`return_value=True`, `@overload`-typed;
+default off so all existing callers are unchanged) as the bootstrap; the blend
+runs backward per seat in `exit._assign_value_targets`. Note ① (the
+expert-iteration loop itself) was **already implemented** in `trainers/exit.py`
+before this — ③ adds the value-target scheme on top.
 
 - **What:** blend terminal outcome with bootstrapped node values along the
   trajectory instead of the raw ±1 outcome (agent_001 uses λ=0.9).
@@ -80,7 +89,12 @@ vs marginal.
 - **Land in:** the new expert-iter trainer.
 - **Effort:** low. **Risk:** low.
 
-### ④ Play the loop's search over W determinized worlds
+### ④ Play the loop's search over W determinized worlds — ✅ SHIPPED (2026-07-22)
+
+**Status: done, opt-in.** `TrainConfig.mcts_worlds` (default 1 = v1
+single-world). Enable with `train --method exit --mcts-worlds 4`.
+`exit._play_game` now calls `mcts.search_worlds(n_worlds=cfg.train.mcts_worlds)`
+(which also averages the returned root value across worlds when TD(λ) is on).
 
 - **What:** in expert-iter self-play, call
   `mcts.search_worlds(..., n_worlds=W)` instead of single-world `search()`.

@@ -179,6 +179,19 @@ class TrainConfig:
     mcts_c_puct: float = 1.25
     mcts_temperature: float = 1.0
     determinization: str = "sample"  # key into trainers.exit determinizers
+    # Determinized worlds averaged per decision during ExIt self-play (IS-MCTS).
+    # 1 (default) == single-world mcts.search (v1). >1 averages the root policy
+    # over W independent determinizations (mcts.search_worlds) so the π target
+    # earns its rank across many possible hidden layouts, not one lucky guess.
+    # Cost scales linearly in W. Old checkpoints backfill to 1.
+    mcts_worlds: int = 1
+    # ExIt value-target scheme. "mc" (default, v1) = the raw game outcome
+    # (±1/0) for the acting seat — bit-for-bit the current behaviour. "tdlambda"
+    # blends the outcome with the MCTS-refined root value along each seat's
+    # trajectory (agent_001's scheme), lowering value-target variance. Part of
+    # the config hash; old checkpoints backfill to "mc".
+    exit_value_target: str = "mc"  # "mc" | "tdlambda"
+    exit_lambda: float = 0.9  # EMA factor for the tdlambda blend (inert for "mc")
 
 
 @dataclass(frozen=True)
