@@ -15,6 +15,7 @@ const OPPONENT_LABELS: Record<string, string> = {
   mcts: "MCTS (search)",
   random: "Random",
   singaporean_middleman: "Middleman (heuristics)",
+  dragapult_000: "agent_000 Dragapult (needs checkpoint)",
 };
 
 export function PreGame({ config, busy, error, onStart }: Props) {

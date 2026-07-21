@@ -43,3 +43,10 @@ agents/*/*stdout*.log
 # agent_001_transformer training output (checkpoints + bundles)
 out_transformer/
 out/
+pkm/new_agents/agent_001_transformer/logs/
+
+# Claude Code local state (settings, worktrees — large, not source)
+.claude/
+
+# Stale weight backups
+pkm/policy.npz.*-bak
