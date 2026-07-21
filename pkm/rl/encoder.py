@@ -34,6 +34,8 @@ from pkm.types.obs import (
     NUM_CARDS,
     NUM_OPT_TYPES,
     AreaType,
+    CardType,
+    EnergyType,
     GameState,
     Observation,
     Option,
@@ -42,12 +44,6 @@ from pkm.types.obs import (
     Select,
 )
 
-
-# CardType values (see obs_data_structure/OBSERVATION_SCHEMA.md)
-CARD_TYPE_ITEM = 1
-CARD_TYPE_SUPPORTER = 3
-CARD_TYPE_BASIC_ENERGY = 5
-CARD_TYPE_SPECIAL_ENERGY = 6
 
 # Reward-shaping card/attack IDs (ported from
 # refactor-to-prepare-for-heuristics-integration, see
@@ -60,10 +56,6 @@ DREEPY_LINE_CARD_IDS = {DREEPY_CARD_ID, DRAKLOAK_CARD_ID, DRAGAPULT_EX_CARD_ID}
 XEROSIC_MACHINATIONS_CARD_ID = 1197
 PHANTOM_DIVE_ATTACK_ID = 154
 
-# EnergyType values (see pkm/types/obs.py's EnergyType enum)
-ENERGY_TYPE_COLORLESS = 0
-ENERGY_TYPE_FIRE = 2
-ENERGY_TYPE_PSYCHIC = 5
 
 @dataclass
 class EncodedDecision:
@@ -131,6 +123,7 @@ class EncodedDecision:
     wasted_resources_penalty: float = 0.0
     phantom_dive_bonus: float = 0.0
     drakloak_backup_ready_bonus: float = 0.0
+    budew_redundant_penalty: float = 0.0
 
 
 def encode_state(
@@ -367,7 +360,7 @@ def dragapult_backup_potential(obs: Observation) -> float:
     has_charged_drakloak = any(
         p is not None
         and p.id == DRAKLOAK_CARD_ID
-        and any(e in (ENERGY_TYPE_FIRE, ENERGY_TYPE_PSYCHIC) for e in p.energies)
+        and any(e in (EnergyType.FIRE, EnergyType.PSYCHIC) for e in p.energies)
         for p in me.bench
     )
     return 1.0 if has_charged_drakloak else 0.0
@@ -434,7 +427,7 @@ def _attack_cost_covered(attack: Attack, energies: list[int]) -> bool:
     pool = list(energies)
     generic = 0
     for req in attack.energies:
-        if req == ENERGY_TYPE_COLORLESS:
+        if req == EnergyType.COLORLESS:
             generic += 1
             continue
         if req in pool:
@@ -463,6 +456,12 @@ def energy_overattach_penalty(obs: Observation, picks: list[int]) -> float:
     covers effects that change costs); a benched Pokemon gets no such
     options from the engine, so it's checked directly against its card's
     attack costs. 0.0 otherwise.
+
+    Budew is special-cased: its only attack (Itchy Pollen) is free and it's
+    a one-and-done disruptor, never an attacker you build up. Energy on it is
+    always wasted -- even the "attach to enable a retreat" case the active
+    check normally exempts, since you'd rather switch/sacrifice Budew than
+    sink a precious Fire/Psychic into it -- so it's penalized unconditionally.
     """
     sel = obs.select
     state = obs.current
@@ -478,6 +477,8 @@ def energy_overattach_penalty(obs: Observation, picks: list[int]) -> float:
         if resolved is None:
             continue
         target, _card = resolved
+        if target.id == BUDEW_CARD_ID:
+            return -1.0
         if active is not None and target.serial == active.serial:
             if active_ready:
                 return -1.0
@@ -505,7 +506,9 @@ def budew_first_turn_attack_bonus(obs: Observation, picks: list[int]) -> float:
     if active is None or active.id != BUDEW_CARD_ID:
         return 0.0
     attacked = any(
-        sel.option[i].type == OptionType.ATTACK for i in picks if 0 <= i < len(sel.option)
+        sel.option[i].type == OptionType.ATTACK
+        for i in picks
+        if 0 <= i < len(sel.option)
     )
     return 1.0 if attacked else 0.0
 
@@ -528,6 +531,37 @@ def budew_active_second_potential(obs: Observation) -> float:
         return 0.0
     active = state.players[state.yourIndex].active_pokemon
     return 1.0 if active is not None and active.id == BUDEW_CARD_ID else 0.0
+
+
+def budew_redundant_play_penalty(obs: Observation, picks: list[int]) -> float:
+    """-1.0 if `picks` play a Budew from hand while another Budew is already
+    in play, or while a Dragapult ex is already in play. A second Budew adds
+    nothing (its whole job is the one-time early Itchy Pollen disruption), and
+    once Dragapult ex is online the bench is better spent on the attacker's
+    support than on a fresh Budew. 0.0 otherwise.
+    """
+    sel = obs.select
+    state = obs.current
+    if sel is None or state is None:
+        return 0.0
+    you = state.yourIndex
+    me = state.players[you]
+    board = [me.active_pokemon, *me.bench]
+    budew_in_play = any(p is not None and p.id == BUDEW_CARD_ID for p in board)
+    dragapult_in_play = any(
+        p is not None and p.id == DRAGAPULT_EX_CARD_ID for p in board
+    )
+    if not budew_in_play and not dragapult_in_play:
+        return 0.0
+    for i in picks:
+        if i < 0 or i >= len(sel.option):
+            continue
+        opt = sel.option[i]
+        if opt.type != OptionType.PLAY:
+            continue
+        if _card_id_at(state, sel, you, AreaType.HAND, opt.index) == BUDEW_CARD_ID:
+            return -1.0
+    return 0.0
 
 
 def xerosic_machinations_bonus(obs: Observation, picks: list[int]) -> float:
@@ -580,18 +614,27 @@ def _resolve_energy_attach(
     card_id = _card_id_at(state, sel, you, opt.area, opt.index)
     card = get_card_by_id(card_id) if card_id else None
     if card is None or card.card_type not in (
-        CARD_TYPE_BASIC_ENERGY,
-        CARD_TYPE_SPECIAL_ENERGY,
+        CardType.BASIC_ENERGY,
+        CardType.SPECIAL_ENERGY,
     ):
         return None
     return target, card
 
 
 def wrong_type_energy_penalty(obs: Observation, picks: list[int]) -> float:
-    """-1.0 if `picks` attach energy to a Dreepy/Drakloak/Dragapult ex that
-    will end up with exactly 2 energy after this attach, both the same
-    type. Phantom Dive costs one Fire + one Psychic — a same-type pair at
-    2 energy can never pay for it, so it's the wrong energy to attach here.
+    """-1.0 if `picks` attach an energy to a Dreepy/Drakloak/Dragapult ex
+    that doesn't advance it toward the Fire+Psychic combo their strongest
+    attacks (Bite / Dragon Headbutt / Phantom Dive) need:
+
+    - an off-type energy -- anything but Fire or Psychic (e.g. a Dark energy
+      meant for Munkidori). It can't pay a Fire/Psychic cost, so it's wasted
+      on the line.
+    - a second energy of a type the target already has. A same-type pair
+      (two Fire, or two Psychic) can't cover the one-Fire-one-Psychic
+      requirement, so the duplicate is the wrong energy here.
+
+    0.0 otherwise -- a Fire or Psychic the target doesn't yet have, i.e.
+    clean progress toward the combo.
     """
     sel = obs.select
     if sel is None:
@@ -603,10 +646,13 @@ def wrong_type_energy_penalty(obs: Observation, picks: list[int]) -> float:
         if resolved is None:
             continue
         target, card = resolved
-        if target.id not in DREEPY_LINE_CARD_IDS or len(target.energies) != 1:
-            continue  # only the 1 -> 2 transition matters
-        if card.energy_type == target.energies[0]:
-            return -1.0
+        if target.id not in DREEPY_LINE_CARD_IDS:
+            continue
+        etype = card.energy_type
+        if etype not in (EnergyType.FIRE, EnergyType.PSYCHIC):
+            return -1.0  # off-type: never advances the Fire+Psychic combo
+        if etype in target.energies:
+            return -1.0  # redundant same-type: can't complete Fire+Psychic
     return 0.0
 
 
@@ -622,7 +668,9 @@ def dragapult_ex_attack_bonus(obs: Observation, picks: list[int]) -> float:
     if active is None or active.id != DRAGAPULT_EX_CARD_ID:
         return 0.0
     attacked = any(
-        sel.option[i].type == OptionType.ATTACK for i in picks if 0 <= i < len(sel.option)
+        sel.option[i].type == OptionType.ATTACK
+        for i in picks
+        if 0 <= i < len(sel.option)
     )
     return 1.0 if attacked else 0.0
 
@@ -768,7 +816,7 @@ def dreepy_line_bench_charge_bonus(obs: Observation, picks: list[int]) -> float:
         if n >= 3:
             return -1.0
         type_set = set(resulting)
-        if len(type_set) == n and type_set <= {ENERGY_TYPE_FIRE, ENERGY_TYPE_PSYCHIC}:
+        if len(type_set) == n and type_set <= {EnergyType.FIRE, EnergyType.PSYCHIC}:
             return 1.0
     return 0.0
 
@@ -806,8 +854,8 @@ def dreepy_line_active_charge_bonus(obs: Observation, picks: list[int]) -> float
             continue  # active only
         before = set(target.energies)
         after = before | {card.energy_type}
-        had_combo = ENERGY_TYPE_FIRE in before and ENERGY_TYPE_PSYCHIC in before
-        has_combo = ENERGY_TYPE_FIRE in after and ENERGY_TYPE_PSYCHIC in after
+        had_combo = EnergyType.FIRE in before and EnergyType.PSYCHIC in before
+        has_combo = EnergyType.FIRE in after and EnergyType.PSYCHIC in after
         if has_combo and not had_combo:
             return 1.0
     return 0.0
@@ -846,7 +894,7 @@ def drakloak_backup_ready_bonus(obs: Observation, picks: list[int]) -> float:
         if target.id != DRAKLOAK_CARD_ID:
             continue
         resulting = sorted([*target.energies, card.energy_type])
-        if resulting == sorted([ENERGY_TYPE_FIRE, ENERGY_TYPE_PSYCHIC]):
+        if resulting == sorted([EnergyType.FIRE, EnergyType.PSYCHIC]):
             return 1.0
     return 0.0
 
@@ -867,7 +915,9 @@ def wasted_resources_attack_penalty(obs: Observation, picks: list[int]) -> float
     you = state.yourIndex
     me = state.players[you]
     attacked = any(
-        sel.option[i].type == OptionType.ATTACK for i in picks if 0 <= i < len(sel.option)
+        sel.option[i].type == OptionType.ATTACK
+        for i in picks
+        if 0 <= i < len(sel.option)
     )
     if not attacked:
         return 0.0
@@ -881,6 +931,6 @@ def wasted_resources_attack_penalty(obs: Observation, picks: list[int]) -> float
             continue
         card_id = _card_id_at(state, sel, you, AreaType.HAND, o.index)
         card = get_card_by_id(card_id) if card_id else None
-        if card is not None and card.card_type in (CARD_TYPE_ITEM, CARD_TYPE_SUPPORTER):
+        if card is not None and card.card_type in (CardType.ITEM, CardType.SUPPORTER):
             return -1.0
     return 0.0

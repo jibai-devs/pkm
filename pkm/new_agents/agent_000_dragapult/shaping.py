@@ -25,6 +25,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable, Protocol
 
+from pkm.rl.reward_terms import DIRECT_TERMS, POTENTIAL_TERMS
+
 if TYPE_CHECKING:  # avoid an import cycle with train.py at runtime
     from pkm.new_agents.agent_000_dragapult.config import Config
 
@@ -99,10 +101,72 @@ def prize_potential_shaper(
         traj[t].reward += coef * (gamma * phi(traj[t + 1]) - phi(traj[t]))
 
 
+def heuristic_shaper(
+    traj: list["StepLike"], seat: int, result: int, cfg: "Config"
+) -> None:
+    """Terminal ±1 plus the full deck-specific reward stack ported from pkm/rl.
+
+    Each step carries the heuristic scalars filled during rollout (see
+    trainers.ppo._fill_heuristics). ``cfg.train.reward_weights`` maps a term
+    name (reward_terms.ALL_TERMS) to its coefficient. Two kinds of term, exactly
+    as in pkm/rl/ppo.compute_returns:
+
+      * **potential** terms (pure functions of state) telescope as
+        ``coef·(γ·Φ(s_{t+1}) − Φ(s_t))`` — policy-invariant (Ng et al. 1999),
+        rewarding *reaching* a state. The terminal state's potential is 0, so
+        the last step gets the ``−coef·Φ(s_T)`` correction only.
+      * **direct** terms (action-conditioned bonuses/penalties) add
+        ``coef·value`` straight into the reward at the step they fire on,
+        including the terminal step.
+
+    Terms weighted 0.0 are skipped, so the cost scales with how many knobs are
+    actually on. Missing attributes read as 0.0 (robust to older Step records).
+    """
+    terminal_shaper(traj, seat, result, cfg)  # keep the ±1 terminal reward
+    w = cfg.train.reward_weights
+    gamma = cfg.train.gamma
+    n = len(traj)
+    if n == 0:
+        return
+    for t in range(n - 1):
+        for name, attr in POTENTIAL_TERMS:
+            coef = w.get(name, 0.0)
+            if coef:
+                cur = getattr(traj[t], attr, 0.0)
+                nxt = getattr(traj[t + 1], attr, 0.0)
+                traj[t].reward += coef * (gamma * nxt - cur)
+        for name, attr in DIRECT_TERMS:
+            coef = w.get(name, 0.0)
+            if coef:
+                traj[t].reward += coef * getattr(traj[t], attr, 0.0)
+    # Terminal step: Φ(s_T) ≡ 0 (game over), so only the −coef·Φ correction lands
+    # for potential terms; direct terms still pay out normally.
+    for name, attr in POTENTIAL_TERMS:
+        coef = w.get(name, 0.0)
+        if coef:
+            traj[n - 1].reward -= coef * getattr(traj[n - 1], attr, 0.0)
+    for name, attr in DIRECT_TERMS:
+        coef = w.get(name, 0.0)
+        if coef:
+            traj[n - 1].reward += coef * getattr(traj[n - 1], attr, 0.0)
+
+
+# The full reward-term stack (reward_terms.ALL_TERMS) is **Dragapult-specific**
+# (dragapult_bonus, dreepy_*, xerosic, budew_*, phantom_dive, …), so its canonical
+# selector says so. ``"heuristic"`` is kept as a back-compat alias for the older
+# runs/scripts/checkpoints that used that generic name. Deck-agnostic runs (e.g.
+# the alakazam deck) should use ``prize_potential`` (the default), which touches
+# no reward term at all.
 SHAPERS: dict[str, RewardShaper] = {
     "terminal": terminal_shaper,
     "prize_potential": prize_potential_shaper,
+    "dragapult_heuristic": heuristic_shaper,
+    "heuristic": heuristic_shaper,  # deprecated alias → dragapult_heuristic
 }
+
+# Selectors that drive the Dragapult heuristic reward-term stack (need the
+# per-step heuristic scalars filled during rollout).
+HEURISTIC_SHAPERS: frozenset[str] = frozenset({"dragapult_heuristic", "heuristic"})
 
 
 # --------------------------------------------------------------------------- #

@@ -4,6 +4,7 @@ collects encoded decisions for both players."""
 import random
 from dataclasses import dataclass
 
+from pkm.agents.first_turn_agent import make_first_turn_agent
 from pkm.archetype.belief import compute_belief
 from pkm.engine import (
     battle_finish,
@@ -19,6 +20,7 @@ from .encoder import (
     EncodedDecision,
     budew_active_second_potential,
     budew_first_turn_attack_bonus,
+    budew_redundant_play_penalty,
     budew_turn_bench_setup_bonus,
     drakloak_backup_ready_bonus,
     dragapult_backup_potential,
@@ -107,6 +109,7 @@ class TorchPolicy:
         )
         d.wasted_resources_penalty = wasted_resources_attack_penalty(parsed, res.picks)
         d.drakloak_backup_ready_bonus = drakloak_backup_ready_bonus(parsed, res.picks)
+        d.budew_redundant_penalty = budew_redundant_play_penalty(parsed, res.picks)
         return res.picks, d
 
 
@@ -116,6 +119,58 @@ class RandomPolicy:
     ) -> tuple[list[int], None]:
         sel = obs["select"]
         return random.sample(range(len(sel["option"])), sel["maxCount"]), None
+
+
+def _is_own_first_turn(obs: dict) -> bool:
+    """Whether the current decision belongs to the to-move player's own first
+    turn -- setup (turn 0), turn 1 going first (or before the coin resolves),
+    turn 2 going second. Mirrors `singaporean_middleman._select_agent`'s rule
+    so training-time delegation matches the deployed router exactly (the
+    engine's turn counter is shared across both players)."""
+    cur = obs["current"]
+    turn = cur["turn"]
+    you = cur["yourIndex"]
+    first_player = cur.get("firstPlayer", -1)
+    if turn == 0:
+        return True
+    if turn == 1 and first_player != 1 - you:
+        return True
+    if turn == 2 and first_player == 1 - you:
+        return True
+    return False
+
+
+class FirstTurnDelegatingPolicy:
+    """Plays the to-move player's own first turn with the scripted first-turn
+    agent, delegating every later decision to `inner`.
+
+    First-turn picks are made by the scripted agent, so they are *never*
+    collected into the trajectory (returns `record=None`, exactly like a
+    forced pick) -- the policy is only trained on the turns it actually plays,
+    matching how `singaporean_middleman` deploys it (turn 1 = scripted, turn
+    2+ = neural)."""
+
+    def __init__(self, inner, first_turn_agent):
+        self.inner = inner
+        self._first_turn = first_turn_agent
+
+    def act(
+        self, obs: dict, collect: bool, ctx: GameContext | None = None
+    ) -> tuple[list[int], EncodedDecision | None]:
+        if _is_own_first_turn(obs):
+            return self._first_turn(obs), None
+        return self.inner.act(obs, collect=collect, ctx=ctx)
+
+
+def make_training_first_turn_agent(deck: list[int]):
+    """A first-turn agent tuned for self-play speed (a small search budget),
+    not deployment strength: it's called on both sides of every game, so the
+    full 6s/decision deployment budget would throttle rollout to a crawl.
+    Setup picks are priority-table lookups either way; only the in-turn MCTS
+    scales with these knobs."""
+    return make_first_turn_agent(
+        deck, n_determinizations=1, n_simulations=6, time_budget_s=0.75
+    )
 
 
 @dataclass
@@ -227,6 +282,7 @@ def play_one(
     deck: list[int],
     spec: GameSpec,
     archetype_classifier=None,
+    first_turn_agent=None,
 ) -> GameResult:
     """Play one game per `spec`, reusing `opponent_model` as scratch space for
     the pooled-opponent case (avoids rebuilding a fresh module every game).
@@ -237,7 +293,10 @@ def play_one(
     belief re-injection (docs/opponent-archetype-classifier-plan.md Part 2a)
     only ever influences the policy actually being trained this run. In the
     mirror self-play case both sides share one TorchPolicy instance, so both
-    naturally get it too."""
+    naturally get it too.
+
+    If `first_turn_agent` is given, both sides delegate their own first turn
+    to it (never collected) -- see `FirstTurnDelegatingPolicy`."""
     if spec.opponent_state is None:
         cur = TorchPolicy(current_model, archetype_classifier=archetype_classifier)
         policies = (cur, cur)
@@ -250,6 +309,11 @@ def play_one(
         opp_deck = spec.opponent_deck if spec.opponent_deck is not None else deck
         policies = (cur, opp) if spec.side == 0 else (opp, cur)
         decks = (deck, opp_deck) if spec.side == 0 else (opp_deck, deck)
+    if first_turn_agent is not None:
+        policies = (
+            FirstTurnDelegatingPolicy(policies[0], first_turn_agent),
+            FirstTurnDelegatingPolicy(policies[1], first_turn_agent),
+        )
     return play_game(policies, decks, collect=spec.collect)
 
 

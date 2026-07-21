@@ -40,7 +40,13 @@ dev = [
 ]
 
 [tool.uv.sources]
-torch = { index = "pytorch-cpu" }
+# CUDA build on this box (linux + py3.12); CPU wheels everywhere else so the
+# universal lock still resolves for other platforms / Python versions (CUDA
+# wheels don't exist for win32 or every Python minor).
+torch = [
+    { index = "pytorch-cu129", marker = "sys_platform == 'linux' and python_version == '3.12'" },
+    { index = "pytorch-cpu", marker = "sys_platform != 'linux' or python_version != '3.12'" },
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -48,6 +54,11 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["pkm"]
+
+[[tool.uv.index]]
+name = "pytorch-cu129"
+url = "https://download.pytorch.org/whl/cu129"
+explicit = true
 
 [[tool.uv.index]]
 name = "pytorch-cpu"

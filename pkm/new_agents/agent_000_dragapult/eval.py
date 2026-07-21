@@ -21,8 +21,8 @@ from pkm.new_agents.agent_000_dragapult.cabt import (
     battle_select,
     battle_start,
 )
-from pkm.new_agents.agent_000_dragapult.agent import DragapultAgent
-from pkm.new_agents.agent_000_dragapult.deck import DECK_60
+from pkm.new_agents.agent_000_dragapult.agent import DragapultAgent, InferenceConfig
+from pkm.new_agents.agent_000_dragapult.deck import DEFAULT_DECK, deck_60
 
 AgentFn = Callable[[dict[str, Any]], list[int]]
 
@@ -30,13 +30,14 @@ AgentFn = Callable[[dict[str, Any]], list[int]]
 class RandomAgent:
     """Uniform-random legal-option baseline (its own RNG for reproducibility)."""
 
-    def __init__(self, seed: int = 0):
+    def __init__(self, seed: int = 0, deck_name: str = DEFAULT_DECK):
         self.rng = random.Random(seed)
+        self.deck = deck_60(deck_name)
 
     def __call__(self, obs: dict[str, Any]) -> list[int]:
         sel = obs.get("select")
         if sel is None or obs.get("current") is None:
-            return list(DECK_60)
+            return list(self.deck)
         n = len(sel["option"])
         if n == 0:
             return []
@@ -44,14 +45,17 @@ class RandomAgent:
         return self.rng.sample(range(n), k)
 
 
-def play_match(agent_fn: AgentFn, opp_fn: AgentFn, agent_seat: int) -> int:
-    """Play one game (both sides pilot our deck); return result from the agent's
-    perspective: +1 win, -1 loss, 0 draw."""
-    obs, _ = battle_start(list(DECK_60), list(DECK_60))
+def play_match(
+    agent_fn: AgentFn, opp_fn: AgentFn, agent_seat: int, deck_name: str = DEFAULT_DECK
+) -> int:
+    """Play one game (both sides pilot ``deck_name``); return result from the
+    agent's perspective: +1 win, -1 loss, 0 draw."""
+    deck_ids = deck_60(deck_name)
+    obs, _ = battle_start(list(deck_ids), list(deck_ids))
     it = 0
     while obs["current"]["result"] < 0 and it < 100000:
         if obs["select"] is None or obs["current"] is None:
-            obs = battle_select(list(DECK_60))  # deck-selection phase
+            obs = battle_select(list(deck_ids))  # deck-selection phase
             it += 1
             continue
         who = obs["current"]["yourIndex"]
@@ -67,13 +71,16 @@ def play_match(agent_fn: AgentFn, opp_fn: AgentFn, agent_seat: int) -> int:
 
 
 def evaluate(
-    agent_fn: AgentFn, opp_fn: AgentFn, n_games: int = 100
+    agent_fn: AgentFn,
+    opp_fn: AgentFn,
+    n_games: int = 100,
+    deck_name: str = DEFAULT_DECK,
 ) -> dict[str, float]:
     """Win-rate of agent_fn vs opp_fn over n_games, alternating seats (removes
     first-player bias)."""
     wins = losses = draws = 0
     for g in range(n_games):
-        res = play_match(agent_fn, opp_fn, agent_seat=g % 2)
+        res = play_match(agent_fn, opp_fn, agent_seat=g % 2, deck_name=deck_name)
         if res > 0:
             wins += 1
         elif res < 0:
@@ -94,8 +101,52 @@ def evaluate(
 
 @torch.no_grad()
 def winrate_vs_random(
-    model: torch.nn.Module, n_games: int = 100, seed: int = 0
+    model: torch.nn.Module,
+    n_games: int = 100,
+    seed: int = 0,
+    inference: InferenceConfig | None = None,
+    deck_name: str = DEFAULT_DECK,
 ) -> dict[str, float]:
-    """Convenience: greedy agent from `model` vs a RandomAgent baseline."""
-    agent = DragapultAgent(model=model, greedy=True)
-    return evaluate(agent, RandomAgent(seed=seed), n_games=n_games)
+    """Convenience: greedy agent from `model` vs a RandomAgent baseline.
+
+    Pass ``inference`` to evaluate the agent-under-test with MCTS search rather
+    than the raw policy head. Both seats pilot ``deck_name``.
+    """
+    agent = DragapultAgent(model=model, greedy=True, inference=inference, deck=deck_name)
+    return evaluate(
+        agent, RandomAgent(seed=seed, deck_name=deck_name), n_games=n_games,
+        deck_name=deck_name,
+    )
+
+
+@torch.no_grad()
+def winrate_vs_agent(
+    model: torch.nn.Module,
+    opponent: AgentFn,
+    n_games: int = 100,
+    inference: InferenceConfig | None = None,
+    deck_name: str = DEFAULT_DECK,
+) -> dict[str, float]:
+    """Win-rate of greedy `model` vs an arbitrary opponent agent callable."""
+    agent = DragapultAgent(model=model, greedy=True, inference=inference, deck=deck_name)
+    return evaluate(agent, opponent, n_games=n_games, deck_name=deck_name)
+
+
+@torch.no_grad()
+def winrate_vs_checkpoint(
+    model: torch.nn.Module,
+    opponent_path: str,
+    n_games: int = 100,
+    inference: InferenceConfig | None = None,
+    deck_name: str = DEFAULT_DECK,
+) -> dict[str, float]:
+    """Win-rate of greedy `model` vs a greedy agent loaded from another checkpoint
+    (a training ``ckpt_N.pt`` or a packed ``weights.pt``).
+
+    This is the *discriminating* eval: unlike vs-random (which saturates near
+    100% once the agent is any good), pitting two trained policies against each
+    other ranks them on a signal that isn't pinned to the random-opponent ceiling.
+    Both seats pilot ``deck_name`` (mirror match).
+    """
+    opp = DragapultAgent.from_checkpoint(opponent_path, greedy=True)
+    return winrate_vs_agent(model, opp, n_games=n_games, inference=inference, deck_name=deck_name)

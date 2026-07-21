@@ -20,6 +20,8 @@ separate damage-counter tally. So `lethal_this_turn` compares `hp - damage`
 directly; there is no separate damage-counters term to subtract.
 """
 
+import math
+
 import numpy as np
 
 from pkm.data.card_data import get_attack_data, get_card_by_id
@@ -95,6 +97,27 @@ def type_effectiveness(obs: Observation, ctx: GameContext | None) -> np.ndarray:
             multiplier = 0.5
         out.append(multiplier / 2.0)
     return np.array(out, dtype=np.float32)
+
+
+def enemy_threat(obs: Observation, ctx: GameContext | None) -> np.ndarray:
+    """Threat level of each opposing Pokemon, 0.0 everywhere on my own side.
+
+    Threat scales with attached energy (the pace at which a Pokemon nears
+    being able to attack) but with diminishing returns -- the first energy is
+    the biggest jump in danger, each further one adds less. Concretely
+    log(1 + 3n) / log(16): 0 -> 0.0, 1 -> 0.50, 2 -> 0.70, 3 -> 0.83,
+    4 -> 0.93, 5 -> 1.0 (capped there). Damage output, prize value, and
+    remaining HP are deliberate future refinements.
+    """
+    state = obs.current
+    assert state is not None
+    pokes = board_pokemon(obs)  # slots 0..MAX_BENCH mine, the rest opponent's
+    out = np.zeros(len(pokes), dtype=np.float32)
+    for i in range(1 + MAX_BENCH, len(pokes)):
+        p = pokes[i]
+        if p is not None:
+            out[i] = min(math.log(1 + 3 * len(p.energies)) / math.log(16), 1.0)
+    return out
 
 
 def retreat_viable(obs: Observation, ctx: GameContext | None) -> np.ndarray:

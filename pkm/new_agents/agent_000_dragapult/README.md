@@ -240,10 +240,22 @@ Ordered; each reuses the parts before it (see D5/D7). The network already emits
 `(priors, value)` via `model.evaluate()`, so the whole ladder is unlocked by the
 same trunk+heads.
 
-1. **Hybrid: inference-time MCTS** — wrap the *same PPO net* in MCTS at decision
-   time (policy=priors, value=leaf eval) via the engine's `Search*` API +
-   determinization for hidden cards. No retrain; the one near-free strength
-   upgrade. First thing after a PPO baseline works.
+1. **Hybrid: inference-time MCTS** — ✅ **SHIPPED (2026-07-20).** The *same PPO
+   net* is wrapped in MCTS at decision time (policy=priors, value=leaf eval) via
+   the engine's `Search*` API + determinization for hidden cards. No retrain.
+   Opt-in via an `InferenceConfig` baked into the packed bundle: pack with
+   `--inference mcts -K <sims>` (K=0 or `--inference policy` → plain policy);
+   measure locally with `eval --inference mcts -K <sims>`; pack both variants at
+   once with `scripts/pack_variants.sh`. Search rides Kaggle's own `libcg.so`
+   search symbols, so no vendored engine is shipped. **Watch the per-turn +
+   cumulative 600 s time budget** — tune K to fit. `agent._mcts_pick`, `mcts.py`.
+   **Multi-world IS-MCTS (`-W`, added 2026-07-20):** a single determinization
+   (W=1) is *biased* — the search optimizes for one guessed deck order / hidden
+   hand, so it over-commits to draws it merely assumed (and raising K makes that
+   worse, not better). `-W <n>` re-samples n worlds per decision and averages
+   their root visit policies (`mcts.search_worlds`), so a move must be good
+   across many possible draws. Costs W× the search time, so trade W against K
+   under the budget (e.g. `W=8 -K 4` ≈ `W=1 -K 32` in compute).
 2. **Expert iteration / AlphaZero-style** — move search *into* training: MCTS
    produces improved policy targets, net imitates them (+ outcome value). New
    training loop/loss, but reuses the net + search driver. Needs **IS-MCTS /

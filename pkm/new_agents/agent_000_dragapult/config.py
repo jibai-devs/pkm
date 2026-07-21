@@ -22,9 +22,15 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from pkm.new_agents.agent_000_dragapult.attacks import AttackEncoder
+from pkm.new_agents.agent_000_dragapult.aux_tasks import (
+    active_tasks,
+    default_weights as _default_aux_weights,
+)
+from pkm.new_agents.agent_000_dragapult.deck import DEFAULT_DECK
 from pkm.new_agents.agent_000_dragapult.encoder import StateEncoder
 from pkm.new_agents.agent_000_dragapult.features import FEATURE_VERSION
 from pkm.new_agents.agent_000_dragapult.model import PolicyValueModel
+from pkm.rl.reward_terms import DEFAULT_WEIGHTS
 
 
 @dataclass(frozen=True)
@@ -39,6 +45,76 @@ class ModelConfig:
     d_opt: int = 64
     d_ctx: int = 16
     d_atk: int = 32  # attack (move) embedding dim
+    # --- trunk depth ---
+    # Number of entity-attention layers in the encoder. 1 == the original v1
+    # architecture (a single nn.MultiheadAttention, no residual/LayerNorm) and is
+    # bit-for-bit checkpoint-compatible. >1 stacks (n_layers-1) extra pre-LN
+    # transformer layers (residual + LayerNorm + FFN) on top for real depth.
+    n_layers: int = 1
+    ff_mult: int = 4  # FFN width = ff_mult * d_entity in the extra layers
+    dropout: float = 0.0  # dropout in the extra transformer layers
+    # Pre-LN residual around the base attention layer. False == v1 (no skip there;
+    # only the extra transformer layers are residual). True makes the whole trunk
+    # uniformly residual — recommended for deep (large/xxl) nets. Changes params
+    # (adds a LayerNorm), so it's part of the config hash and checkpoint identity.
+    base_residual: bool = False
+
+
+# Named size presets for one-word scaling from the CLI (`--model <name>`).
+# "small" IS the original v1 net (unchanged defaults). Individual `--d-*`/`--n-*`
+# override flags win over a preset's value. d_ctx/d_atk keep their ModelConfig
+# defaults unless explicitly overridden.
+MODEL_PRESETS: dict[str, dict[str, int]] = {
+    "small":  {"d_card": 32, "d_entity": 64,  "d_global": 64,  "d_state": 128, "n_heads": 4, "d_opt": 64,  "n_layers": 1},  # noqa: E241
+    "medium": {"d_card": 48, "d_entity": 128, "d_global": 96,  "d_state": 256, "n_heads": 8, "d_opt": 128, "n_layers": 2},  # noqa: E241
+    "large":  {"d_card": 64, "d_entity": 192, "d_global": 128, "d_state": 384, "n_heads": 8, "d_opt": 192, "n_layers": 3},  # noqa: E241
+    "xl":     {"d_card": 64, "d_entity": 256, "d_global": 192, "d_state": 512, "n_heads": 8, "d_opt": 256, "n_layers": 4},  # noqa: E241
+}
+
+
+def resolve_device(name: str = "cpu") -> str:
+    """Resolve a device selector to a concrete ``'cpu'`` / ``'cuda'``.
+
+    ``'auto'`` picks ``'cuda'`` when a CUDA build + GPU are available, else
+    ``'cpu'``. An explicit ``'cuda'`` with no usable CUDA raises a clear error
+    (the installed torch here is often a CPU-only build) rather than failing
+    cryptically later. Device is a *runtime* choice — it is intentionally NOT
+    part of ``Config`` / the config hash, so the same run is one experiment
+    whether trained on CPU or GPU.
+    """
+    import torch
+
+    n = (name or "cpu").lower()
+    if n == "auto":
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    if n == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError(
+            f"--device cuda requested but torch.cuda is unavailable (installed "
+            f"torch is '{torch.__version__}'). Install a CUDA build of torch, or "
+            f"use --device cpu / --device auto."
+        )
+    if n not in ("cpu", "cuda"):
+        raise ValueError(f"unknown device {name!r}; choose 'cpu', 'cuda', or 'auto'")
+    return n
+
+
+def build_model_config(
+    preset: str = "small", overrides: dict[str, int | float | None] | None = None
+) -> "ModelConfig":
+    """Resolve a `ModelConfig` from a named size preset plus per-field overrides.
+
+    `overrides` maps a `ModelConfig` field name to a value; `None` values are
+    ignored (so unset CLI flags fall through to the preset). Any field not named
+    by the preset or overrides keeps its `ModelConfig` default.
+    """
+    if preset not in MODEL_PRESETS:
+        raise ValueError(
+            f"unknown model preset {preset!r}; choose from {sorted(MODEL_PRESETS)}"
+        )
+    fields: dict[str, int | float] = dict(MODEL_PRESETS[preset])
+    if overrides:
+        fields.update({k: v for k, v in overrides.items() if v is not None})
+    return ModelConfig(**fields)  # type: ignore[arg-type]  # dropout is float, dims int
 
 
 @dataclass(frozen=True)
@@ -50,6 +126,11 @@ class TrainConfig:
     minibatch_size: int = 64
     epochs_per_update: int = 4
     lr: float = 3e-4
+    # LR schedule over the run: "constant" (default, v1 — fixed lr) or "cosine"
+    # (CosineAnnealingLR from lr down to lr_min over the planned updates; good for
+    # long runs). Part of the config hash; old checkpoints backfill to constant.
+    lr_schedule: str = "constant"
+    lr_min: float = 0.0  # cosine floor (eta_min); e.g. 1e-5 for a 1e-4 start
     gamma: float = 0.997  # long horizon (~77 decisions/game)
     gae_lambda: float = 0.95
     clip_eps: float = 0.2
@@ -65,6 +146,23 @@ class TrainConfig:
     # shaping_coef=0.0) to recover the original v1 terminal-only behaviour.
     shaping: str = "prize_potential"  # key into shaping.SHAPERS
     shaping_coef: float = 1.0  # scale on the shaping term (0.0 == terminal)
+    # Per-term shaping weights, consulted only when shaping == "heuristic" (the
+    # full deck-specific reward stack ported from pkm/rl). Maps a term name in
+    # reward_terms.ALL_TERMS -> coefficient. Defaults to DEFAULT_WEIGHTS (every
+    # term listed, all deck-specific ones at 0.0), so this field changes nothing
+    # unless shaping is switched to "heuristic" and weights are set. Serialized
+    # into every checkpoint config (and folded into the config hash), so a run's
+    # weights are fully reproducible.
+    reward_weights: dict[str, float] = field(
+        default_factory=lambda: dict(DEFAULT_WEIGHTS)
+    )
+    # Auxiliary-loss weights (key into aux_tasks.AUX_TASKS -> coefficient). A task
+    # is active (its head is built + its loss added) iff its weight > 0. Defaults
+    # to every registered task at 0.0, so this field changes nothing unless a
+    # weight is set. Serialized into every checkpoint config (folded into the
+    # config hash), so a run's aux setup is fully reproducible and the model
+    # rebuilt on resume/eval has exactly the same heads. See .aux_tasks.
+    aux_weights: dict[str, float] = field(default_factory=_default_aux_weights)
     # --- training method selector (key into trainers.TRAINERS) ---
     method: str = "ppo"
     # MCTS expert-iteration knobs (inert unless method == "exit").
@@ -82,6 +180,11 @@ class RunConfig:
     feature_version: str = FEATURE_VERSION
     checkpoint_every_updates: int = 64
     keep_last: int = 5
+    # Which registered deck (deck.DECKS) both self-play seats pilot for this run.
+    # The learned vocabulary spans *all* decks, so this only chooses the 60-card
+    # list played — not the network shape. Part of the config hash (a run's deck
+    # is part of its identity); old checkpoints without it backfill to the default.
+    deck: str = DEFAULT_DECK
 
 
 def _hash_dict(d: dict[str, Any]) -> str:
@@ -122,10 +225,21 @@ def build_model(cfg: Config | ModelConfig | None = None) -> PolicyValueModel:
         d_global=mc.d_global,
         d_state=mc.d_state,
         n_heads=mc.n_heads,
+        n_layers=mc.n_layers,
+        ff_mult=mc.ff_mult,
+        dropout=mc.dropout,
+        base_residual=mc.base_residual,
     )
+    # Auxiliary heads are a *training* concern, so they're built only when a full
+    # Config (with a TrainConfig) is given — i.e. training / resume / eval / the
+    # rollout workers, which all rebuild from the same cfg so their state_dicts
+    # match. Inference rebuilds from a bare ModelConfig (no train config), so it
+    # gets no aux heads — matching the bundle whose aux keys pack.py stripped.
+    aux = active_tasks(cfg.train.aux_weights) if isinstance(cfg, Config) else []
     return PolicyValueModel(
         encoder=encoder,
         d_opt=mc.d_opt,
         d_ctx=mc.d_ctx,
         attack_enc=AttackEncoder(d_atk=mc.d_atk),
+        aux_tasks=aux,
     )

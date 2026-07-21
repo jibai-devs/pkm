@@ -4,6 +4,64 @@ Full project guide (structure, RL training, decks, submission): @AGENTS.md
 
 ## Active Context
 
+- **Multi-deck support shipped (2026-07-21):** agent_000 now plays **more than one
+  deck** without a per-deck agent. Two concepts split cleanly: (a) *a deck* — a
+  60-card list in the `deck.DECKS` registry (`dragapult` + new `alakazam` = Mega
+  Alakazam/Dudunsparce psychic control); (b) *the vocabulary* — the **superset**
+  of distinct card IDs over ALL registered decks (now 44 → `VOCAB_SIZE=45`, was
+  27), sizing the own-card embedding + hand-histogram. One trained net has learned
+  rows for every deck's cards; unused rows are inert (gather, not softmax — zero
+  gradient, no learning-difficulty cost). Adding a *new* deck with new cards grows
+  the vocab → forces a retrain; reusing known cards is free. Cards resolved by
+  name+text vs `replay/cards.json` (source-list set/collector numbers do NOT map to
+  engine IDs). `--deck {dragapult,alakazam}` on `train`/`eval` picks the played
+  list; it's in `RunConfig.deck` + the config hash (old ckpts backfill to
+  `dragapult`). `determinize.py`/`mcts.search` are deck-aware (unblocks future
+  cross-deck/mixed self-play). Idempotent `scripts/gen_vocab.py` writes/inspects
+  `vocab.json` (drift-guarded by `test_deck_vocab.py`); `test_deck_routing.py`
+  locks routing. **Also fixed a pre-existing bug:** `eval` built the MCTS
+  `InferenceConfig` but never passed it to the winrate fns, so `eval --inference
+  mcts -K` silently ran the plain policy. **Not yet done:** train the alakazam
+  deck (`train --deck alakazam …`, generic `prize_potential` shaping) — a fresh
+  PPO run; the old 600 ckpt is incompatible (VOCAB_SIZE changed) and retired.
+- **agent_000 status (2026-07-20):** stuck at Kaggle **600** across small/large nets —
+  it's an **eval ceiling**, not capacity: training is mirror self-play but the metric
+  was vs *random* (saturates ~100%). Fixes shipped: head-to-head eval
+  (`eval --opponent <ckpt>`), configurable net size/depth (`--model`), GPU
+  (`--device cuda`), heuristic shaping. Large net trained unstable (lr too high for
+  depth) → `002_large_tuned` (lr 1e-4). **Inference-time MCTS shipped (2026-07-20):**
+  wrap the trained net in PUCT search at decision time, no retrain — `pack
+  --inference mcts -K <sims>` (K=0 = plain policy) bakes it into the bundle;
+  `eval --inference mcts -K <sims>` measures it; `scripts/pack_variants.sh` packs
+  both variants. Search rides Kaggle's own `libcg.so`. Next lever: **opponent-pool
+  training**. Full log: `pkm/new_agents/agent_000_dragapult/TRAINING.md` §10.
+- **Auxiliary losses shipped (2026-07-20) + NEW DEFAULT recipe.** Config-driven
+  registry `aux_tasks.py` (mirrors the reward-term registry): each `AuxTask`
+  bundles a head factory + per-step labeller + loss; `TrainConfig.aux_weights`
+  (name→weight, in the config hash) turns tasks on (weight>0), default all-zero
+  = off = v1 behaviour. Enable via `train --aux-weight prize_margin=0.25`
+  (repeatable). Heads are **training-only**: built only when a full `Config`
+  reaches `build_model`, so inference (bare `ModelConfig`) gets none; `pack`
+  strips `aux_heads.*` from the bundle → zero inference/parity/size cost. First
+  task: `prize_margin` (predict final prize-count margin, dense −6..+6, terminal
+  label). **The new default training = large net + tuned low-LR PPO + heuristic
+  rewards + `prize_margin` aux**, packaged as `scripts/003_aux_loss/train.sh`.
+  Rationale + menu of future aux tasks (Tier B opponent-belief heads are the real
+  ceiling lever): `pkm/new_agents/agent_000_dragapult/docs/00_aux_loss.md`.
+- **Submission logging convention:** every time we submit a bundle to Kaggle,
+  append a row to `pkm/new_agents/agent_000_dragapult/submission_log.md` (date,
+  checkpoint, inference mode/K, bundle filename, message, and the score once it
+  lands) plus a short note on what the run was testing. Keep it up to date so the
+  leaderboard history stays in the repo.
+- **Training/sweep workflow:** always run training runs and Optuna sweeps inside the
+  shared **`pkm-train`** tmux session — `tmux new-session -d -s pkm-train` (once),
+  launch with `tmux send-keys -t pkm-train "cd <repo> && ./…/train.sh" Enter`, watch
+  with `tmux attach -t pkm-train` (detach `Ctrl-b d`). Keeps long runs alive across
+  detach and in one predictable place. Per-experiment run/sweep scripts live under
+  `pkm/new_agents/agent_000_dragapult/scripts/<NNN_name>/` (e.g. `001_complexity_large/`).
+- **Network size is configurable:** `train`/`sweep` take `--model {small,medium,large,xl}`
+  (small = v1, checkpoint-compatible) plus per-dim overrides `--n-layers/--d-state/
+  --d-entity/--n-heads/--d-opt/--d-card`. Dims are in the config hash + every checkpoint.
 - **Heuristics-integration architecture (Tasks 1-8) merged with the reward-shaping
   heuristics** from `refactor-to-prepare-for-heuristics-integration`, on
   `feature/heuristics-integration` (commits `73356e5`, `dc1e157`, `83265b5`).
@@ -118,3 +176,17 @@ first/last, scrubber to jump.
 
 **Full usage:** `docs/REPLAY_VIEWER.md` · **data contract & code layout:**
 `replay/05_vite_react_app/README.md`.
+
+## Browser play (React GUI vs bot)
+
+`replay/07_vite_react_cards` at `?mode=play` is a live game GUI (not just a
+replay viewer): pick opponent + deck, then click options to play a real match
+against a bot with real card art. `just play-web-build` builds + serves UI and
+API at `:8000`; for hot-reload dev run `just play-web` (Python bridge) +
+`just play-web-dev` (Vite) in two terminals. The engine side reuses the TUI's
+`ThreadedEnvSession` through a stdlib `http.server` long-poll bridge
+(`pkm/web/server.py`) — a blocking `GET /api/event` *is* `next_event`, a `POST
+/api/submit` *is* `submit`; no new Python deps. Option labels are rendered
+server-side via `pkm/tui/labels.option_label`; play-mode React code is in
+`replay/07_vite_react_cards/src/live/`. Full write-up: `AGENTS.md` → "Human Play
+(Browser / React GUI)".

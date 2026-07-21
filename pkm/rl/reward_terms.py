@@ -36,6 +36,7 @@ DIRECT_TERMS: list[tuple[str, str]] = [
     ("wasted_resources", "wasted_resources_penalty"),
     ("phantom_dive", "phantom_dive_bonus"),
     ("drakloak_backup_ready", "drakloak_backup_ready_bonus"),
+    ("budew_redundant", "budew_redundant_penalty"),
 ]
 
 ALL_TERMS: list[tuple[str, str]] = POTENTIAL_TERMS + DIRECT_TERMS
@@ -69,6 +70,7 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     "wasted_resources": 0.0,
     "phantom_dive": 0.0,
     "drakloak_backup_ready": 0.0,
+    "budew_redundant": 0.0,
 }
 
 

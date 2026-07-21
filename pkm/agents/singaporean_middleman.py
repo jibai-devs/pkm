@@ -116,7 +116,9 @@ def make_singaporean_middleman(
         else {
             "neural": make_neural_agent(deck, weights_path, archetype_weights_path),
             "random": make_random_agent(deck),
-            "first_turn": make_first_turn_agent(deck),
+            # pass our sink through so a first-turn search failure (and the
+            # random fallback it triggers) shows up in the same log stream
+            "first_turn": make_first_turn_agent(deck, log_sink=log_sink),
         }
     )
 

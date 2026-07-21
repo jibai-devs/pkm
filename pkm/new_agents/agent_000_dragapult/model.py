@@ -150,6 +150,7 @@ class PolicyValueModel(nn.Module):
         d_opt: int = D_OPT,
         d_ctx: int = D_CTX,
         attack_enc: AttackEncoder | None = None,
+        aux_tasks: list[str] | tuple[str, ...] = (),
     ):
         super().__init__()
         self.encoder = encoder or StateEncoder()
@@ -178,6 +179,16 @@ class PolicyValueModel(nn.Module):
             nn.ReLU(),
             nn.Linear(d_state, 1),
         )
+        # Auxiliary heads (training-only): one per active task, keyed by name in
+        # a ModuleDict so the set is config-derived and empty by default. Built
+        # from the registry so adding a task never touches this file. Never
+        # called by policy/value/evaluate — see .aux_from_state and aux_tasks.py.
+        from pkm.new_agents.agent_000_dragapult.aux_tasks import AUX_TASKS
+
+        self.aux_tasks = list(aux_tasks)
+        self.aux_heads = nn.ModuleDict(
+            {name: AUX_TASKS[name].make_head(d_state) for name in self.aux_tasks}
+        )
 
     # --- trunk ---
     def encode(self, b: dict[str, torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
@@ -187,6 +198,14 @@ class PolicyValueModel(nn.Module):
     # --- heads (operate on a precomputed state, so the trunk runs once) ---
     def value_from_state(self, state: torch.Tensor) -> torch.Tensor:
         return self.value_head(state).squeeze(-1)  # [B]
+
+    def aux_from_state(self, state: torch.Tensor) -> dict[str, torch.Tensor]:
+        """Predictions from every active auxiliary head, keyed by task name.
+
+        Training-only: the PPO update consumes these to add the aux losses.
+        Empty when no aux task is active (the default), so it costs nothing.
+        """
+        return {name: self.aux_heads[name](state).squeeze(-1) for name in self.aux_tasks}
 
     def _gather_entity(
         self, ent: torch.Tensor, b: dict[str, torch.Tensor]

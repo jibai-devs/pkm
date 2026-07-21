@@ -17,9 +17,10 @@ All weights are module constants so they can be tuned in one place.
 
 from .cards import (
     BUDEW,
+    DRAGAPULT_EX,
+    DRAKLOAK,
     DREEPY,
     DREEPY_LINE,
-    DRAKLOAK,
     ENERGY_CARDS,
     ENERGY_DARK,
     ENERGY_FIRE,
@@ -43,14 +44,27 @@ W_LONE_ACTIVE = -30.0  # lone Budew/Dreepy active with an empty bench
 W_GOOD_SECOND_TURN = 25.0
 W_OVERCROWD = -20.0  # a 4th dreepy-line member in play
 W_XEROSIC_BAD = -15.0  # Xerosic's played with opponent hand < 6
-W_BENCH_CHARGE = 12.0  # benched dreepy-liner charged fire/psychic-only
 W_UB_WASTE = -10.0  # Ultra Ball used while a dreepy was already in play
-W_BUDEW_ACTIVE_END = 10.0  # went second: Budew active at end of turn
+# Going second, being positioned to Itchy Pollen (Budew active) is prioritized
+# over spending the turn's energy on a Dreepy, so this must outrank both charge
+# weights below -- otherwise the search prefers charging a Dreepy (and steers
+# away from setting Budew up before the attack leaf is even reached).
+W_BUDEW_ACTIVE_END = 20.0  # went second: Budew active at end of turn
+W_BENCH_CHARGE = 12.0  # benched dreepy-liner charged fire/psychic-only
 W_ACTIVE_CHARGE = 8.0  # active dreepy-liner charged fire/psychic
 W_XEROSIC_GOOD = 8.0  # Xerosic's played with opponent hand >= 6
 W_MUNKI_CHARGE = 6.0  # active Munkidori charged dark/psychic
 ACTIVE_PRIORITY_BONUS = [10.0, 8.0, 6.0, 4.0, 2.0, 0.0, 0.0]
 W_HAND_CARD = 1.5  # per card kept in hand (resource conservation)
+# Dreepy-line evolution pieces held in hand: gives Ultra Ball / Poke Pad
+# searches a gradient toward the best fetch target when the ideal card isn't
+# in the deck. Drakloak outranks Dragapult ex -- with Dreepy already down, a
+# Drakloak is the evolution you can actually reach next turn, while Dragapult
+# ex is a step further off (it needs a Drakloak in play first). All kept below
+# W_DREEPY so benching a Dreepy still beats merely holding one.
+W_DRAKLOAK_IN_HAND = 10.0
+W_DRAGAPULT_IN_HAND = 6.0
+W_DREEPY_IN_HAND = 4.0
 
 
 def charged_ok(energies: list[int]) -> bool:
@@ -147,6 +161,21 @@ def evaluate(final_obs: dict, events: dict, went_first: bool) -> float:
         score += W_DEAD_END
 
     score += W_HAND_CARD * len(hand_ids(me))
+
+    # Dreepy-line pieces held in hand -- the fetch target when Ultra Ball /
+    # Poke Pad can't find the ideal card. Evolutions only count once their
+    # own evolution target is in play (a Drakloak with no Dreepy down, or a
+    # Dragapult ex with no Drakloak down, is dead weight this early).
+    hand = hand_ids(me)
+    dreepy_down = count_in_play(me, {DREEPY}) > 0
+    drakloak_down = count_in_play(me, {DRAKLOAK}) > 0
+    for cid in hand:
+        if cid == DREEPY:
+            score += W_DREEPY_IN_HAND
+        elif cid == DRAKLOAK and dreepy_down:
+            score += W_DRAKLOAK_IN_HAND
+        elif cid == DRAGAPULT_EX and drakloak_down:
+            score += W_DRAGAPULT_IN_HAND
 
     if not went_first:
         if events.get("itchy_pollen"):

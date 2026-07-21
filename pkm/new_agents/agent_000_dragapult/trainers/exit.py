@@ -48,11 +48,12 @@ class ExItSample:
 
 def _play_game(model, cfg, gen) -> tuple[list[ExItSample], int]:
     samples: list[ExItSample] = []
-    obs, _ = battle_start(deck.DECK_60, deck.DECK_60)
+    deck_60 = deck.deck_60(cfg.run.deck)  # both self-play seats pilot the run's deck
+    obs, _ = battle_start(deck_60, deck_60)
     n_iter = 0
     while obs["current"]["result"] < 0 and n_iter < 100000:
         if obs["select"] is None or obs["current"] is None:
-            obs = battle_select(list(deck.DECK_60))
+            obs = battle_select(list(deck_60))
             n_iter += 1
             continue
         o = to_observation(obs)

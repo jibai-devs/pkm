@@ -14,5 +14,6 @@
   "dreepy_bench_charge": 0.125,
   "dreepy_active_charge": 0.15,
   "wasted_resources": 0.1,
-  "phantom_dive": 0.15
+  "phantom_dive": 0.15,
+  "budew_redundant": 0.15
 }

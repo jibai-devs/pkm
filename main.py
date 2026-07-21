@@ -1,8 +1,12 @@
-"""Kaggle submission entry point for the 02_dragapult neural agent."""
+"""Kaggle submission entry point for the 03_pult_munki agent.
+
+Routes through singaporean_middleman so the first-turn MCTS agent handles our
+opening turn and the neural policy handles the rest -- and so each decision
+prints which sub-agent made it (see pkm/agents/singaporean_middleman.py)."""
 
 from pathlib import Path
 
-from pkm.agents import make_neural_agent
+from pkm.agents import make_singaporean_middleman
 from pkm.data import Deck
 
 
@@ -30,4 +34,4 @@ def _resolve_deck() -> Deck:
 
 
 DECK = _resolve_deck().card_ids
-agent = make_neural_agent(DECK)
+agent = make_singaporean_middleman(DECK)

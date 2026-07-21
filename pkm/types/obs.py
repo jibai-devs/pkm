@@ -150,6 +150,18 @@ class AreaType(IntEnum):
     TEMPORARY = 24
 
 
+# C++ source: engine/src/core/CardTypes.h — enum class CardType : unsigned char
+# Not offset on wire; matches CardData.cardType.
+class CardType(IntEnum):
+    POKEMON = 0
+    ITEM = 1
+    TOOL = 2
+    SUPPORTER = 3
+    STADIUM = 4
+    BASIC_ENERGY = 5
+    SPECIAL_ENERGY = 6
+
+
 # C++ source: engine/src/core/EnergyTypes.h — enum class EnergyType : unsigned short
 # These are EnergyTypeIndex values (sequential 0-11), not bitmask values.
 class EnergyType(IntEnum):

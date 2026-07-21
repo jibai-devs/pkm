@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PTCG Board Layout</title>
+<style>
+  :root{
+    --card-w: 74px;
+    --card-h: 103px;      /* 396x552 aspect ≈ 0.717 */
+    --gap: 10px;
+    --felt: #2f7d46;
+    --felt-2: #276a3b;
+    --line: rgba(255,255,255,.28);
+    --ink:#eef4ee;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font:13px/1.35 system-ui,Segoe UI,Roboto,sans-serif; color:var(--ink);
+    background:radial-gradient(120% 90% at 50% 50%, var(--felt) 0%, var(--felt-2) 100%);
+    padding:14px 18px;
+  }
+  h1{font-size:15px;margin:0 0 10px;font-weight:600;letter-spacing:.3px;text-align:center;opacity:.9}
+
+  .side{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:rgba(0,0,0,.10)}
+  .side.you{background:rgba(0,0,0,.16)}
+  .side-label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;opacity:.75;margin-bottom:8px;display:flex;justify-content:space-between}
+  .side-label .counts b{color:#ffe08a;font-weight:700}
+
+  /* a side is: [prizes] [ field (bench over active) + hand ] [deck/discard] */
+  .rows{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center}
+  .pile-col{display:flex;flex-direction:column;gap:8px;align-items:center}
+  .field{display:flex;flex-direction:column;gap:8px;align-items:center}
+  .zone{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .zone-label{font-size:9px;letter-spacing:1px;text-transform:uppercase;opacity:.6}
+  .row{display:flex;gap:var(--gap)}
+
+  /* prizes: 2 columns x 3 */
+  .prizes{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+
+  /* a card */
+  .card{
+    width:var(--card-w);height:var(--card-h);border-radius:6px;position:relative;
+    background-size:cover;background-position:center;box-shadow:0 2px 5px rgba(0,0,0,.4);
+    border:1px solid rgba(0,0,0,.3);flex:0 0 auto;
+  }
+  .slot{                     /* empty bench/active slot */
+    width:var(--card-w);height:var(--card-h);border-radius:6px;flex:0 0 auto;
+    border:1.5px dashed var(--line);background:rgba(255,255,255,.04);
+    display:flex;align-items:center;justify-content:center;font-size:9px;opacity:.5;text-align:center;
+  }
+  .prize,.deck,.hand-hidden{        /* card back */
+    background:
+      repeating-linear-gradient(45deg,#1b3a8f 0 8px,#12296b 8px 16px);
+    border:1px solid #0d1f52;
+  }
+  .prize::after{content:"";position:absolute;inset:34% 40%;border-radius:50%;
+    background:radial-gradient(circle,#e33 0 45%,#fff 46% 60%,#111 61% 100%);opacity:.85}
+
+  /* HP badge + energy pips on field pokemon */
+  .hp{position:absolute;top:-7px;right:-6px;background:#fff;color:#153;border-radius:9px;
+    font-size:10px;font-weight:800;padding:1px 5px;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+  .hp.hurt{color:#c22}
+  .nrg{position:absolute;bottom:3px;left:3px;display:flex;gap:2px}
+  .pip{width:11px;height:11px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 0 2px #000}
+  .pip.R{background:#e8503a}.pip.P{background:#9b59b6}.pip.D{background:#5a5a6e}
+  .tag{position:absolute;top:3px;left:3px;background:#111a;border-radius:4px;font-size:8px;padding:0 3px}
+  .active-frame{outline:3px solid #ffd24a;outline-offset:2px;border-radius:8px}
+
+  .name{font-size:8.5px;opacity:.8;max-width:var(--card-w);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* stadium divider */
+  .mid{display:flex;align-items:center;justify-content:center;gap:12px;margin:12px 0;
+    padding:8px;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line)}
+  .mid .zone-label{font-size:10px}
+
+  .hand-you{padding:6px;border-radius:8px;background:rgba(0,0,0,.18)}
+  .fan .card{margin-left:-14px;transition:transform .1s}
+  .fan .card:first-child{margin-left:0}
+  .fan .card:hover{transform:translateY(-10px);z-index:5}
+  .footnote{opacity:.55;font-size:10.5px;text-align:center;margin-top:12px}
+  .legend{display:flex;gap:14px;justify-content:center;font-size:10px;opacity:.7;margin-bottom:6px;flex-wrap:wrap}
+  .legend span{display:inline-flex;gap:5px;align-items:center}
+  .sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+</style>
+</head>
+<body>
+<h1>Pokémon TCG — full board layout (both sides)</h1>
+<div class="legend">
+  <span><i class="sw" style="background:#1b3a8f"></i> card back (face-down / hidden)</span>
+  <span><i class="sw" style="border:1.5px dashed #fff"></i> empty slot</span>
+  <span><i class="sw" style="background:#ffd24a"></i> Active spot</span>
+  <span><i class="sw" style="background:#fff"></i> HP</span>
+  <span><i class="pip R" style="position:static"></i> attached Energy</span>
+</div>
+
+<!-- ================= OPPONENT ================= -->
+<div class="side">
+  <div class="side-label"><span>Opponent</span>
+    <span class="counts">Hand <b>6</b> · Deck <b>25</b> · Discard <b>8</b> · Prizes <b>6</b></span></div>
+  <div class="rows">
+    <!-- prizes -->
+    <div class="zone"><div class="zone-label">Prizes (6)</div>
+      <div class="prizes">
+        <div class="card prize"></div><div class="card prize"></div>
+        <div class="card prize"></div><div class="card prize"></div>
+        <div class="card prize"></div><div class="card prize"></div>
+      </div>
+    </div>
+    <!-- field: bench over active, then hidden hand -->
+    <div class="field">
+      <div class="zone"><div class="zone-label">Bench (5 / 5)</div>
+        <div class="row">
+          <div class="card" style="background-image:url('../card_images/131.png')"><span class="hp">60</span></div>
+          <div class="card" style="background-image:url('../card_images/132.png')"><span class="hp hurt">50</span><div class="nrg"><i class="pip P"></i></div></div>
+          <div class="card" style="background-image:url('../card_images/112.png')"><span class="hp">110</span><div class="nrg"><i class="pip P"></i></div></div>
+          <div class="card" style="background-image:url('../card_images/1071.png')"><span class="hp">170</span></div>
+          <div class="card" style="background-image:url('../card_images/235.png')"><span class="hp">30</span></div>
+        </div>
+      </div>
+      <div class="zone"><div class="zone-label">Active</div>
+        <div class="card active-frame" style="background-image:url('../card_images/121.png')">
+          <span class="hp hurt">200</span><span class="tag">ex</span>
+          <div class="nrg"><i class="pip R"></i><i class="pip R"></i><i class="pip P"></i></div>
+        </div>
+      </div>
+      <div class="zone"><div class="zone-label">Hand (6 — hidden)</div>
+        <div class="row fan">
+          <div class="card hand-hidden"></div><div class="card hand-hidden"></div>
+          <div class="card hand-hidden"></div><div class="card hand-hidden"></div>
+          <div class="card hand-hidden"></div><div class="card hand-hidden"></div>
+        </div>
+      </div>
+    </div>
+    <!-- deck + discard -->
+    <div class="pile-col">
+      <div class="zone"><div class="zone-label">Deck (25)</div><div class="card deck"></div></div>
+      <div class="zone"><div class="zone-label">Discard (8)</div>
+        <div class="card" style="background-image:url('../card_images/1121.png')"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= STADIUM ================= -->
+<div class="mid">
+  <div class="zone-label">Stadium (shared)</div>
+  <div class="card" style="background-image:url('../card_images/1260.png')"></div>
+  <div class="name">Risky Ruins</div>
+</div>
+
+<!-- ================= YOU ================= -->
+<div class="side you">
+  <div class="side-label"><span>You</span>
+    <span class="counts">Hand <b>7</b> · Deck <b>25</b> · Discard <b>11</b> · Prizes <b>6</b></span></div>
+  <div class="rows">
+    <!-- prizes -->
+    <div class="zone"><div class="zone-label">Prizes (6)</div>
+      <div class="prizes">
+        <div class="card prize"></div><div class="card prize"></div>
+        <div class="card prize"></div><div class="card prize"></div>
+        <div class="card prize"></div><div class="card prize"></div>
+      </div>
+    </div>
+    <!-- field -->
+    <div class="field">
+      <div class="zone"><div class="zone-label">Active</div>
+        <div class="card active-frame" style="background-image:url('../card_images/121.png')">
+          <span class="hp">320</span><span class="tag">ex</span>
+          <div class="nrg"><i class="pip R"></i><i class="pip R"></i></div>
+        </div>
+      </div>
+      <div class="zone"><div class="zone-label">Bench (5 / 5)</div>
+        <div class="row">
+          <div class="card" style="background-image:url('../card_images/119.png')"><span class="hp">70</span></div>
+          <div class="card" style="background-image:url('../card_images/120.png')"><span class="hp">90</span></div>
+          <div class="card" style="background-image:url('../card_images/133.png')"><span class="hp">160</span></div>
+          <div class="card" style="background-image:url('../card_images/140.png')"><span class="hp">210</span><span class="tag">ex</span></div>
+          <div class="slot">empty<br>bench slot</div>
+        </div>
+      </div>
+      <div class="zone"><div class="zone-label">Hand (7 — your cards, face-up)</div>
+        <div class="row fan">
+          <div class="card" style="background-image:url('../card_images/1079.png')"></div>
+          <div class="card" style="background-image:url('../card_images/1086.png')"></div>
+          <div class="card" style="background-image:url('../card_images/1097.png')"></div>
+          <div class="card" style="background-image:url('../card_images/1152.png')"></div>
+          <div class="card" style="background-image:url('../card_images/1182.png')"></div>
+          <div class="card" style="background-image:url('../card_images/2.png')"></div>
+          <div class="card" style="background-image:url('../card_images/5.png')"></div>
+        </div>
+      </div>
+    </div>
+    <!-- deck + discard -->
+    <div class="pile-col">
+      <div class="zone"><div class="zone-label">Deck (25)</div><div class="card deck"></div></div>
+      <div class="zone"><div class="zone-label">Discard (11)</div>
+        <div class="card" style="background-image:url('../card_images/1213.png')"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="footnote">
+  Zones per player: Active ×1 · Bench ×5 (up to 8) · Prizes ×6 (face-down) · Hand (yours face-up, opponent hidden) ·
+  Deck &amp; Discard (counts) · one shared Stadium. Card art: local <code>replay/card_images/&lt;id&gt;.png</code>.
+</div>
+</body>
+</html>

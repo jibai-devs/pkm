@@ -24,10 +24,12 @@ from .opponent_pool import PoolBot, load_pool_bots
 from .ppo import ppo_update
 from .reward_terms import DEFAULT_WEIGHTS, load_weights, write_default_weights_file
 from .rollout import (
+    FirstTurnDelegatingPolicy,
     RandomPolicy,
     TorchPolicy,
     aggregate_result,
     make_game_specs,
+    make_training_first_turn_agent,
     play_game,
     play_one,
 )
@@ -35,10 +37,18 @@ from .logging import MetricLog
 
 
 def evaluate_vs_random(
-    model: PolicyValueNet, deck: list[int], games: int = 20
+    model: PolicyValueNet,
+    deck: list[int],
+    games: int = 20,
+    first_turn_agent=None,
 ) -> float:
-    """Win rate of the greedy policy vs. the random agent, alternating sides."""
+    """Win rate of the greedy policy vs. the random agent, alternating sides.
+
+    When `first_turn_agent` is given, the policy side delegates its own first
+    turn to it -- so the metric reflects how the agent actually deploys."""
     policy = TorchPolicy(model, greedy=True)
+    if first_turn_agent is not None:
+        policy = FirstTurnDelegatingPolicy(policy, first_turn_agent)
     rand = RandomPolicy()
     wins = 0.0
     for g in range(games):
@@ -92,6 +102,9 @@ def train(
     wandb_project: str | None = None,
     wandb_run_name: str | None = None,
     workers: int = 1,
+    first_turn_delegate: bool = False,
+    max_seconds: float | None = None,
+    stop_file: str | None = None,
 ) -> PolicyValueNet:
     random.seed(seed)
     torch.manual_seed(seed)
@@ -99,6 +112,21 @@ def train(
     effective_weights = {**DEFAULT_WEIGHTS, **(weights or {})}
 
     deck = Deck.from_csv(deck_path).card_ids
+
+    # First-turn delegation: the learner's own first turn is played by the
+    # scripted first-turn agent (never collected), so the policy only trains
+    # on turn 2+ -- exactly how singaporean_middleman deploys it. Built once
+    # and shared across games (stateless per decision).
+    ft_agent = make_training_first_turn_agent(deck) if first_turn_delegate else None
+    if ft_agent is not None and workers > 1:
+        # The parallel worker path (parallel_rollout.py) doesn't thread the
+        # first-turn agent through; fall back to sequential rather than
+        # silently training without delegation.
+        print(
+            "first-turn delegation is sequential-only; forcing workers=1",
+            flush=True,
+        )
+        workers = 1
     # Task 8: self-play here always mirrors deck_path against itself (no
     # multi-deck opponent pool yet -- AGENTS.md "What's Next" #5), so the
     # opponent's archetype label is constant for the whole run. The aux
@@ -164,8 +192,26 @@ def train(
         executor = make_pool(workers)
         print(f"parallel rollout: {workers} worker processes", flush=True)
 
+    run_start = time.time()
     try:
         for it in range(1, iterations + 1):
+            if max_seconds is not None and time.time() - run_start > max_seconds:
+                print(
+                    f"reached max_seconds={max_seconds:.0f}s after {it - 1} "
+                    "iterations; stopping",
+                    flush=True,
+                )
+                break
+            if stop_file is not None and Path(stop_file).exists():
+                # Checked once per iteration (like max_seconds above), so this
+                # isn't instant -- it finishes the in-flight iteration first,
+                # which is what lets the unconditional save below still run.
+                print(
+                    f"stop file {stop_file} found after {it - 1} iterations; "
+                    "stopping",
+                    flush=True,
+                )
+                break
             t0 = time.time()
             model.eval()
             data = []
@@ -191,7 +237,9 @@ def train(
                 )
             else:
                 results = [
-                    play_one(model, opponent_model, deck, spec, archetype_classifier)
+                    play_one(
+                        model, opponent_model, deck, spec, archetype_classifier, ft_agent
+                    )
                     for spec in specs
                 ]
 
@@ -240,7 +288,9 @@ def train(
             )
 
             if it % eval_every == 0:
-                wr = evaluate_vs_random(model, deck, games=eval_games)
+                wr = evaluate_vs_random(
+                    model, deck, games=eval_games, first_turn_agent=ft_agent
+                )
                 row["eval_win_rate"] = f"{wr:.4f}"
                 row["eval_games"] = eval_games
                 print(
@@ -340,6 +390,25 @@ def main(
     workers: int = typer.Option(
         1, help="parallel worker processes for self-play rollout (1 = sequential)"
     ),
+    first_turn_delegate: bool = typer.Option(
+        False,
+        "--first-turn-delegate/--no-first-turn-delegate",
+        help="play the learner's own first turn with the scripted first-turn "
+        "agent (never collected); trains the policy on turn 2+ only, matching "
+        "how singaporean_middleman deploys. Sequential-only.",
+    ),
+    max_seconds: float | None = typer.Option(
+        None,
+        help="wall-clock budget in seconds; stop before the next iteration "
+        "once exceeded (checkpoints are still saved). E.g. 21600 = 6 hours.",
+    ),
+    stop_file: str | None = typer.Option(
+        None,
+        help="if this path exists at the start of an iteration, finish that "
+        "iteration, save a final checkpoint, and stop. Checked once per "
+        "iteration (not instant). See ian_tools/train.sh for a wrapper that "
+        "creates/removes this from a 'stop' typed at the console.",
+    ),
 ) -> None:
     profile = None
     if agent:
@@ -380,6 +449,8 @@ def main(
         wandb_project=wandb_project,
         wandb_run_name=wandb_run_name,
         workers=workers,
+        first_turn_delegate=first_turn_delegate,
+        max_seconds=max_seconds,
     )
 
 

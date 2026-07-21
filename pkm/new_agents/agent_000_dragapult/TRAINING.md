@@ -342,10 +342,12 @@ details with `kaggle competitions logs <competition> <submission>`.
 
 ## 10. Notes / gotchas
 
-- **CPU by design.** The net is tiny (~79k params) and the bottleneck is the C++
-  engine playing games sequentially (one battle per process). Parallelism is
-  multiprocess CPU workers (`--workers`), one engine each — a GPU wouldn't help and
-  none is required.
+- **CPU-first; GPU optional (`--device`).** The bottleneck is the C++ engine
+  playing games (multiprocess CPU workers, one engine each), which cannot move to
+  GPU. For the *small* net a GPU doesn't help. For the *large* net, `--device cuda`
+  puts the learner (PPO update) on GPU while rollout + eval stay on CPU, and does
+  help there (big net × 5 epochs makes the update non-trivial). See the changelog
+  (§10) for the NixOS `LD_LIBRARY_PATH` requirement and the cu129 torch pin.
 - **Batch is measured in games, not samples.** `games × ~215 decisions` = the
   actual batch. `--games 256` ≈ 55k steps/update (very stable but heavy); 32–64 is
   the sweet spot.
@@ -356,3 +358,126 @@ details with `kaggle competitions logs <competition> <submission>`.
   is whatever the rollout collects.
 - **Checkpoints/logs live in the `pkm_data` submodule**, so they never bloat the
   main repo.
+
+---
+
+## 10. Changelog & experiment log (2026-07-19 → 07-20)
+
+Recent work on this agent, newest first, with the *why*. (Full training-loop
+mechanics are above; this section is the running record of what changed and what
+we learned.)
+
+### The 600 ceiling — root cause found
+Every submission scores **exactly 600.0** on Kaggle: small net, large net, more or
+fewer updates, heuristic shaping — all 600. **Diagnosis: it's a measurement
+ceiling, not a capacity limit.** Training is *pure mirror self-play* (one policy
+pilots both seats), but the eval/sweep signal was **vs a random bot**, which any
+decent agent beats ~100% → the metric saturates. So we were tuning blind. Nothing
+was wrong with training; the scoreboard couldn't tell good from great.
+
+### Discriminating eval — `eval --opponent <ckpt>`
+Head-to-head between two checkpoints (greedy vs greedy) — a signal that *isn't*
+pinned to the random ceiling. `DragapultAgent.from_checkpoint` now loads any
+checkpoint (packed `weights.pt`, training `ckpt_N.pt`, or legacy) and rebuilds the
+correct architecture on CPU. Demo: `001 ckpt_448` vs `ckpt_64` = **70% (21-9)** —
+proves it ranks policies vs-random couldn't. This is the fix that makes every
+"did it help?" answerable.
+
+### Configurable network size/depth — `--model` + overrides
+`--model {small,medium,large,xl}` presets plus per-dim overrides (`--n-layers`,
+`--d-state`, `--d-entity`, `--n-heads`, `--d-opt`, `--d-card`, `--dropout`).
+`small` == the original v1 net and is checkpoint-compatible. Depth stacks
+`n_layers-1` extra **pre-LN transformer blocks** (residual + LayerNorm + FFN) —
+the pieces that make depth trainable. Dims are in the config hash + every
+checkpoint. *Why:* test whether more capacity beats the plateau (it didn't move
+the Kaggle score — consistent with the ceiling being the eval, not the net).
+
+### GPU training — `--device {cpu,cuda,auto}`
+Learner (model + optimizer + PPO update) runs on the device; **rollout workers +
+eval always stay on CPU** (self-play is CPU-bound engine work; `parallel.py`
+already ships CPU weights to workers). `resolve_device` fails fast if cuda is
+unavailable. Runtime-only (not in the config hash). Gotchas hit & fixed:
+- **NixOS:** pip/uv CUDA wheels can't find the driver's `libcuda.so`; export
+  `LD_LIBRARY_PATH=/run/opengl-driver/lib` (the `001_/002_` scripts do this).
+- **torch pin:** `pyproject` uses the **cu129** index, marker-scoped to
+  linux+py3.12 so the universal uv lock still resolves elsewhere (CPU wheels).
+- **CUDA OOM fix:** the explained-variance step forwarded *all* update steps as
+  one batch (~21 GB → OOM); now chunked by minibatch.
+
+### Heuristic reward shaping — `--shaping heuristic`
+Full deck-specific reward stack (16 terms, reused from `pkm/rl`), weighted via
+`--reward-weight name=value` or searched with `sweep --tune-rewards`. Denser than
+the terminal ±1 signal. Per-run scripts weight them explicitly.
+
+### Large-net instability → tuned run (the current experiments)
+`001_complexity_large` (large, `lr 3e-4`) trained **unstable**: `kl ~0.05`,
+`grad_norm ~3.5–4.5` against the 0.5 clip (clipped ~8× every step). The small-net
+lr was too aggressive for the deeper net. `002_large_tuned` lowers `lr → 1e-4`
+(+ `entropy 0.02`, `epochs 3`, `games 96`, `minibatch 128`, `dropout 0.1`) →
+`kl` back to `0.005–0.012`, far more stable. Scripts: `scripts/001_complexity_large/`
+and `scripts/002_large_tuned/`. Whether 002 is *better* (not just stabler) must be
+judged **head-to-head** (`002-final` vs `001-final`), never vs random.
+
+### Inference-time MCTS — `pack --inference mcts -K <sims>` (2026-07-20)
+Wraps the trained net in PUCT search at decision time (README §9 item 1) — a
+strength upgrade with **no retrain**. The choice is baked into the packed bundle
+via an `InferenceConfig` (in `weights.pt`), so one checkpoint can be submitted
+two ways:
+
+- `pack ... --inference mcts -K 32` → search bundle (K = simulations/decision).
+- `pack ...` (default) or `-K 0` / `--inference policy` → plain policy bundle.
+- `scripts/pack_variants.sh [exp] [K]` packs BOTH from the same checkpoint.
+- Measure before submitting: `eval --inference mcts -K 32 --opponent <ckpt>`
+  (head-to-head vs the policy-only agent is the honest "does search help?" test).
+
+How it works: `agent.DragapultAgent._mcts_pick` calls the existing `mcts.search`
+(PUCT over the engine's `Search*` forward model). At deployment the search
+symbols come from **Kaggle's own `libcg.so`** — no vendored engine is shipped.
+`submit_main.py` picks up the bundle's inference config automatically (via
+`from_checkpoint`). **Caveat:** MCTS runs a forward search per decision — mind
+Kaggle's per-turn + cumulative 600 s clock; tune K.
+
+**Multi-world IS-MCTS (`-W`, 2026-07-20).** The hidden info (our own deck order,
+face-down prizes, the opponent's hand/deck) is unknown, so the search
+*determinizes* — guesses one full world — before searching. A single world
+(W=1) is **biased**: the search optimizes hard for that one guessed layout and
+over-commits to draws it merely assumed; raising K makes that *worse* (searches
+the fantasy harder — a likely cause of K=4 < K=1 on the leaderboard). `-W <n>`
+re-samples n worlds per decision, runs an independent search in each, and
+averages the root visit policies (`mcts.search_worlds`) — a move must be good
+across many possible draws. Cost is W× the search time, so trade W against K
+under the budget (`W=8 -K 4` ≈ `W=1 -K 32`). Both `pack` and `eval` take `-W`;
+W is baked into the bundle. This is the principled lever for draw uncertainty —
+`--mcts-sims`/K is not.
+
+Tests: `test_inference_mcts.py` (config toggle + W round-trip, bundle round-trip,
+`search_worlds` averaging, engine smoke incl. W=2).
+
+**Head-to-head (2026-07-20, `002_large_tuned/ckpt_512.pt`, agent-under-test vs
+the SAME checkpoint played as plain policy, matched ~32 searches/decision):**
+
+| inference | searches/decision | 30 games | 100 games |
+|---|---|---|---|
+| `W=1 -K 32` | 32 | 60.0% (18-12) | **56.0% (56-44)** |
+| `W=8 -K 4`  | 32 | 63.3% (19-11) | **47.0% (47-53)** |
+
+Takeaways (the 100-game numbers are the reliable ones; n=30 was too noisy and
+oversold both):
+
+1. **Real search (K=32) beats the raw policy head** — 56% > 50%. Genuine, if
+   modest — the honest signal the leaderboard's moving average couldn't give.
+2. **World-averaging did NOT help at matched compute** — `W=8 -K 4` fell to 47%
+   (*below* policy). Splitting a fixed budget into 8 worlds starved each search
+   to K=4 — too shallow to produce a useful policy, so averaging 8 weak searches
+   lost to one deep one. **At a fixed budget, depth (K) beat breadth (W).**
+3. This does **not** refute the single-world *bias* argument — the clean test of
+   it is "add worlds at a fixed, adequate K" (`W=8 -K 32`, ~8× the compute), not
+   the matched-budget `W=8 -K 4` that robbed K to pay for W. Whether W>1 helps
+   once each per-world search is already strong is still open (and costs W× time,
+   so it must clear Kaggle's 600 s budget to be usable). For now the submittable
+   regime is **`W=1` with a healthy K**.
+
+### Next lever (not yet built)
+**Opponent-pool training** — self-play against *past checkpoints*, not just the
+current mirror. Improves the training signal AND gives a non-saturated eval; the
+change most likely to actually push past 600.

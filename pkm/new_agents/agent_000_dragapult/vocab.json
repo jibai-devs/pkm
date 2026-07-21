@@ -1,0 +1,339 @@
+{
+  "vocab_size": 45,
+  "n_unique": 44,
+  "unk_row": 44,
+  "distinct_ids": [
+    2,
+    5,
+    7,
+    10,
+    13,
+    19,
+    65,
+    66,
+    112,
+    119,
+    120,
+    121,
+    131,
+    132,
+    133,
+    140,
+    142,
+    235,
+    305,
+    741,
+    742,
+    743,
+    858,
+    1013,
+    1038,
+    1071,
+    1079,
+    1081,
+    1086,
+    1097,
+    1121,
+    1129,
+    1152,
+    1161,
+    1182,
+    1184,
+    1198,
+    1213,
+    1225,
+    1227,
+    1231,
+    1246,
+    1260,
+    1264
+  ],
+  "rows": [
+    {
+      "row": 0,
+      "id": 2,
+      "name": "Basic {R} Energy"
+    },
+    {
+      "row": 1,
+      "id": 5,
+      "name": "Basic {P} Energy"
+    },
+    {
+      "row": 2,
+      "id": 7,
+      "name": "Basic {D} Energy"
+    },
+    {
+      "row": 3,
+      "id": 10,
+      "name": "Neo Upper Energy"
+    },
+    {
+      "row": 4,
+      "id": 13,
+      "name": "Enriching Energy"
+    },
+    {
+      "row": 5,
+      "id": 19,
+      "name": "Telepath Psychic Energy"
+    },
+    {
+      "row": 6,
+      "id": 65,
+      "name": "Dunsparce"
+    },
+    {
+      "row": 7,
+      "id": 66,
+      "name": "Dudunsparce"
+    },
+    {
+      "row": 8,
+      "id": 112,
+      "name": "Munkidori"
+    },
+    {
+      "row": 9,
+      "id": 119,
+      "name": "Dreepy"
+    },
+    {
+      "row": 10,
+      "id": 120,
+      "name": "Drakloak"
+    },
+    {
+      "row": 11,
+      "id": 121,
+      "name": "Dragapult ex"
+    },
+    {
+      "row": 12,
+      "id": 131,
+      "name": "Duskull"
+    },
+    {
+      "row": 13,
+      "id": 132,
+      "name": "Dusclops"
+    },
+    {
+      "row": 14,
+      "id": 133,
+      "name": "Dusknoir"
+    },
+    {
+      "row": 15,
+      "id": 140,
+      "name": "Fezandipiti ex"
+    },
+    {
+      "row": 16,
+      "id": 142,
+      "name": "Genesect"
+    },
+    {
+      "row": 17,
+      "id": 235,
+      "name": "Budew"
+    },
+    {
+      "row": 18,
+      "id": 305,
+      "name": "Dunsparce"
+    },
+    {
+      "row": 19,
+      "id": 741,
+      "name": "Abra"
+    },
+    {
+      "row": 20,
+      "id": 742,
+      "name": "Kadabra"
+    },
+    {
+      "row": 21,
+      "id": 743,
+      "name": "Alakazam"
+    },
+    {
+      "row": 22,
+      "id": 858,
+      "name": "Psyduck"
+    },
+    {
+      "row": 23,
+      "id": 1013,
+      "name": "Shaymin"
+    },
+    {
+      "row": 24,
+      "id": 1038,
+      "name": "Dedenne"
+    },
+    {
+      "row": 25,
+      "id": 1071,
+      "name": "Meowth ex"
+    },
+    {
+      "row": 26,
+      "id": 1079,
+      "name": "Rare Candy"
+    },
+    {
+      "row": 27,
+      "id": 1081,
+      "name": "Enhanced Hammer"
+    },
+    {
+      "row": 28,
+      "id": 1086,
+      "name": "Buddy-Buddy Poffin"
+    },
+    {
+      "row": 29,
+      "id": 1097,
+      "name": "Night Stretcher"
+    },
+    {
+      "row": 30,
+      "id": 1121,
+      "name": "Ultra Ball"
+    },
+    {
+      "row": 31,
+      "id": 1129,
+      "name": "Sacred Ash"
+    },
+    {
+      "row": 32,
+      "id": 1152,
+      "name": "Poké Pad"
+    },
+    {
+      "row": 33,
+      "id": 1161,
+      "name": "Handheld Fan"
+    },
+    {
+      "row": 34,
+      "id": 1182,
+      "name": "Boss’s Orders"
+    },
+    {
+      "row": 35,
+      "id": 1184,
+      "name": "Lana’s Aid"
+    },
+    {
+      "row": 36,
+      "id": 1198,
+      "name": "Crispin"
+    },
+    {
+      "row": 37,
+      "id": 1213,
+      "name": "Judge"
+    },
+    {
+      "row": 38,
+      "id": 1225,
+      "name": "Hilda"
+    },
+    {
+      "row": 39,
+      "id": 1227,
+      "name": "Lillie's Determination"
+    },
+    {
+      "row": 40,
+      "id": 1231,
+      "name": "Dawn"
+    },
+    {
+      "row": 41,
+      "id": 1246,
+      "name": "Jamming Tower"
+    },
+    {
+      "row": 42,
+      "id": 1260,
+      "name": "Risky Ruins"
+    },
+    {
+      "row": 43,
+      "id": 1264,
+      "name": "Battle Cage"
+    }
+  ],
+  "decks": {
+    "dragapult": {
+      "n_cards": 60,
+      "n_distinct": 26,
+      "ids": [
+        2,
+        5,
+        7,
+        10,
+        112,
+        119,
+        120,
+        121,
+        131,
+        132,
+        133,
+        140,
+        235,
+        1071,
+        1079,
+        1086,
+        1097,
+        1121,
+        1152,
+        1182,
+        1198,
+        1213,
+        1225,
+        1227,
+        1246,
+        1260
+      ]
+    },
+    "alakazam": {
+      "n_cards": 60,
+      "n_distinct": 26,
+      "ids": [
+        5,
+        13,
+        19,
+        65,
+        66,
+        140,
+        142,
+        305,
+        741,
+        742,
+        743,
+        858,
+        1013,
+        1038,
+        1079,
+        1081,
+        1086,
+        1097,
+        1129,
+        1152,
+        1161,
+        1182,
+        1184,
+        1225,
+        1231,
+        1264
+      ]
+    }
+  }
+}

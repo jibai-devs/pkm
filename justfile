@@ -135,6 +135,36 @@ replay:
 replay-react file="":
     cd replay/05_vite_react_app && VITE_REPLAY={{file}} bun run dev
 
+# Download all card face images into pkm_data/replay/cards (skips existing)
+fetch-cards *ARGS:
+    python3 replay/fetch_card_images.py --out pkm_data/replay/cards --cards-json replay/cards.json {{ARGS}}
+
+# Run the image-based replay viewer (07, real card art) on http://localhost:5175.
+# Installs deps on first run; card art loads from pkm_data/replay/cards (run
+# `just fetch-cards` once) with automatic CDN fallback. Optionally load another
+# replay: just replay-cards file=/foo.json . Backend/reveal toggles live in the header.
+replay-cards file="":
+    cd replay/07_vite_react_cards && bun install && VITE_REPLAY={{file}} bun run dev
+
+# --- browser play (play the game in the React GUI vs a bot) -------------------
+
+# Start the Python play server (http://localhost:8000). It bridges the browser
+# to the same game session the TUI uses, and serves the built SPA. For live dev
+# with hot reload, ALSO run `just play-web-dev` in another terminal.
+play-web port="8000":
+    uv run python -m pkm.web.server --port {{port}}
+
+# Vite dev server for the play UI (http://localhost:5175/?mode=play), proxying
+# /api to the play server. Run `just play-web` alongside this.
+play-web-dev:
+    cd replay/07_vite_react_cards && bun install && bun run dev
+
+# One-shot: build the SPA, then serve everything (UI + API) from the Python
+# server. Open http://localhost:8000/?mode=play . No Vite process needed.
+play-web-build port="8000":
+    cd replay/07_vite_react_cards && bun install && bun run build
+    uv run python -m pkm.web.server --port {{port}}
+
 # --- submission ---------------------------------------------------------------
 
 # export freshest weights and build submissions/submission_<agent>_<ts>.tar.gz
