@@ -23,3 +23,15 @@ inference, bundle, message, score once it lands).
   play out (agent_000's 007 "600" settled to ~487), so treat this as provisional
   until it stabilises. Both agents eval vs random locally, so the LB is the only
   honest head-to-head.
+
+- **2026-07-22 — pult_munki deck (03).** Bundle `submission_20260722_005554.tar.gz`
+  (45.8 MiB). Checkpoint: `out_transformer/out/pult_munki_40/latest.pth` from a
+  **40-iteration** GPU self-play/MCTS run
+  (`cli train --deck pult_munki --iters 40 --device cuda`, defaults 50 eval /
+  100 selfplay / sims=10). **First submission of the new multi-deck setup:** deck
+  = `03_pult_munki` (Dragapult ex / Munkidori, no Dusknoir — item-disruption
+  toolbox: Crushing Hammer ×4, Xerosic's Machinations, Team Rocket's Watchtower),
+  now baked into the checkpoint (`deck_name`) and read back by `submit_main`.
+  Inference = MCTS sims=10 every move. **Eval-vs-random trajectory:** 96% → ~88–94
+  (iters 1–15) → steady **98–100%** from iter ~16 (saturates; not a true ceiling).
+  **Score: pending** (check `kaggle competitions submissions -c pokemon-tcg-ai-battle`).
