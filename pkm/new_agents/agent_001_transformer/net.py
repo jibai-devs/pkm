@@ -65,13 +65,12 @@ SEARCH_COUNT = 10  # default MCTS search budget
 # Default architecture (d_model, num_heads, d_feedforward, n_enc, n_dec).
 MODEL_DIMS = (128, 2, 256, 1, 1)
 
-# A sample deck for training/inference (from the reference notebook).
-sample_deck = [
-    721, 721, 722, 722, 722, 722, 723, 723, 723, 723, 1092, 1121, 1121, 1145,
-    1145, 1163, 1163, 1219, 1219, 1219, 1219, 1227, 1227, 1227, 1227, 1262,
-    1262, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-    3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-]
+# A sample deck for training/inference (the reference notebook's deck). Sourced
+# from the deck registry so there is a single hard-coded source of truth; kept as
+# a module attribute for backward compatibility with call sites that import it.
+from pkm.new_agents.agent_001_transformer import deck as _deck  # noqa: E402
+
+sample_deck = _deck.deck_60("sample")
 
 
 # --------------------------------------------------------------------------- #
