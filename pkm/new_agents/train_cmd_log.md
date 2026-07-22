@@ -9,6 +9,12 @@ Commands are written as bash `args=(…)` arrays so **every flag carries an inli
 comment** (what it does + other options) and the block still runs. Newest
 entries at the bottom. Convention also recorded in the project `CLAUDE.md`.
 
+**Style rules (see CLAUDE.md):** (1) prefer **powers of 2** for count/size params
+where sensible — games, workers, updates, minibatch, mcts sims/worlds, eval/ckpt
+intervals, trials (NOT rates/coeffs: lr/gamma/lambda/clip/entropy stay as tuned);
+(2) prefix each `--experiment` with the next **zero-padded number** (`010`,
+`011`, … continuing the `experiments/NNN_*` series; 000–009 already exist).
+
 ## How to launch — persistent tmux (required)
 
 All `train` / `sweep` / `resume` runs go into a **persistent tmux** session so
@@ -27,20 +33,40 @@ Gotcha: if the `pkm-train` session is the pane where the Claude Code CLI itself
 runs, pasting/`send-keys` types into Claude's prompt, not a shell — use a
 different shell session/window in that case.
 
+## Where the metrics land
+
+Every run writes, keyed by its `--experiment <name>` (root = `--output-dir`,
+default `pkm_data/new_agents/agent_000_dragapult`), under
+`…/experiments/<experiment>/`:
+
+- **`logs/train.csv`** — per-update metrics (the main thing to inspect;
+  `pol_loss`/`val_loss`/`eval_win_rate`/timing). Read it directly, e.g.:
+  ```bash
+  cat pkm_data/new_agents/agent_000_dragapult/experiments/<experiment>/logs/train.csv
+  ```
+- **`runs/<run-name>/`** — TensorBoard event files (`tensorboard --logdir` it).
+- **`checkpoints/`** — `latest.pt` + `ckpt_N.pt`.
+
+Each run entry below repeats its own concrete `📊 metrics:` path.
+
 Flag-value legend used below: `alt:` = other accepted values; `PPO-only` = read
 only by `--method ppo` (inert under `exit`); `exit-only` = the reverse.
 
 ---
 
-## 2026-07-22 — agent_000: cheaper CPU-first ExIt run (medium) — MASTER (all flags annotated)
+## 010 — agent_000 · ALAKAZAM · ExIt (TD(λ)+W-worlds, medium) — MASTER (all flags annotated)
 
-CPU-friendly first pass of expert iteration with the new TD(λ) + W-world levers.
-This block annotates **every** flag; later blocks only re-annotate what changes.
+First **alakazam** training with the new expert-iteration levers (TD(λ) value
+targets + W-world determinization). This block annotates **every** flag; later
+blocks re-annotate only what changes. The learned vocab already spans all decks,
+so only the played 60-card list changes vs the dragapult runs.
 
-**Measured (this CPU box):** the smoke variant ran clean at **~7.0–7.8s/update
-for 2 games (4 workers)** ≈ ~3.7s/game (val-loss 0.0200→0.0158). Extrapolated,
-this 12-game/8-worker/100-update run ≈ **~20–40 min**. As expected for ExIt the
-`ent/kl/clip/gnorm/evar` metrics log as `0.00` (PPO-only).
+📊 metrics: `pkm_data/new_agents/agent_000_dragapult/experiments/010_alakazam_exit_tdlambda_medium/logs/train.csv`
+(TB: `…/experiments/010_alakazam_exit_tdlambda_medium/runs/010_alakazam_exit_w2_medium/`)
+
+**Cost (this CPU box, extrapolated from the measured ~3.7s/game at medium/w2/
+sims16):** 16 games / 8 workers / 128 updates ≈ **~40–50 min**. ExIt logs
+`ent/kl/clip/gnorm/evar` as `0.00` (PPO-only metrics; N/A).
 
 ```bash
 args=(
@@ -48,49 +74,49 @@ args=(
   --method exit                  # TRAINING STYLE. alt: ppo. exit = MCTS teaches every move (AlphaZero-ish)
   --model medium                 # net size preset. alt: small(=v1)|large|xl. (per-dim overrides: --n-layers/--d-state/--d-entity/--n-heads/--d-opt/--d-card)
   --policy-head marginal         # policy head. alt: autoreg (STOP-token multi-select). NOTE: exit only trains step-0 marginal, so autoreg's conditioning won't learn here — train autoreg under --method ppo
-  --deck dragapult               # played 60-card list. alt: alakazam (+ any deck in deck.DECKS)
-  --aux-weight prize_margin=0.25 # enable an aux head (repeatable: --aux-weight name=w). alt: omit = no aux. Training-only (stripped from Kaggle bundle)
+  --deck alakazam                # played 60-card list. alt: dragapult (+ any deck in deck.DECKS)
+  --aux-weight prize_margin=0.25 # enable an aux head (repeatable: --aux-weight name=w). deck-agnostic. alt: omit = no aux. Training-only (stripped from Kaggle bundle)
 
   # ---- expert-iteration (MCTS) knobs — exit-only ----
   --exit-value-target tdlambda   # value target. alt: mc (raw ±1 outcome, v1). tdlambda = blend outcome + MCTS root value
-  --exit-lambda 0.9              # tdlambda EMA factor (0..1). higher = trust outcome more. inert unless tdlambda
-  --mcts-worlds 2                # determinized worlds averaged per decision (IS-MCTS). alt: 1 (single world, v1). cost ×W
-  --mcts-simulations 16          # PUCT sims per decision. more = stronger teacher, linear cost. (large run uses 32)
-  --mcts-c-puct 1.25             # PUCT exploration constant. higher = explore more
+  --exit-lambda 0.9              # tdlambda EMA factor (0..1). higher = trust outcome more. inert unless tdlambda. (coeff → not power-of-2)
+  --mcts-worlds 2                # determinized worlds averaged per decision (IS-MCTS). power of 2. alt: 1 (single world, v1). cost ×W
+  --mcts-simulations 16          # PUCT sims per decision (2^4). more = stronger teacher, linear cost. (large run uses 32)
+  --mcts-c-puct 1.25             # PUCT exploration constant. higher = explore more. (coeff → not power-of-2)
   --mcts-temperature 1.0         # visit-count temperature for π. 1.0 = ∝ visits; →0 = argmax
   --determinization sample       # how hidden zones are filled. key into determinize.DETERMINIZERS
 
   # ---- reward shaping — PPO-only (INERT under --method exit; kept explicit) ----
-  --shaping prize_potential      # alt: terminal (sparse ±1) | dragapult_heuristic. exit ignores this (its target is outcome/tdlambda)
+  --shaping prize_potential      # deck-agnostic. alt: terminal (sparse ±1) | dragapult_heuristic (dragapult-ONLY). exit ignores this
   --shaping-coef 1.0             # scale on the shaping term (0.0 == terminal). PPO-only
-  # --reward-weight name=value   # (repeatable) override a heuristic term; only with --shaping dragapult_heuristic
+  # --reward-weight name=value   # (repeatable) override a heuristic term; only with --shaping dragapult_heuristic (dragapult deck)
 
-  # ---- optimizer / learn step ----
+  # ---- optimizer / learn step (rates/coeffs: NOT powers of 2) ----
   --lr 1e-4                      # Adam LR (or cosine start). 1e-4 = stable for deeper nets
   --lr-schedule cosine           # alt: constant. cosine anneals lr→lr-min over the run
   --lr-min 1e-5                  # cosine floor (eta_min). inert unless cosine
   --value-coef 0.5               # weight on the value (MSE) loss
-  --minibatch-size 64            # decisions per optimizer minibatch
-  --epochs 4                     # PPO-only: passes per update over the batch (inert for exit)
+  --minibatch-size 64            # decisions per optimizer minibatch (2^6)
+  --epochs 4                     # PPO-only: passes per update (2^2). inert for exit
   --gamma 0.997                  # PPO-only: discount (long ~77-decision horizon)
   --lam 0.95                     # PPO-only: GAE lambda
   --clip-eps 0.2                 # PPO-only: PPO clip epsilon
   --entropy-coef 0.01            # PPO-only: entropy bonus
   --seed 0                       # RNG seed (offset per worker)
 
-  # ---- run length + parallelism + device ----
-  --updates 100                  # number of updates (train iterations)
-  --games 12                     # self-play games collected per update
-  --workers 8                    # parallel self-play workers (1 = single-process). exit cost is CPU-bound in workers
+  # ---- run length + parallelism + device (counts: powers of 2) ----
+  --updates 128                  # number of updates (2^7)
+  --games 16                     # self-play games per update (2^4)
+  --workers 8                    # parallel self-play workers (2^3). exit cost is CPU-bound in workers
   --device auto                  # GPU/CPU. alt: cpu | cuda. auto = cuda if available else cpu. THIS box has no usable CUDA → cpu; --device cuda ERRORS here. (Only the learner update uses GPU; MCTS rollout is always CPU)
 
   # ---- eval / checkpoint / logging / identity ----
-  --eval-every 20                # eval vs RANDOM every N updates (0 = never). NB: vs-random saturates → weak signal
-  --eval-games 64                # games per eval
-  --ckpt-every 20                # snapshot ckpt_N.pt every N updates (latest.pt always written)
-  --experiment exit_tdlambda_worlds_medium  # artifact dir <output>/<experiment>/ (-e). config-hash guards resume
-  --run-name exit_tdlambda_w2_medium         # TB subdir / wandb run name
-  --tb                           # TensorBoard scalars to <experiment>/runs/. alt: --no-tb. (CSV at <experiment>/logs/train.csv is always written)
+  --eval-every 16                # eval vs RANDOM every N updates (2^4; 0 = never). NB: vs-random saturates → weak signal
+  --eval-games 32                # games per eval (2^5)
+  --ckpt-every 32                # snapshot ckpt_N.pt every N updates (2^5; latest.pt always written)
+  --experiment 010_alakazam_exit_tdlambda_medium  # artifact dir <output>/experiments/<name>/ (-e). numbered prefix. config-hash guards resume
+  --run-name 010_alakazam_exit_w2_medium           # TB subdir / wandb run name
+  --tb                           # TensorBoard scalars to <experiment>/runs/. alt: --no-tb. (CSV always written)
   --engine local-nix             # engine backend. alt: kaggle | local. default local-nix (vendored cg.so)
   # --output-dir PATH            # (-o) artifact root; default is the repo's DATA_DIR
   # --wandb-project NAME         # also log to Weights & Biases (+ --wandb-mode offline|online|disabled)
@@ -106,34 +132,33 @@ Smoke to validate + time first (writes only to scratchpad; no TB/eval):
 args=(
   --method exit --exit-value-target tdlambda --exit-lambda 0.9
   --mcts-worlds 2 --mcts-simulations 16 --determinization sample
-  --model medium --deck dragapult --aux-weight prize_margin=0.25
-  --updates 3 --games 2 --workers 4        # tiny: just measure seconds/update
-  --device auto --eval-every 0 --ckpt-every 100 --no-tb --force
-  --output-dir /tmp/exit_smoke --experiment exit_smoke_measure
+  --model medium --deck alakazam --aux-weight prize_margin=0.25
+  --updates 4 --games 2 --workers 4        # tiny (all powers of 2): just measure seconds/update
+  --device auto --eval-every 0 --ckpt-every 128 --no-tb --force
+  --output-dir /tmp/exit_smoke --experiment alakazam_smoke_measure
 )
 python -m pkm.new_agents.agent_000_dragapult.cli train "${args[@]}"
 ```
 
 ---
 
-## 2026-07-22 — agent_000: full ExIt run (large) — the expensive one
+## 011 — agent_000 · DRAGAPULT · ExIt (TD(λ)+W-worlds, medium)
 
-Same as the master block but scaled up. **Deltas only** (all other flags as the
-master block above):
+Same as 010 but the dragapult deck. **Deltas only** (all other flags as 010):
+
+📊 metrics: `pkm_data/new_agents/agent_000_dragapult/experiments/011_dragapult_exit_tdlambda_medium/logs/train.csv`
+(TB: `…/experiments/011_dragapult_exit_tdlambda_medium/runs/011_dragapult_exit_w2_medium/`)
 
 ```bash
 args=(
   --method exit --exit-value-target tdlambda --exit-lambda 0.9 --determinization sample
-  --model large                  # ↑ from medium: ~2–3× cost/forward
-  --mcts-worlds 4                # ↑ from 2: ×2 searches/decision
-  --mcts-simulations 32          # ↑ from 16: ×2 per search
-  --deck dragapult --aux-weight prize_margin=0.25
-  --mcts-c-puct 1.25 --mcts-temperature 1.0
+  --model medium --mcts-worlds 2 --mcts-simulations 16 --mcts-c-puct 1.25 --mcts-temperature 1.0
+  --deck dragapult               # ← the only change vs 010
+  --aux-weight prize_margin=0.25 --shaping prize_potential --shaping-coef 1.0
   --lr 1e-4 --lr-schedule cosine --lr-min 1e-5 --value-coef 0.5 --minibatch-size 64 --seed 0
-  --updates 200 --games 16 --workers 8      # ↑ longer run
-  --device auto                  # cpu here → this run is ~tens of hours-to-days; use only with a GPU or lots of patience
-  --eval-every 16 --eval-games 128 --ckpt-every 32
-  --experiment exit_tdlambda_worlds_large --run-name exit_tdlambda_w4_large --tb
+  --updates 128 --games 16 --workers 8      # powers of 2
+  --device auto --eval-every 16 --eval-games 32 --ckpt-every 32
+  --experiment 011_dragapult_exit_tdlambda_medium --run-name 011_dragapult_exit_w2_medium --tb
   --engine local-nix
 )
 python -m pkm.new_agents.agent_000_dragapult.cli train "${args[@]}"
@@ -141,12 +166,42 @@ python -m pkm.new_agents.agent_000_dragapult.cli train "${args[@]}"
 
 ---
 
-## 2026-07-22 — agent_000: PPO run to train the autoregressive head (②)
+## 012 — agent_000 · DRAGAPULT · ExIt (large) — the expensive one
+
+Scaled up. **Deltas only** vs 010/011:
+
+📊 metrics: `pkm_data/new_agents/agent_000_dragapult/experiments/012_dragapult_exit_tdlambda_large/logs/train.csv`
+(TB: `…/experiments/012_dragapult_exit_tdlambda_large/runs/012_dragapult_exit_w4_large/`)
+
+```bash
+args=(
+  --method exit --exit-value-target tdlambda --exit-lambda 0.9 --determinization sample
+  --model large                  # ↑ from medium: ~2–3× cost/forward
+  --mcts-worlds 4                # ↑ 2→4 (2^2): ×2 searches/decision
+  --mcts-simulations 32          # ↑ 16→32 (2^5): ×2 per search
+  --deck dragapult --aux-weight prize_margin=0.25
+  --mcts-c-puct 1.25 --mcts-temperature 1.0
+  --lr 1e-4 --lr-schedule cosine --lr-min 1e-5 --value-coef 0.5 --minibatch-size 64 --seed 0
+  --updates 256 --games 16 --workers 8      # updates 2^8
+  --device auto                  # cpu here → this run is ~tens of hours-to-days; use only with a GPU or lots of patience
+  --eval-every 16 --eval-games 128 --ckpt-every 32
+  --experiment 012_dragapult_exit_tdlambda_large --run-name 012_dragapult_exit_w4_large --tb
+  --engine local-nix
+)
+python -m pkm.new_agents.agent_000_dragapult.cli train "${args[@]}"
+```
+
+---
+
+## 013 — agent_000 · DRAGAPULT · PPO to train the autoregressive head (②)
 
 The autoregressive STOP-token head is only *fully* trained under **PPO** (its
 sampler + logprob use the conditioned path; under `exit` only the step-0 marginal
 learns). Here the PPO-only knobs (gamma/lam/clip-eps/entropy-coef/epochs) are
 LIVE, and the exit/MCTS knobs are absent.
+
+📊 metrics: `pkm_data/new_agents/agent_000_dragapult/experiments/013_dragapult_autoreg_ppo/logs/train.csv`
+(TB: `…/experiments/013_dragapult_autoreg_ppo/runs/013_dragapult_autoreg_ppo/`)
 
 ```bash
 args=(
@@ -163,13 +218,13 @@ args=(
   --clip-eps 0.2                 # PPO clip (LIVE)
   --entropy-coef 0.01            # entropy bonus (LIVE)
   --value-coef 0.5
-  --epochs 4                     # PPO passes/update (LIVE)
+  --epochs 4                     # PPO passes/update (2^2, LIVE)
   --minibatch-size 64 --seed 0
 
-  --updates 400 --games 32 --workers 8       # PPO rollouts are cheap vs exit → more games/updates
+  --updates 512 --games 32 --workers 8       # powers of 2. PPO rollouts are cheap vs exit → more games/updates
   --device auto                  # cpu here (fine: PPO is much cheaper than exit)
   --eval-every 16 --eval-games 128 --ckpt-every 32
-  --experiment autoreg_large --run-name autoreg_large_ppo --tb --engine local-nix
+  --experiment 013_dragapult_autoreg_ppo --run-name 013_dragapult_autoreg_ppo --tb --engine local-nix
 )
 python -m pkm.new_agents.agent_000_dragapult.cli train "${args[@]}"
 ```
@@ -182,46 +237,53 @@ python -m pkm.new_agents.agent_000_dragapult.cli train "${args[@]}"
 SAME `--experiment` and repeat every **config-hash** flag (model dims,
 `--policy-head`, `--deck`, `--method`, all mcts/exit knobs, `--shaping`,
 `--aux-weight`) exactly, or the checkpoint won't load. Example (resumes the
-medium ExIt run):
+alakazam 010 run):
+
+📊 metrics: appends to the SAME file as the original run —
+`pkm_data/new_agents/agent_000_dragapult/experiments/010_alakazam_exit_tdlambda_medium/logs/train.csv`
 
 ```bash
 args=(
   --resume                       # continue from latest.pt instead of a fresh net
-  --experiment exit_tdlambda_worlds_medium   # MUST match the original run's experiment
+  --experiment 010_alakazam_exit_tdlambda_medium   # MUST match the original run's experiment
   # --- config-hash flags: MUST match the original exactly ---
   --method exit --exit-value-target tdlambda --exit-lambda 0.9
   --mcts-worlds 2 --mcts-simulations 16 --mcts-c-puct 1.25 --mcts-temperature 1.0
-  --determinization sample --model medium --deck dragapult --aux-weight prize_margin=0.25
+  --determinization sample --model medium --deck alakazam --aux-weight prize_margin=0.25
   --shaping prize_potential --shaping-coef 1.0
   --lr 1e-4 --lr-schedule cosine --lr-min 1e-5 --value-coef 0.5 --minibatch-size 64 --seed 0
   # --- run-length / runtime flags: free to change on resume ---
-  --updates 100                  # counts from where it stopped
-  --games 12 --workers 8 --device auto
-  --eval-every 20 --eval-games 64 --ckpt-every 20
-  --run-name exit_tdlambda_w2_medium --tb --engine local-nix
+  --updates 128                  # counts from where it stopped
+  --games 16 --workers 8 --device auto
+  --eval-every 16 --eval-games 32 --ckpt-every 32
+  --run-name 010_alakazam_exit_w2_medium --tb --engine local-nix
 )
 python -m pkm.new_agents.agent_000_dragapult.cli train "${args[@]}"
 ```
 
 ---
 
-## Optuna hyperparameter sweep
+## 014 — agent_000 · DRAGAPULT · Optuna hyperparameter sweep
 
 `sweep` runs many short PPO trials (Optuna samples lr/entropy/clip/epochs/
 minibatch/gamma/lam) and keeps the best by eval win-rate. It is PPO-oriented —
 there are **no** `--method`/exit/`--policy-head`/`--shaping` flags on `sweep`.
 
+📊 metrics: per-trial TensorBoard under
+`pkm_data/new_agents/agent_000_dragapult/experiments/014_dragapult_sweep/runs/sweep-014_dragapult/trial_<N>/`
+plus the Optuna study DB (study `014_dragapult`); best trial reported on the console.
+
 ```bash
 args=(
-  --trials 30                    # number of Optuna trials (each a short training run)
-  --updates 15                   # updates PER TRIAL (kept short; retrain the winner at full length)
-  --games 32                     # self-play games per update
-  --workers 8                    # rollout workers per trial
-  --eval-games 128               # games per eval — this IS the Optuna objective
+  --trials 32                    # number of Optuna trials (2^5; each a short training run)
+  --updates 16                   # updates PER TRIAL (2^4; short — retrain the winner at full length)
+  --games 32                     # self-play games per update (2^5)
+  --workers 8                    # rollout workers per trial (2^3)
+  --eval-games 128               # games per eval — this IS the Optuna objective (2^7)
   --model large                  # net size for every trial. alt: small|medium|xl (+ per-dim overrides)
   --deck dragapult               # played deck for every trial
-  --study agent000_large_ppo     # Optuna study name (SQLite) — resumable/inspectable
-  --experiment sweep_large       # artifact dir
+  --study 014_dragapult          # Optuna study name (SQLite) — resumable/inspectable
+  --experiment 014_dragapult_sweep   # artifact dir
   --device auto                  # cpu here
   --seed 0                       # base seed (offset per trial)
   --engine local-nix

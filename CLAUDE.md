@@ -125,7 +125,16 @@ Full project guide (structure, RL training, decks, submission): @AGENTS.md
 - **Training-command log convention (2026-07-22):** for `new_agents`, EVERY
   training command — `train`, `sweep`, AND `resume` — gets appended to
   `pkm/new_agents/train_cmd_log.md`. Each entry is the full command in a ```bash
-  source block plus a short note explaining what/why the key values were chosen.
+  source block, a short note on what/why the key values were chosen, AND a direct
+  path to where that run's **metrics** land so they can be inspected without
+  hunting:
+  `pkm_data/new_agents/agent_000_dragapult/experiments/<experiment>/logs/train.csv`
+  (per-update CSV), plus `…/runs/<run-name>/` (TensorBoard) and `…/checkpoints/`.
+  **Two style rules:** (1) prefer **powers of 2** for count/size params where
+  sensible — games, workers, updates, minibatch, mcts sims/worlds, eval/ckpt
+  intervals, trials (NOT rates/coeffs like lr/gamma/lambda/clip); (2) prefix each
+  `--experiment` name with the next **zero-padded incrementing number** (…009 →
+  `010`, `011`, `012` …, continuing the existing `experiments/NNN_*` series).
   Keep it current so the run history lives in the repo (mirrors the
   `submission_log.md` convention for Kaggle bundles).
 
