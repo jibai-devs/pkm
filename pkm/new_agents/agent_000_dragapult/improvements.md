@@ -20,7 +20,15 @@ already feed the net. The expensive part is built.
 
 ## Bring these over — ranked
 
-### ① Expert-iteration training loop (MCTS-in-the-loop) — **do first**
+### ① Expert-iteration training loop (MCTS-in-the-loop) — ✅ DONE (pre-existing)
+
+**Status: already shipped in `trainers/exit.py` (`ExItTrainer`, `method="exit"`)
+before this roadmap.** Matches the spec point-for-point: every move runs
+`mcts.search_worlds(...)` → stores `(featurized obs, root-visit-policy π,
+outcome z)` → fits `cross-entropy(logits, π) + value_coef·MSE(value, z)`;
+registered in `TRAINERS["exit"]`; CLI `train --method exit`; tested
+(`test_exit_trainer.py`). ③ (TD(λ)) and ④ (W-worlds) were layered on top
+(2026-07-22).
 
 - **What:** a trainer that plays self-play where *every move is an
   `mcts.search()` call*, stores `(featurized obs, root-visit-policy π, game
@@ -105,11 +113,63 @@ single-world). Enable with `train --method exit --mcts-worlds 4`.
 - **Land in:** the ① trainer.
 - **Effort:** trivial. **Risk:** low (cost linear in W — trade against sim count).
 
+### ⑤ Cross-attention policy head (successor to ②) — 📋 PROPOSED
+
+- **What:** replace the autoregressive head's hard-wired single referenced
+  entity + pooled-pick summary with a **learned cross-attention** layer: each
+  option (the *query*) attends over the encoder's full per-entity embedding set
+  (`ent [B,12,d_entity]`, the keys/values) and, autoregressively, over the
+  already-picked options. The attended context vector feeds the scorer instead
+  of the one `_gather_entity` slot.
+- **Why:** this is the genuinely-more-powerful version of the grounding we
+  approximate today. Right now ② (`model.AutoregPolicyHead`) grounds an option
+  in exactly the *one* board slot it names (`_gather_entity`, a 1:1 gather) plus
+  a mean-pool of already-picked option vectors (`g`). Cross-attention lets an
+  option weigh **every** entity on the board — "should I attach this energy?"
+  can look at my attacker, the opponent's active, and my bench together — which
+  a single gathered slot and a mean-pool cannot express. It's the mechanism
+  agent_001 uses (`../agent_001_transformer/net.py:88-94`, `DecoderLayer`
+  cross-attends `encoder_out`), ported to *our* structured per-entity encoder.
+- **Why it composes cheaply:** the head only has to keep the existing interface
+  — `policy_from_state(...) -> [B,L]` step-0 logits and `policy_step(state, ent,
+  b, picked_mask) -> (opt_logits[B,L], stop_logit[B])`. Every downstream
+  consumer (the autoregressive sampler / PPO logprob / entropy in `policy.py`,
+  MCTS priors, the ExIt target, inference) then works **unchanged**, exactly as
+  they already do for ②. So this is a third `policy_head` value, not a
+  cross-cutting change.
+- **Sketch:**
+  ```
+  # per option: query = option vec; keys/values = board entities
+  xattn = nn.MultiheadAttention(embed_dim=d_opt, num_heads=n_heads,
+                                kdim=d_entity, vdim=d_entity, batch_first=True)
+  context, _ = xattn(query=opt[B,L,d_opt], key=ent[B,12,d_entity],
+                     value=ent[B,12,d_entity])           # [B,L,d_opt]
+  opt_logit = opt_scorer([opt, state, ctx, context, g])  # g = pooled picked set
+  stop_logit = stop_scorer([state, ctx, g])
+  ```
+  Attend over all 12 fixed slots (occupied + empty) with **no key mask** — the
+  board tensor is always 12 slots so there is always ≥1 valid key (no
+  fully-masked-row NaN, unlike a mask-empties approach); empty-slot embeddings
+  are legitimate signal ("this bench slot is open").
+- **From:** concept from `agent_001/net.py` decoder; grounding target already in
+  `encoder.py` (`ent [B,12,d_entity]`). **Land in:** new `CrossAttnPolicyHead` in
+  `model.py`, built when `ModelConfig.policy_head == "xattn"`; thread
+  `n_heads` into `PolicyValueModel`; add `"xattn"` to the head validation +
+  `--policy-head` help; extend `test_autoreg_head.py` to parametrize its
+  behavioural tests over `("autoreg", "xattn")` (same guarantees must hold).
+- **Effort:** medium (one new module + build wiring; the sampler/trainer/
+  inference code is untouched). **Risk:** medium — new params → retrain,
+  config-hash bump, checkpoint-incompatible; `d_opt` must be divisible by
+  `n_heads` (holds for all presets: 64/4, 128/8, 192/8, 256/8).
+- **Open choice:** pure cross-attention head vs *also* keeping the `_gather_entity`
+  slot as an extra scorer input (belt-and-suspenders). Recommend starting pure
+  and adding the gather back only if it helps.
+
 ---
 
 ## Consider, lower priority
 
-### ⑤ Sparse `EmbeddingBag` offset-featurizer pattern — *learn from, don't adopt*
+### ⑥ Sparse `EmbeddingBag` offset-featurizer pattern — *learn from, don't adopt*
 
 agent_001's `SparseVector` (`net.py:149-186`) makes adding a feature a one-liner
 (allocate an offset range, deposit activations) with no `FEATURE_VERSION`
@@ -118,7 +178,7 @@ pointers, hybrid open-vocab card encoder). Don't replace the encoder. Lesson
 worth keeping: for fast prototyping of a new feature, a sparse side-channel is
 cheaper than a typed dataclass field.
 
-### ⑥ Combination odometer enumerator — **skip**
+### ⑦ Combination odometer enumerator — **skip**
 
 `net.py:426-438` is a clean legal-combination enumerator, but it's the
 exponential-with-cap-64 approach ② is meant to replace. Only a stopgap if ②'s
@@ -141,14 +201,16 @@ autoregressive head proves too slow.
 ## Suggested sequence
 
 ```
-①  expert-iter trainer   (reuses mcts.search → π target)   ← biggest ceiling lever, least new code
-   └─ ③ TD(λ) targets      (inside ①)                       ← cheap accuracy add
-   └─ ④ search_worlds W>1   (inside ①)                       ← free, our own code
-②  STOP-token multi-select head                            ← real modeling gap, but retrain + config bump
+①  expert-iter trainer   (reuses mcts.search → π target)   ← ✅ DONE (pre-existing)
+   └─ ③ TD(λ) targets      (inside ①)                       ← ✅ DONE (opt-in)
+   └─ ④ search_worlds W>1   (inside ①)                       ← ✅ DONE (opt-in)
+②  STOP-token multi-select head                            ← ✅ DONE (opt-in, pooled summary)
+   └─ ⑤ cross-attention head (successor to ②)               ← 📋 PROPOSED (learned attention over entities)
 ```
 
-Do ①③④ as one focused change (same trainer file, reuses existing code), measure
-vs the 600 baseline, *then* decide whether ② is worth the retrain.
+①③④ and ② are shipped (all opt-in, config-hashed). Remaining: (a) *train* an
+autoreg and/or TD(λ)+W-worlds run and A/B vs the 600 baseline; (b) implement ⑤
+(cross-attention) if the pooled-summary grounding in ② proves too weak.
 
 ## Cross-references
 
