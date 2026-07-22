@@ -62,10 +62,13 @@ blocks re-annotate only what changes. The learned vocab already spans all decks,
 so only the played 60-card list changes vs the dragapult runs.
 
 📊 metrics: `pkm_data/new_agents/agent_000_dragapult/experiments/010_alakazam_exit_tdlambda_medium/logs/train.csv`
-(TB: `…/experiments/010_alakazam_exit_tdlambda_medium/runs/010_alakazam_exit_w2_medium/`)
+(TB: `…/experiments/010_alakazam_exit_tdlambda_medium/runs/010_alakazam_exit_w4_medium/`)
 
 **Cost (this CPU box, extrapolated from the measured ~3.7s/game at medium/w2/
-sims16):** 16 games / 8 workers / 128 updates ≈ **~40–50 min**. ExIt logs
+sims16):** with **`--mcts-worlds 4`** (≈2× the w2 search) and **`--updates
+8192`**, 16 games / 8 workers ≈ **~3.5–4.5 days on CPU**. This is a "let it cook"
+run — stop anytime (`latest.pt` + `ckpt_N.pt` persist; watch the eval curve in
+`train.csv`). `--eval-every 128` below → 64 eval points (not 512). ExIt logs
 `ent/kl/clip/gnorm/evar` as `0.00` (PPO-only metrics; N/A).
 
 ```bash
@@ -80,7 +83,7 @@ args=(
   # ---- expert-iteration (MCTS) knobs — exit-only ----
   --exit-value-target tdlambda   # value target. alt: mc (raw ±1 outcome, v1). tdlambda = blend outcome + MCTS root value
   --exit-lambda 0.9              # tdlambda EMA factor (0..1). higher = trust outcome more. inert unless tdlambda. (coeff → not power-of-2)
-  --mcts-worlds 2                # determinized worlds averaged per decision (IS-MCTS). power of 2. alt: 1 (single world, v1). cost ×W
+  --mcts-worlds 4                # determinized worlds averaged per decision (IS-MCTS, 2^2). alt: 1|2. cost ×W (4 ≈ 2× the search of w2)
   --mcts-simulations 16          # PUCT sims per decision (2^4). more = stronger teacher, linear cost. (large run uses 32)
   --mcts-c-puct 1.25             # PUCT exploration constant. higher = explore more. (coeff → not power-of-2)
   --mcts-temperature 1.0         # visit-count temperature for π. 1.0 = ∝ visits; →0 = argmax
@@ -105,17 +108,17 @@ args=(
   --seed 0                       # RNG seed (offset per worker)
 
   # ---- run length + parallelism + device (counts: powers of 2) ----
-  --updates 128                  # number of updates (2^7)
+  --updates 8192                 # number of updates (2^13) — LONG run (~3.5–4.5 days on CPU w4). cosine T_max = this. safe to stop early: latest.pt/ckpt_N.pt persist
   --games 16                     # self-play games per update (2^4)
   --workers 8                    # parallel self-play workers (2^3). exit cost is CPU-bound in workers
   --device auto                  # GPU/CPU. alt: cpu | cuda. auto = cuda if available else cpu. THIS box has no usable CUDA → cpu; --device cuda ERRORS here. (Only the learner update uses GPU; MCTS rollout is always CPU)
 
   # ---- eval / checkpoint / logging / identity ----
-  --eval-every 16                # eval vs RANDOM every N updates (2^4; 0 = never). NB: vs-random saturates → weak signal
+  --eval-every 128               # eval vs RANDOM every N updates (2^7; 0 = never) — loosened for the long run (64 evals, not 512). NB: vs-random saturates → weak signal
   --eval-games 32                # games per eval (2^5)
-  --ckpt-every 32                # snapshot ckpt_N.pt every N updates (2^5; latest.pt always written)
+  --ckpt-every 128               # snapshot ckpt_N.pt every N updates (2^7; latest.pt always written; keep_last=5 prunes)
   --experiment 010_alakazam_exit_tdlambda_medium  # artifact dir <output>/experiments/<name>/ (-e). numbered prefix. config-hash guards resume
-  --run-name 010_alakazam_exit_w2_medium           # TB subdir / wandb run name
+  --run-name 010_alakazam_exit_w4_medium           # TB subdir / wandb run name
   --tb                           # TensorBoard scalars to <experiment>/runs/. alt: --no-tb. (CSV always written)
   --engine local-nix             # engine backend. alt: kaggle | local. default local-nix (vendored cg.so)
   # --output-dir PATH            # (-o) artifact root; default is the repo's DATA_DIR
@@ -131,9 +134,9 @@ Smoke to validate + time first (writes only to scratchpad; no TB/eval):
 ```bash
 args=(
   --method exit --exit-value-target tdlambda --exit-lambda 0.9
-  --mcts-worlds 2 --mcts-simulations 16 --determinization sample
+  --mcts-worlds 4 --mcts-simulations 16 --determinization sample
   --model medium --deck alakazam --aux-weight prize_margin=0.25
-  --updates 4 --games 2 --workers 4        # tiny (all powers of 2): just measure seconds/update
+  --updates 4 --games 2 --workers 4        # tiny (all powers of 2): just measure seconds/update (now w4, so ~2× the w2 smoke)
   --device auto --eval-every 0 --ckpt-every 128 --no-tb --force
   --output-dir /tmp/exit_smoke --experiment alakazam_smoke_measure
 )
@@ -147,18 +150,18 @@ python -m pkm.new_agents.agent_000_dragapult.cli train "${args[@]}"
 Same as 010 but the dragapult deck. **Deltas only** (all other flags as 010):
 
 📊 metrics: `pkm_data/new_agents/agent_000_dragapult/experiments/011_dragapult_exit_tdlambda_medium/logs/train.csv`
-(TB: `…/experiments/011_dragapult_exit_tdlambda_medium/runs/011_dragapult_exit_w2_medium/`)
+(TB: `…/experiments/011_dragapult_exit_tdlambda_medium/runs/011_dragapult_exit_w4_medium/`)
 
 ```bash
 args=(
   --method exit --exit-value-target tdlambda --exit-lambda 0.9 --determinization sample
-  --model medium --mcts-worlds 2 --mcts-simulations 16 --mcts-c-puct 1.25 --mcts-temperature 1.0
+  --model medium --mcts-worlds 4 --mcts-simulations 16 --mcts-c-puct 1.25 --mcts-temperature 1.0
   --deck dragapult               # ← the only change vs 010
   --aux-weight prize_margin=0.25 --shaping prize_potential --shaping-coef 1.0
   --lr 1e-4 --lr-schedule cosine --lr-min 1e-5 --value-coef 0.5 --minibatch-size 64 --seed 0
-  --updates 128 --games 16 --workers 8      # powers of 2
-  --device auto --eval-every 16 --eval-games 32 --ckpt-every 32
-  --experiment 011_dragapult_exit_tdlambda_medium --run-name 011_dragapult_exit_w2_medium --tb
+  --updates 8192 --games 16 --workers 8     # updates 2^13 (~3.5–4.5 days CPU; see 010 cost note)
+  --device auto --eval-every 128 --eval-games 32 --ckpt-every 128
+  --experiment 011_dragapult_exit_tdlambda_medium --run-name 011_dragapult_exit_w4_medium --tb
   --engine local-nix
 )
 python -m pkm.new_agents.agent_000_dragapult.cli train "${args[@]}"
@@ -248,15 +251,15 @@ args=(
   --experiment 010_alakazam_exit_tdlambda_medium   # MUST match the original run's experiment
   # --- config-hash flags: MUST match the original exactly ---
   --method exit --exit-value-target tdlambda --exit-lambda 0.9
-  --mcts-worlds 2 --mcts-simulations 16 --mcts-c-puct 1.25 --mcts-temperature 1.0
+  --mcts-worlds 4 --mcts-simulations 16 --mcts-c-puct 1.25 --mcts-temperature 1.0
   --determinization sample --model medium --deck alakazam --aux-weight prize_margin=0.25
   --shaping prize_potential --shaping-coef 1.0
   --lr 1e-4 --lr-schedule cosine --lr-min 1e-5 --value-coef 0.5 --minibatch-size 64 --seed 0
   # --- run-length / runtime flags: free to change on resume ---
-  --updates 128                  # counts from where it stopped
+  --updates 8192                 # ADDITIONAL updates from where it stopped (set to what's left)
   --games 16 --workers 8 --device auto
-  --eval-every 16 --eval-games 32 --ckpt-every 32
-  --run-name 010_alakazam_exit_w2_medium --tb --engine local-nix
+  --eval-every 128 --eval-games 32 --ckpt-every 128
+  --run-name 010_alakazam_exit_w4_medium --tb --engine local-nix
 )
 python -m pkm.new_agents.agent_000_dragapult.cli train "${args[@]}"
 ```
