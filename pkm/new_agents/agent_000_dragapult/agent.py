@@ -170,13 +170,24 @@ class DragapultAgent:
             return self._mcts_pick(obs_dict, n, k)
 
         batch = {k_: v.to(self.device) for k_, v in collate([feats]).items()}
-        if getattr(self.model, "policy_head", "marginal") == "autoreg":
+        head = getattr(self.model, "policy_head", "marginal")
+        if head == "autoreg":
             # Autoregressive head: it picks its own count (conditioned draws +
             # learned STOP), so we don't impose `k` here.
             from pkm.new_agents.agent_000_dragapult import policy
 
             state, ent = self.model.encode(batch)
             picks, _lp = policy.sample_action_autoreg(
+                self.model, state, ent, batch, gen=self.gen, greedy=self.greedy
+            )
+            return picks
+        if head == "combo":
+            # Combination head: samples one enumerated option-set (its own count),
+            # so we don't impose `k` here either.
+            from pkm.new_agents.agent_000_dragapult import policy
+
+            state, ent = self.model.encode(batch)
+            picks, _lp = policy.sample_action_combo(
                 self.model, state, ent, batch, gen=self.gen, greedy=self.greedy
             )
             return picks

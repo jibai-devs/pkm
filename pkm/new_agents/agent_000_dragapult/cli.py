@@ -653,9 +653,11 @@ def train(
         None,
         "--policy-head",
         help="Policy head: 'marginal' (default, v1 — per-option scorer, multi-select "
-        "left to sampling) or 'autoreg' (STOP-token head that conditions each pick on "
-        "the already-picked set and learns the count). Changes params, so a "
-        "checkpoint is tied to its head; part of the config hash.",
+        "left to sampling), 'autoreg' (STOP-token head that conditions each pick on "
+        "the already-picked set and learns the count), or 'combo' (scores whole "
+        "option combinations in one pass — a categorical over enumerated sets, "
+        "cap 64 — and learns the count by picking a smaller set). Changes params, so "
+        "a checkpoint is tied to its head; part of the config hash.",
     ),
     device: str = typer.Option(
         "cpu",

@@ -216,3 +216,109 @@ def batched_entropy_autoreg(
     cat = torch.cat([ol, stop_col.unsqueeze(-1)], dim=-1)  # [B,L+1]
     logp = cat - torch.logsumexp(cat, dim=-1, keepdim=True)
     return -(logp.exp() * logp).sum(-1)
+
+
+# --------------------------------------------------------------------------- #
+# Combination-scoring head (policy_head == "combo")
+# --------------------------------------------------------------------------- #
+#
+# The action unit here is an *unordered set* of option indices (a "combo"),
+# drawn from a single categorical over the legal combinations enumerated by
+# model.enumerate_combos (count-bounded, cap 64, empty set included when
+# minCount==0). So a decision's logprob is one categorical logprob — no
+# per-step Plackett-Luce product, no STOP term. The rollout sampler and the PPO
+# recompute below both call model.policy_combos on the *same* batch dict, so the
+# enumeration (hence the combo distribution) is identical and a sampled combo's
+# returned logprob equals its recompute (matched by set, tested).
+
+
+def _combo_members(
+    combo_idx: torch.Tensor, member_mask: torch.Tensor, i: int, c: int
+) -> frozenset[int]:
+    """The option-index set of combo ``c`` in row ``i`` (empty set for the pad/empty combo)."""
+    k = combo_idx.shape[2]
+    return frozenset(
+        int(combo_idx[i, c, j]) for j in range(k) if member_mask[i, c, j] > 0
+    )
+
+
+@torch.no_grad()
+def sample_action_combo(
+    model,
+    state: torch.Tensor,  # [1,d_state]
+    ent: torch.Tensor,  # [1,12,d_entity]
+    b: dict[str, torch.Tensor],  # batch of 1
+    gen: torch.Generator | None = None,
+    greedy: bool = False,
+) -> tuple[list[int], float]:
+    """Sample one option combination from the combo head -> (sorted picks, logprob).
+
+    Batch-of-1 (one live decision). The combo head learns its own count, so no
+    ``k`` is imposed: an empty combo (``minCount == 0``) yields ``[]``.
+    """
+    combo_logits, combo_idx, member_mask, _valid = model.policy_combos(state, ent, b)
+    logits = combo_logits[0]  # [C]
+    logp = logits - torch.logsumexp(logits, dim=-1, keepdim=True)
+    if greedy:
+        c = int(torch.argmax(logp))
+    else:
+        c = int(torch.multinomial(logp.exp(), 1, generator=gen))
+    picks = sorted(_combo_members(combo_idx, member_mask, 0, c))
+    return picks, float(logp[c])
+
+
+def _match_combos(
+    actions: torch.Tensor,  # [B,K] padded with 0
+    action_len: torch.Tensor,  # [B]
+    combo_idx: torch.Tensor,  # [B,C,Kc]
+    member_mask: torch.Tensor,  # [B,C,Kc]
+) -> torch.Tensor:
+    """Index ``[B]`` of the enumerated combo whose member set == each row's action.
+
+    Matching is by *set* (order-independent), so it is robust to the sampler
+    returning picks in any order. Falls back to 0 if no combo matches (cannot
+    happen for an action that came from the same enumeration).
+    """
+    bsz, n_combos = combo_idx.shape[0], combo_idx.shape[1]
+    target = torch.zeros(bsz, dtype=torch.long, device=combo_idx.device)
+    acts = actions.tolist()
+    alen = action_len.tolist()
+    for i in range(bsz):
+        want = frozenset(acts[i][: int(alen[i])])
+        for c in range(n_combos):
+            if _combo_members(combo_idx, member_mask, i, c) == want:
+                target[i] = c
+                break
+    return target
+
+
+def batched_action_logprob_combo(
+    model,
+    state: torch.Tensor,  # [B,d_state]
+    ent: torch.Tensor,  # [B,12,d_entity]
+    b: dict[str, torch.Tensor],
+    actions: torch.Tensor,  # [B,K] padded with 0
+    action_len: torch.Tensor,  # [B] number of real picks per row
+) -> torch.Tensor:
+    """Recompute logprob of the given combos under the combo head -> [B]."""
+    combo_logits, combo_idx, member_mask, _valid = model.policy_combos(state, ent, b)
+    logp = combo_logits - torch.logsumexp(combo_logits, dim=-1, keepdim=True)  # [B,C]
+    target = _match_combos(actions, action_len, combo_idx, member_mask)  # [B]
+    return logp.gather(1, target.unsqueeze(1)).squeeze(1)
+
+
+def batched_entropy_combo(
+    model,
+    state: torch.Tensor,
+    ent: torch.Tensor,
+    b: dict[str, torch.Tensor],
+) -> torch.Tensor:
+    """Entropy of the combination categorical (exploration bonus) -> [B].
+
+    Well-defined and exact for this head (the action *is* a single categorical
+    draw), unlike the step-0 stand-in the autoregressive head must use. Padding
+    combos carry MASK_FILL logits (prob ~0), so they contribute ~0 to the sum.
+    """
+    combo_logits, *_ = model.policy_combos(state, ent, b)
+    logp = combo_logits - torch.logsumexp(combo_logits, dim=-1, keepdim=True)
+    return -(logp.exp() * logp).sum(-1)

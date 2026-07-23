@@ -62,9 +62,14 @@ class ModelConfig:
     # independently and leaves multi-select to the sampling layer (fixed-logit
     # Plackett–Luce). "autoreg" adds an autoregressive STOP-token head that
     # conditions each pick on the running set of already-picked options and can
-    # stop early (learned count) — see model.AutoregPolicyHead. Different params
-    # (a whole extra head), so it's part of the config hash and checkpoint
-    # identity; old checkpoints lack the field and backfill to "marginal".
+    # stop early (learned count) — see model.AutoregPolicyHead. "combo" scores
+    # whole option combinations in one pass (a categorical over the enumerated
+    # legal sets, cap 64, agent_001's approach) and learns the count by picking a
+    # smaller set — see model.ComboPolicyHead; its [B,L] contract is the combo
+    # distribution marginalized to per-option inclusion logits, so MCTS/ExIt are
+    # unchanged. Different params (a whole extra head), so it's part of the config
+    # hash and checkpoint identity; old checkpoints lack the field and backfill to
+    # "marginal".
     policy_head: str = "marginal"
 
 

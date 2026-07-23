@@ -296,3 +296,51 @@ args=(
 )
 python -m pkm.new_agents.agent_000_dragapult.cli sweep "${args[@]}"
 ```
+
+---
+
+## 015 — agent_000 · ALAKAZAM · ExIt with the COMBO head + MORE MCTS (large)
+
+Run 010's ExIt recipe, but with the **new combination-scoring policy head**
+(`--policy-head combo`, `model.ComboPolicyHead` — scores whole enumerated
+option-*sets* in one pass) and a **doubled MCTS budget** (sims 16→32). Script:
+`agent_000_dragapult/scripts/015_alakazam_exit_combo_large/train.sh`.
+
+**Method caveat:** under `--method exit` the combo head trains via its
+**marginalized `[B,L]`** (softmax of the combo distribution, marginalized to
+per-option inclusion logits, trained by cross-entropy vs the MCTS visit-π). The
+combo scorer gets full gradient, but the combination-level ranking (what
+distinguishes this head from `marginal`) is only *indirectly* supervised. A
+direct benchmark of the combination distribution needs `--method ppo` (mirrors
+the 013 autoreg template). Chosen here because the ask was "more mcts", which
+only applies to ExIt.
+
+**Engine:** `--engine kaggle` (the vendored `local-nix` output was GC'd; the
+kaggle `libcg.so` is ABI-identical and the backend is NOT in the config hash, so
+a later `--resume` can switch to `local-nix`).
+
+**Cost:** large (~2–3× medium/forward) × sims 32 (2× 010) ≈ 4–6× 010's per-game
+cost. `--updates 8192` sets the cosine `T_max` but is a "let it cook" ceiling —
+stop when the eval curve is good (`latest.pt`/`ckpt_N.pt` persist). `--workers
+16` oversubscribes alongside the running 010 (8 workers) on this 23-core box.
+
+📊 metrics: `pkm_data/new_agents/agent_000_dragapult/experiments/015_alakazam_exit_combo_large/logs/train.csv`
+(TB: `…/experiments/015_alakazam_exit_combo_large/runs/015_alakazam_exit_combo_w4_large/`)
+
+```bash
+args=(
+  --method exit --policy-head combo        # ← combo head is the new thing
+  --exit-value-target tdlambda --exit-lambda 0.9 --determinization sample
+  --model large --mcts-worlds 4 --mcts-simulations 32   # ← sims 16→32 = "more mcts"
+  --mcts-c-puct 1.25 --mcts-temperature 1.0
+  --deck alakazam --aux-weight prize_margin=0.25
+  --shaping prize_potential --shaping-coef 1.0
+  --lr 1e-4 --lr-schedule cosine --lr-min 1e-5 --value-coef 0.5 --minibatch-size 64
+  --epochs 4 --gamma 0.997 --lam 0.95 --clip-eps 0.2 --entropy-coef 0.01 --seed 0
+  --updates 8192 --games 16 --workers 16   # ← 16 workers (oversubscribes vs 010's 8)
+  --device auto --eval-every 128 --eval-games 32 --ckpt-every 128
+  --experiment 015_alakazam_exit_combo_large --run-name 015_alakazam_exit_combo_w4_large
+  --tb --engine kaggle --force
+)
+python -m pkm.new_agents.agent_000_dragapult.cli train "${args[@]}"
+```

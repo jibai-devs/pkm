@@ -112,10 +112,16 @@ def play_game(
         with torch.no_grad():
             state, ent = model.encode(b)
             value = model.value_from_state(state)
-            if getattr(model, "policy_head", "marginal") == "autoreg":
+            head = getattr(model, "policy_head", "marginal")
+            if head == "autoreg":
                 # Autoregressive multi-select: the head samples its own count
                 # (may pick fewer than maxCount, incl. nothing when minCount==0).
                 picks, logprob = policy.sample_action_autoreg(
+                    model, state, ent, b, gen=gen
+                )
+            elif head == "combo":
+                # Combination head: samples one enumerated option-set (own count).
+                picks, logprob = policy.sample_action_combo(
                     model, state, ent, b, gen=gen
                 )
             else:
@@ -243,11 +249,17 @@ def ppo_update(
             # forward as policy + value (that shared pass is the whole point).
             state, ent_emb = model.encode(b)
             value = model.value_from_state(state)
-            if getattr(model, "policy_head", "marginal") == "autoreg":
+            head = getattr(model, "policy_head", "marginal")
+            if head == "autoreg":
                 new_lp = policy.batched_action_logprob_autoreg(
                     model, state, ent_emb, b, b["actions"], b["action_len"]
                 )
                 ent = policy.batched_entropy_autoreg(model, state, ent_emb, b).mean()
+            elif head == "combo":
+                new_lp = policy.batched_action_logprob_combo(
+                    model, state, ent_emb, b, b["actions"], b["action_len"]
+                )
+                ent = policy.batched_entropy_combo(model, state, ent_emb, b).mean()
             else:
                 logits = model.policy_from_state(state, ent_emb, b)
                 new_lp = policy.batched_action_logprob(
