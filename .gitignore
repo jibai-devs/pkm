@@ -58,7 +58,7 @@ ian_tools/
 pkm/policy_setup.npz
 
 # Setup-agent training log (mirrors agents/*/train_loop.log)
-agents/*/setup_train.log
+agents/*/*.log
 
 # Replay viewer: local scratch + fetched card art, never committed
 replay/07_vite_react_cards/public/cards/
