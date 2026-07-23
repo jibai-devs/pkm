@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Train agent_001_transformer end-to-end (self-play + MCTS), on the GPU.
 #
-# Usage (from anywhere):  bash scripts/train.sh [ITERS] [SIMS]
+# Usage (from anywhere):  bash scripts/train.sh [ITERS] [SIMS] [DECK]
 #   ITERS  outer self-play/train iterations (default 20)
 #   SIMS   MCTS simulations per decision   (default 10)
+#   DECK   deck to play: sample | dragapult | pult_munki (default sample)
 #
 # Runs the whole thing on cuda and tees a timestamped log into ./logs/.
 # Checkpoints land in ./out/ (gitignored). Follow-up: bash scripts/submit.sh
@@ -26,14 +27,16 @@ mkdir -p "$LOGDIR"
 
 ITERS="${1:-20}"
 SIMS="${2:-10}"
+DECK="${3:-sample}"
 TS="$(date +%Y%m%d_%H%M%S)"
 
 cd "$REPO_ROOT"
-echo "training agent_001_transformer: iters=$ITERS sims=$SIMS out=$OUT" >&2
+echo "training agent_001_transformer: iters=$ITERS sims=$SIMS deck=$DECK out=$OUT" >&2
 python -m pkm.new_agents.agent_001_transformer.train \
     --iters "$ITERS" \
     --eval-games 50 \
     --selfplay-games 100 \
     --sims "$SIMS" \
+    --deck "$DECK" \
     --device cuda \
-    --out "$OUT" 2>&1 | tee "$LOGDIR/train_$TS.log"
+    --out "$OUT" 2>&1 | tee "$LOGDIR/train_${DECK}_$TS.log"

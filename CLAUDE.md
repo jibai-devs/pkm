@@ -53,12 +53,19 @@ Full project guide (structure, RL training, decks, submission): @AGENTS.md
   checkpoint, inference mode/K, bundle filename, message, and the score once it
   lands) plus a short note on what the run was testing. Keep it up to date so the
   leaderboard history stays in the repo.
-- **Training/sweep workflow:** always run training runs and Optuna sweeps inside the
-  shared **`pkm-train`** tmux session — `tmux new-session -d -s pkm-train` (once),
-  launch with `tmux send-keys -t pkm-train "cd <repo> && ./…/train.sh" Enter`, watch
-  with `tmux attach -t pkm-train` (detach `Ctrl-b d`). Keeps long runs alive across
-  detach and in one predictable place. Per-experiment run/sweep scripts live under
-  `pkm/new_agents/agent_000_dragapult/scripts/<NNN_name>/` (e.g. `001_complexity_large/`).
+- **Training/sweep workflow — ALWAYS use a persistent tmux (updated 2026-07-22):**
+  EVERY `new_agents` run that trains — **`train`, `sweep`, AND `resume`** — must be
+  launched into a tmux session (NOT a foreground/background shell job), so it
+  **survives detach and stays alive after the command completes** (shell returns
+  to its prompt, scrollback retained for inspection). Pattern:
+  `tmux new-session -d -s pkm-train` (once) → `tmux send-keys -t pkm-train "cd
+  <repo> && python -m pkm.new_agents.…cli train …" Enter` → watch with
+  `tmux attach -t pkm-train` (detach `Ctrl-b d`). One predictable place; long runs
+  don't die on disconnect. (Supersedes the earlier "use background Bash jobs, not
+  send-keys" memory — the user's standing convention is the tmux.) Per-experiment
+  run/sweep scripts live under
+  `pkm/new_agents/agent_000_dragapult/scripts/<NNN_name>/` (e.g. `001_complexity_large/`);
+  log the exact command in `pkm/new_agents/train_cmd_log.md`.
 - **Network size is configurable:** `train`/`sweep` take `--model {small,medium,large,xl}`
   (small = v1, checkpoint-compatible) plus per-dim overrides `--n-layers/--d-state/
   --d-entity/--n-heads/--d-opt/--d-card`. Dims are in the config hash + every checkpoint.
@@ -115,6 +122,21 @@ Full project guide (structure, RL training, decks, submission): @AGENTS.md
 - Completed there: profile-owned decks/config/checkpoints and policy factory/profile play integration. Latest commit: `c68a4b8`.
 - Latest worktree verification: 67 tests passed; final Task 2 review must be rerun after the latest packaging fix.
 - Next: implement `AgentProfile.train()`, `train_exit()`, and `build_submit()` with per-profile weights before multi-agent play/opponent-pool work.
+- **Training-command log convention (2026-07-22):** for `new_agents`, EVERY
+  training command — `train`, `sweep`, AND `resume` — gets appended to
+  `pkm/new_agents/train_cmd_log.md`. Each entry is the full command in a ```bash
+  source block, a short note on what/why the key values were chosen, AND a direct
+  path to where that run's **metrics** land so they can be inspected without
+  hunting:
+  `pkm_data/new_agents/agent_000_dragapult/experiments/<experiment>/logs/train.csv`
+  (per-update CSV), plus `…/runs/<run-name>/` (TensorBoard) and `…/checkpoints/`.
+  **Two style rules:** (1) prefer **powers of 2** for count/size params where
+  sensible — games, workers, updates, minibatch, mcts sims/worlds, eval/ckpt
+  intervals, trials (NOT rates/coeffs like lr/gamma/lambda/clip); (2) prefix each
+  `--experiment` name with the next **zero-padded incrementing number** (…009 →
+  `010`, `011`, `012` …, continuing the existing `experiments/NNN_*` series).
+  Keep it current so the run history lives in the repo (mirrors the
+  `submission_log.md` convention for Kaggle bundles).
 
 ## Engine functions: kaggle lib vs vendored (IMPORTANT)
 

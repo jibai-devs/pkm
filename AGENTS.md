@@ -23,6 +23,21 @@
 | Metrics & monitoring | **Done** | CSV logging + Plotly notebook |
 | Kaggle submission | **Working, verified** | `pkm export --agent <name> pkm/policy.npz` + `bash submit.sh <name>` — see `docs/TRAINING_AND_SUBMISSION.md` for the full runbook |
 
+> **⚠️ Weights/encoder drift (found & fixed 2026-07-20).** Every saved checkpoint
+> from before this date — `pkm/policy.npz` **and** all `agents/*/checkpoints/*.pt`
+> — was trained with the *old* feature encoder/model (state_fc1 input **775**,
+> opt_fc **93**, no archetype head). The current code's encoder/model expects
+> **335 / 95 / with archetype head**, so those weights **cannot load** and the
+> numpy policy crashes mid-forward (`matmul 775 vs 335`). This made the neural /
+> mcts / middleman agents **crash on their first move** (kaggle → `ERROR`, so the
+> opponent forfeits). `pkm/policy.npz` was **retrained fresh on current code**
+> (200-iter PPO on `02_dragapult`, 100% vs random) and re-exported — it is now
+> **335/95 and carries a `__feature_stamp__`** (the old one had none, which is why
+> the mismatch went undetected). Old file saved as `pkm/policy.npz.stale-775-bak`.
+> The `agents/*/checkpoints/*.pt` are **still stale** — retrain/re-export them
+> (fresh via `--deck`, not `--agent`, or their auto-resume tries to load the
+> incompatible checkpoint and crashes) before using those profiles for inference.
+
 ### What's Working
 - Pointer/scoring policy network handles variable-length action spaces
 - Submission `main.py` exposes the Kaggle agent protocol; deck-agnostic (bundled `deck.csv` decides which deck plays, `submit.sh` no longer hardcodes `02_dragapult`)
@@ -216,6 +231,18 @@ Two inherited gotchas still apply: kaggle's timeouts are disarmed by
 `ThreadedEnvSession` (or the human loses on the clock), and nothing may `print()`
 while the human agent blocks (kaggle's process-wide `redirect_stdout` swallows
 it) — the server writes to sockets, not stdout, so it is unaffected.
+
+**Opponents:** `neural` / `mcts` / `random` / `singaporean_middleman` (from the
+main `pkm/` agents, via `make_agent_by_name`) plus **`dragapult_000`** — the
+self-contained `pkm/new_agents/agent_000_dragapult` agent, injected through the
+new `ThreadedEnvSession.opponent_factory` seam (it plays its own `dragapult`
+60-card list, so both sides mirror it). agent_000 loads from a checkpoint at
+**`$PKM_A0_CKPT`**; the load happens on the `/api/start` request thread so a
+missing/incompatible checkpoint surfaces as a clear pre-game error rather than a
+mid-game crash. **As of 2026-07-21 no saved agent_000 checkpoint is compatible**
+(vocab changed 27→45 — same drift class as `pkm/policy.npz`, see the ⚠️ note
+above), so `dragapult_000` shows "needs checkpoint" until agent_000 is retrained
+under the current vocab and `$PKM_A0_CKPT` points at the fresh bundle.
 
 ## Custom Agents
 Agents are plain functions with signature `def agent(obs: dict) -> list[int]`.

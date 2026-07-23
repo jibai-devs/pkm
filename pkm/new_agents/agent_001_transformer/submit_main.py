@@ -34,22 +34,24 @@ def _weights_path() -> Path | None:
     return None
 
 
-def _load_model() -> net.MyModel:
+def _load_model() -> tuple[net.MyModel, list[int]]:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     path = _weights_path()
     if path is None:
         # untrained fallback (should not happen in a real bundle)
-        return net.build_model(net.MODEL_DIMS, device)
+        return net.build_model(net.MODEL_DIMS, device), list(net.sample_deck)
     blob = torch.load(path, map_location=device, weights_only=False)
     dims = tuple(blob.get("dims", net.MODEL_DIMS))
     model = net.MyModel(*dims).to(device)
     model.load_state_dict(blob["state_dict"])
     model.eval()
-    return model
+    # Deck baked into the checkpoint at train time; older checkpoints without it
+    # fall back to the notebook's sample deck.
+    deck = list(blob.get("deck") or net.sample_deck)
+    return model, deck
 
 
-_model = _load_model()
-_deck = net.sample_deck
+_model, _deck = _load_model()
 
 
 def agent(obs: dict) -> list[int]:

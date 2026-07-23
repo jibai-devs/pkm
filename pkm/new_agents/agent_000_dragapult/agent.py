@@ -169,7 +169,29 @@ class DragapultAgent:
         if self.inference.use_mcts:
             return self._mcts_pick(obs_dict, n, k)
 
-        batch = collate([feats])
+        batch = {k_: v.to(self.device) for k_, v in collate([feats]).items()}
+        head = getattr(self.model, "policy_head", "marginal")
+        if head == "autoreg":
+            # Autoregressive head: it picks its own count (conditioned draws +
+            # learned STOP), so we don't impose `k` here.
+            from pkm.new_agents.agent_000_dragapult import policy
+
+            state, ent = self.model.encode(batch)
+            picks, _lp = policy.sample_action_autoreg(
+                self.model, state, ent, batch, gen=self.gen, greedy=self.greedy
+            )
+            return picks
+        if head == "combo":
+            # Combination head: samples one enumerated option-set (its own count),
+            # so we don't impose `k` here either.
+            from pkm.new_agents.agent_000_dragapult import policy
+
+            state, ent = self.model.encode(batch)
+            picks, _lp = policy.sample_action_combo(
+                self.model, state, ent, batch, gen=self.gen, greedy=self.greedy
+            )
+            return picks
+
         logits, _value = self.model(batch)
         probs = torch.softmax(logits[0, :n], dim=-1)  # only the n real options
 

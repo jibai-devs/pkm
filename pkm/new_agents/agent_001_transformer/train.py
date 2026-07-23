@@ -30,6 +30,7 @@ from pkm.new_agents.agent_000_dragapult.cabt import (
     battle_select,
     battle_start,
 )
+from pkm.new_agents.agent_001_transformer import deck as deck_registry
 from pkm.new_agents.agent_001_transformer import net
 
 
@@ -163,8 +164,80 @@ def train_epoch(model, optimizer, sample_list, device, batch_size=128):
         optimizer.step()
 
 
-def save_ckpt(model, dims, path: Path):
-    torch.save({"state_dict": model.state_dict(), "dims": list(dims)}, path)
+def save_ckpt(model, dims, path: Path, deck: list[int] | None = None, deck_name: str | None = None):
+    """Write a ``{state_dict, dims, deck, deck_name}`` checkpoint.
+
+    The played deck is baked in so ``submit_main`` / ``pack`` are self-contained:
+    inference submits exactly the deck the checkpoint was trained on. Older
+    ``{state_dict, dims}`` checkpoints (no deck) fall back to ``net.sample_deck``.
+    """
+    blob = {"state_dict": model.state_dict(), "dims": list(dims)}
+    if deck is not None:
+        blob["deck"] = list(deck)
+    if deck_name is not None:
+        blob["deck_name"] = deck_name
+    torch.save(blob, path)
+
+
+def train_loop(
+    *,
+    deck_name: str = deck_registry.DEFAULT_DECK,
+    iters: int = 5,
+    eval_games: int = 50,
+    selfplay_games: int = 100,
+    sims: int = 10,
+    lr: float = 3e-4,
+    batch_size: int = 128,
+    device: str | None = None,
+    init: Path | None = None,
+    out: Path | None = None,
+    on_iter=None,
+) -> Path:
+    """Self-play + MCTS training loop. Returns the path to ``latest.pth``.
+
+    ``deck_name`` selects the played 60-card list from :mod:`.deck` and is baked
+    into every checkpoint. ``on_iter(counter, win)`` is an optional callback
+    invoked after each iteration's eval (for CLI progress reporting).
+    """
+    dev = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
+    deck = deck_registry.deck_60(deck_name)
+    if out is None:
+        out = Path(__file__).resolve().parents[3] / "out_transformer"
+
+    if init is not None:
+        blob = torch.load(init, map_location=dev, weights_only=False)
+        dims = tuple(blob.get("dims", net.MODEL_DIMS))
+        model = net.MyModel(*dims).to(dev)
+        model.load_state_dict(blob["state_dict"])
+        print(f"resumed from {init}", flush=True)
+    else:
+        dims = net.MODEL_DIMS
+        model = net.build_model(dims, dev)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+    out.mkdir(parents=True, exist_ok=True)
+    print(f"device={dev} dims={dims} deck={deck_name} out={out}", flush=True)
+
+    for counter in range(iters):
+        save_ckpt(model, dims, out / f"model{counter}.pth", deck, deck_name)
+        save_ckpt(model, dims, out / "latest.pth", deck, deck_name)
+
+        model.eval()
+        with torch.inference_mode():
+            win = evaluate(model, deck, sims, eval_games)
+            print(f"[iter {counter}] evaluation win rate {win}%", flush=True)
+            if on_iter is not None:
+                on_iter(counter, win)
+            sample_list = collect_selfplay(model, deck, sims, selfplay_games)
+
+        print(f"[iter {counter}] training on {len(sample_list)} samples...", flush=True)
+        model.train()
+        train_epoch(model, optimizer, sample_list, dev, batch_size)
+        print(f"[iter {counter}] training finished.", flush=True)
+
+    latest = out / "latest.pth"
+    save_ckpt(model, dims, latest, deck, deck_name)
+    print(f"done. latest -> {latest}", flush=True)
+    return latest
 
 
 def main():
@@ -176,6 +249,12 @@ def main():
     ap.add_argument("--lr", type=float, default=3e-4)
     ap.add_argument("--batch-size", type=int, default=128)
     ap.add_argument("--device", default=None, help="cpu | cuda (default: auto)")
+    ap.add_argument(
+        "--deck",
+        default=deck_registry.DEFAULT_DECK,
+        choices=deck_registry.deck_names(),
+        help=f"played deck (default: {deck_registry.DEFAULT_DECK})",
+    )
     ap.add_argument(
         "--init",
         type=Path,
@@ -190,38 +269,18 @@ def main():
     )
     args = ap.parse_args()
 
-    device = torch.device(args.device or ("cuda" if torch.cuda.is_available() else "cpu"))
-    deck = net.sample_deck
-    if args.init is not None:
-        blob = torch.load(args.init, map_location=device, weights_only=False)
-        dims = tuple(blob.get("dims", net.MODEL_DIMS))
-        model = net.MyModel(*dims).to(device)
-        model.load_state_dict(blob["state_dict"])
-        print(f"resumed from {args.init}", flush=True)
-    else:
-        dims = net.MODEL_DIMS
-        model = net.build_model(dims, device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
-    args.out.mkdir(parents=True, exist_ok=True)
-    print(f"device={device} dims={dims} out={args.out}", flush=True)
-
-    for counter in range(args.iters):
-        save_ckpt(model, dims, args.out / f"model{counter}.pth")
-        save_ckpt(model, dims, args.out / "latest.pth")
-
-        model.eval()
-        with torch.inference_mode():
-            win = evaluate(model, deck, args.sims, args.eval_games)
-            print(f"[iter {counter}] evaluation win rate {win}%", flush=True)
-            sample_list = collect_selfplay(model, deck, args.sims, args.selfplay_games)
-
-        print(f"[iter {counter}] training on {len(sample_list)} samples...", flush=True)
-        model.train()
-        train_epoch(model, optimizer, sample_list, device, args.batch_size)
-        print(f"[iter {counter}] training finished.", flush=True)
-
-    save_ckpt(model, dims, args.out / "latest.pth")
-    print(f"done. latest -> {args.out / 'latest.pth'}", flush=True)
+    train_loop(
+        deck_name=args.deck,
+        iters=args.iters,
+        eval_games=args.eval_games,
+        selfplay_games=args.selfplay_games,
+        sims=args.sims,
+        lr=args.lr,
+        batch_size=args.batch_size,
+        device=args.device,
+        init=args.init,
+        out=args.out,
+    )
 
 
 if __name__ == "__main__":

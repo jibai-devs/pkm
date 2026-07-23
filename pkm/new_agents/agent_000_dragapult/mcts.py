@@ -34,6 +34,7 @@ brief's one-index-per-call behaviour.
 from __future__ import annotations
 
 import math
+from typing import Literal, overload
 
 import numpy as np
 import torch
@@ -98,12 +99,36 @@ def _select(node: _Node, c_puct: float) -> tuple[int, ...]:
     return tuple(sorted(int(i) for i in top_k))
 
 
-def search(root_obs: dict, seat: int, model, cfg, gen: torch.Generator) -> np.ndarray:
+@overload
+def search(
+    root_obs: dict, seat: int, model, cfg, gen: torch.Generator,
+    return_value: Literal[False] = ...,
+) -> np.ndarray: ...
+@overload
+def search(
+    root_obs: dict, seat: int, model, cfg, gen: torch.Generator,
+    return_value: Literal[True],
+) -> tuple[np.ndarray, float]: ...
+def search(
+    root_obs: dict,
+    seat: int,
+    model,
+    cfg,
+    gen: torch.Generator,
+    return_value: bool = False,
+) -> "np.ndarray | tuple[np.ndarray, float]":
     """Run PUCT MCTS from `root_obs` (acting seat `seat`); return the root visit policy.
 
     Owns the engine search lifecycle only (`search_begin`/`search_step` per
     simulation, `search_end` in a `finally`); the caller owns `battle_start`/
     `battle_finish` around this call.
+
+    ``return_value=True`` also returns the MCTS-refined root value estimate in
+    ``[-1, 1]`` from the acting seat's perspective — the visit-weighted mean Q
+    over the root's children (``sum(W)/sum(N)``), or the net's raw root value
+    when no simulation expanded. ExIt uses it as the bootstrap for TD(λ) value
+    targets. Default ``False`` keeps the return type a bare policy array so
+    existing callers (inference, tests) are unchanged.
     """
     determinize = DETERMINIZERS[cfg.train.determinization]
     # Resolve the seat's deck from the config when present (training passes a full
@@ -126,7 +151,7 @@ def search(root_obs: dict, seat: int, model, cfg, gen: torch.Generator) -> np.nd
     c_puct = cfg.train.mcts_c_puct
 
     try:
-        _evaluate(root, model)
+        root_v0 = _evaluate(root, model)  # net's raw root value (bootstrap fallback)
         for _ in range(cfg.train.mcts_simulations):
             path: list[tuple[_Node, tuple[int, ...]]] = []
             node = root
@@ -167,22 +192,45 @@ def search(root_obs: dict, seat: int, model, cfg, gen: torch.Generator) -> np.nd
     finally:
         cabt.search_end()
 
+    # MCTS-refined root value (acting seat's perspective): visit-weighted mean Q
+    # over children, or the net's raw root value when no simulation expanded.
+    n_root = float(root.N.sum())
+    root_value = float(root.W.sum() / n_root) if n_root > 0 else float(root_v0)
+
     if root.n_opts == 0 or root.N.sum() == 0:
         # No sims expanded (terminal/optionless root, or the loop above broke
         # on its first iteration) -- fall back to uniform over root options.
-        return np.full(root.n_opts, 1.0 / max(root.n_opts, 1), dtype=np.float32)
+        pi = np.full(root.n_opts, 1.0 / max(root.n_opts, 1), dtype=np.float32)
+        return (pi, root_value) if return_value else pi
 
     tau = cfg.train.mcts_temperature
     if tau > 0:
         counts = root.N ** (1.0 / tau)
     else:
         counts = (root.N == root.N.max()).astype(np.float32)
-    return (counts / counts.sum()).astype(np.float32)
+    pi = (counts / counts.sum()).astype(np.float32)
+    return (pi, root_value) if return_value else pi
 
 
+@overload
 def search_worlds(
-    root_obs: dict, seat: int, model, cfg, gen: torch.Generator, n_worlds: int = 1
-) -> np.ndarray:
+    root_obs: dict, seat: int, model, cfg, gen: torch.Generator,
+    n_worlds: int = ..., return_value: Literal[False] = ...,
+) -> np.ndarray: ...
+@overload
+def search_worlds(
+    root_obs: dict, seat: int, model, cfg, gen: torch.Generator,
+    n_worlds: int, return_value: Literal[True],
+) -> tuple[np.ndarray, float]: ...
+def search_worlds(
+    root_obs: dict,
+    seat: int,
+    model,
+    cfg,
+    gen: torch.Generator,
+    n_worlds: int = 1,
+    return_value: bool = False,
+) -> "np.ndarray | tuple[np.ndarray, float]":
     """Average the root visit policy over ``n_worlds`` independent determinizations.
 
     This is IS-MCTS with W>1 worlds (the full version the module docstring
@@ -200,17 +248,31 @@ def search_worlds(
     `search`. Cost scales linearly in W (W searches per decision) — trade it
     against `mcts_simulations` under a fixed time budget.
     """
+    # Single world: exactly `search` (no kwarg on the value-free path, so
+    # monkeypatched 5-arg `search` stand-ins keep working).
     if n_worlds <= 1:
+        if return_value:
+            return search(root_obs, seat, model, cfg, gen, return_value=True)
         return search(root_obs, seat, model, cfg, gen)
-    acc = search(root_obs, seat, model, cfg, gen).astype(np.float64)
-    for _ in range(n_worlds - 1):
-        pi = search(root_obs, seat, model, cfg, gen)
-        if pi.shape == acc.shape:
-            acc += pi
+
+    acc: np.ndarray | None = None
+    v_acc = 0.0
+    for _ in range(n_worlds):
+        if return_value:
+            pi, v = search(root_obs, seat, model, cfg, gen, return_value=True)
+            v_acc += v
+        else:
+            pi = search(root_obs, seat, model, cfg, gen)
+        pi = pi.astype(np.float64)
+        if acc is None:
+            acc = pi
+        elif pi.shape == acc.shape:
+            acc = acc + pi
         else:
             # Root options are the real obs's legal choices and must not vary by
             # determinized world; if they somehow do, align on the shorter length
             # rather than crash (a single-sample approximation is already lossy).
             m = min(acc.shape[0], pi.shape[0])
             acc = acc[:m] + pi[:m]
-    return (acc / n_worlds).astype(np.float32)
+    pi_avg = (acc / n_worlds).astype(np.float32)  # type: ignore[operator]  # acc set in loop
+    return (pi_avg, v_acc / n_worlds) if return_value else pi_avg

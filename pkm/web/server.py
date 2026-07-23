@@ -33,10 +33,12 @@ so the board art works without the Vite dev server.
 from __future__ import annotations
 
 import json
+import os
 import queue
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from typing import Callable
 from urllib.parse import urlparse
 
 from pkm.data import Deck
@@ -57,9 +59,19 @@ DIST_DIR = REPO_ROOT / "replay" / "07_vite_react_cards" / "dist"
 CARDS_JSON = REPO_ROOT / "replay" / "cards.json"
 CARDS_DIR = REPO_ROOT / "pkm_data" / "replay" / "cards"
 
-OPPONENTS = ["neural", "mcts", "random", "singaporean_middleman"]
+# agent_000_dragapult (the self-contained competition agent) plugs in as an
+# opponent via ThreadedEnvSession.opponent_factory. It's torch-based with its own
+# featurizer/MCTS but the same cabt callable contract, and it plays its own
+# dragapult 60-card list (so both sides use it — a fair mirror).
+AGENT_000 = "dragapult_000"
+OPPONENTS = ["neural", "mcts", "random", "singaporean_middleman", AGENT_000]
 DEFAULT_OPPONENT = "neural"
 DEFAULT_DECK = "02_dragapult"
+
+# Where the agent_000 checkpoint lives. Env-overridable; no default file is
+# shipped because (as of 2026-07-21) no saved agent_000 checkpoint matches the
+# current code — see _build_agent_000.
+AGENT_000_CKPT_ENV = "PKM_A0_CKPT"
 
 # Same set the TUI double-confirms: there is no undo for an attack or ending the
 # turn, so the UI should ask before submitting one.
@@ -83,6 +95,43 @@ _CONTENT_TYPES = {
 }
 
 
+_OpponentFactory = Callable[[list[int]], Callable[[dict], list[int]]]
+
+
+def _build_agent_000() -> tuple[list[int], _OpponentFactory]:
+    """Build the agent_000 opponent + the deck both sides play, or raise clearly.
+
+    The DragapultAgent is constructed eagerly (here, on the request thread) so a
+    missing/incompatible checkpoint surfaces as a synchronous 400 on /api/start
+    (shown in the pre-game screen) rather than a mid-game worker crash. Returns
+    agent_000's own dragapult 60-card list so the env config, the human's deck
+    submission, and the agent's deck submission all agree (a mirror match).
+    """
+    ckpt = os.environ.get(AGENT_000_CKPT_ENV)
+    if not ckpt or not Path(ckpt).is_file():
+        raise ValueError(
+            f"agent_000 opponent needs a checkpoint: set {AGENT_000_CKPT_ENV} to a "
+            "compatible DragapultAgent bundle/.pt. As of 2026-07-21 no saved "
+            "agent_000 checkpoint matches the current code (vocab changed 27→45), "
+            "so agent_000 must be retrained under the current vocab first — see "
+            "AGENTS.md."
+        )
+    # Imported lazily: torch + the agent_000 package are only needed for this
+    # opponent, and the package is under active development elsewhere.
+    from pkm.new_agents.agent_000_dragapult.agent import DragapultAgent
+    from pkm.new_agents.agent_000_dragapult.deck import deck_60
+
+    try:
+        agent = DragapultAgent.from_checkpoint(ckpt, greedy=True)
+    except Exception as e:  # noqa: BLE001 - report the real reason to the user
+        raise ValueError(
+            f"agent_000 checkpoint {ckpt!r} is incompatible with the current code "
+            f"({type(e).__name__}: {e}). Retrain agent_000 under the current vocab."
+        ) from e
+    deck = list(deck_60("dragapult"))
+    return deck, (lambda _deck_ids: agent)
+
+
 class GameManager:
     """Owns the single active game session. Starting a new one replaces it."""
 
@@ -95,7 +144,12 @@ class GameManager:
             raise ValueError(f"unknown opponent {opponent!r} (expected {OPPONENTS})")
         if human_index not in (0, 1):
             raise ValueError("human_index must be 0 or 1")
-        deck = Deck.from_csv(resolve_deck(deck_name)).card_ids
+        opponent_factory: _OpponentFactory | None = None
+        if opponent == AGENT_000:
+            # agent_000 dictates the deck (its own list) and supplies its callable.
+            deck, opponent_factory = _build_agent_000()
+        else:
+            deck = Deck.from_csv(resolve_deck(deck_name)).card_ids
         with self._lock:
             if self._session is not None:
                 self._session.quit()
@@ -106,6 +160,7 @@ class GameManager:
                 weights=None,  # neural/mcts auto-find pkm/policy.npz (same as TUI)
                 html_path=str(REPO_ROOT / "result.html"),
                 replay_path=str(REPO_ROOT / "replay.json"),
+                opponent_factory=opponent_factory,  # None except for agent_000
             )
             session.start()
             self._session = session

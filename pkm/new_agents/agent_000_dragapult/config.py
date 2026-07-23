@@ -58,6 +58,19 @@ class ModelConfig:
     # uniformly residual — recommended for deep (large/xxl) nets. Changes params
     # (adds a LayerNorm), so it's part of the config hash and checkpoint identity.
     base_residual: bool = False
+    # Policy-head style. "marginal" (default, v1) scores each presented option
+    # independently and leaves multi-select to the sampling layer (fixed-logit
+    # Plackett–Luce). "autoreg" adds an autoregressive STOP-token head that
+    # conditions each pick on the running set of already-picked options and can
+    # stop early (learned count) — see model.AutoregPolicyHead. "combo" scores
+    # whole option combinations in one pass (a categorical over the enumerated
+    # legal sets, cap 64, agent_001's approach) and learns the count by picking a
+    # smaller set — see model.ComboPolicyHead; its [B,L] contract is the combo
+    # distribution marginalized to per-option inclusion logits, so MCTS/ExIt are
+    # unchanged. Different params (a whole extra head), so it's part of the config
+    # hash and checkpoint identity; old checkpoints lack the field and backfill to
+    # "marginal".
+    policy_head: str = "marginal"
 
 
 # Named size presets for one-word scaling from the CLI (`--model <name>`).
@@ -99,7 +112,8 @@ def resolve_device(name: str = "cpu") -> str:
 
 
 def build_model_config(
-    preset: str = "small", overrides: dict[str, int | float | None] | None = None
+    preset: str = "small",
+    overrides: dict[str, int | float | str | None] | None = None,
 ) -> "ModelConfig":
     """Resolve a `ModelConfig` from a named size preset plus per-field overrides.
 
@@ -111,10 +125,10 @@ def build_model_config(
         raise ValueError(
             f"unknown model preset {preset!r}; choose from {sorted(MODEL_PRESETS)}"
         )
-    fields: dict[str, int | float] = dict(MODEL_PRESETS[preset])
+    fields: dict[str, int | float | str] = dict(MODEL_PRESETS[preset])
     if overrides:
         fields.update({k: v for k, v in overrides.items() if v is not None})
-    return ModelConfig(**fields)  # type: ignore[arg-type]  # dropout is float, dims int
+    return ModelConfig(**fields)  # type: ignore[arg-type]  # dropout float, dims int, policy_head str
 
 
 @dataclass(frozen=True)
@@ -170,6 +184,19 @@ class TrainConfig:
     mcts_c_puct: float = 1.25
     mcts_temperature: float = 1.0
     determinization: str = "sample"  # key into trainers.exit determinizers
+    # Determinized worlds averaged per decision during ExIt self-play (IS-MCTS).
+    # 1 (default) == single-world mcts.search (v1). >1 averages the root policy
+    # over W independent determinizations (mcts.search_worlds) so the π target
+    # earns its rank across many possible hidden layouts, not one lucky guess.
+    # Cost scales linearly in W. Old checkpoints backfill to 1.
+    mcts_worlds: int = 1
+    # ExIt value-target scheme. "mc" (default, v1) = the raw game outcome
+    # (±1/0) for the acting seat — bit-for-bit the current behaviour. "tdlambda"
+    # blends the outcome with the MCTS-refined root value along each seat's
+    # trajectory (agent_001's scheme), lowering value-target variance. Part of
+    # the config hash; old checkpoints backfill to "mc".
+    exit_value_target: str = "mc"  # "mc" | "tdlambda"
+    exit_lambda: float = 0.9  # EMA factor for the tdlambda blend (inert for "mc")
 
 
 @dataclass(frozen=True)
@@ -242,4 +269,5 @@ def build_model(cfg: Config | ModelConfig | None = None) -> PolicyValueModel:
         d_ctx=mc.d_ctx,
         attack_enc=AttackEncoder(d_atk=mc.d_atk),
         aux_tasks=aux,
+        policy_head=mc.policy_head,
     )

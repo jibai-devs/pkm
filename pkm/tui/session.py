@@ -120,7 +120,13 @@ class ThreadedEnvSession:
         weights: str | None = None,
         html_path: str | None = "result.html",
         replay_path: str | None = "replay.json",
+        # Two ways to inject an opponent, both with live callers:
+        #   opponent_agent   -- an already-built agent (darwinian_ml/play_human.py)
+        #   opponent_factory -- built per session from the deck, so per-game
+        #                       state is never shared across games (pkm/web/server.py)
         opponent_agent: Callable[[dict], list[int]] | None = None,
+        opponent_factory: Callable[[list[int]], Callable[[dict], list[int]]]
+        | None = None,
     ) -> None:
         self.deck = deck
         self.human_index = human_index
@@ -133,6 +139,11 @@ class ThreadedEnvSession:
         self.opponent_agent = opponent_agent
         self.html_path = html_path
         self.replay_path = replay_path
+        # When set, this builds the opponent callable instead of resolving
+        # `opponent` by name via make_agent_by_name — lets a caller inject an
+        # agent the name registry doesn't know (e.g. the self-contained
+        # agent_000_dragapult). Built once per game with the played deck ids.
+        self.opponent_factory = opponent_factory
         self._events: queue.Queue[Event] = queue.Queue()
         self._picks: queue.Queue[list[int] | _Quit] = queue.Queue()
         self._thread: threading.Thread | None = None
@@ -220,6 +231,8 @@ class ThreadedEnvSession:
 
         if self.opponent_agent is not None:
             opponent_agent = self.opponent_agent
+        elif self.opponent_factory is not None:
+            opponent_agent = self.opponent_factory(self.deck)
         elif self.opponent == "singaporean_middleman":
             # Give it a sink so its prize log lands in our own EventLog
             # instead of the terminal (which Textual owns during play).
