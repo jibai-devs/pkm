@@ -45,6 +45,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader, Dataset
 
 # A deck as handed around before tensorisation: (card_index, count) pairs, where
@@ -195,34 +196,54 @@ def deck_from_pairs(card_ids: Sequence[int], counts: Sequence[int], vocab: DeckV
     return [(vocab.id2idx[int(c)], min(int(n), MAX_COUNT - 1)) for c, n in zip(card_ids, counts)]
 
 
-def collate(batch: list[tuple[Deck, Deck, int]]) -> dict[str, torch.Tensor]:
-    """Pad both decks in each (deck_a, deck_b, label) triple to the batch max."""
-    def pad(decks: list[Deck]) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        length = max(len(d) for d in decks)
-        idx = torch.zeros(len(decks), length, dtype=torch.long)
-        cnt = torch.zeros(len(decks), length, dtype=torch.long)
-        mask = torch.ones(len(decks), length, dtype=torch.bool)  # True = pad
-        for i, d in enumerate(decks):
-            for j, (ci, n) in enumerate(d):
-                idx[i, j], cnt[i, j], mask[i, j] = ci, n, False
-        return idx, cnt, mask
+def deck_to_tensors(deck: Deck) -> tuple[torch.Tensor, torch.Tensor]:
+    """One deck -> (card_idx, count) 1-D long tensors, built once.
 
-    a_idx, a_cnt, a_mask = pad([b[0] for b in batch])
-    b_idx, b_cnt, b_mask = pad([b[1] for b in batch])
-    y = torch.tensor([b[2] for b in batch], dtype=torch.float32)
-    return {"a_idx": a_idx, "a_cnt": a_cnt, "a_mask": a_mask,
-            "b_idx": b_idx, "b_cnt": b_cnt, "b_mask": b_mask, "y": y}
+    Doing this per deck up front (in the dataset) instead of per element at
+    batch time is what keeps the data pipeline off the Python hot path.
+    """
+    if deck:
+        idx = torch.tensor([c for c, _ in deck], dtype=torch.long)
+        cnt = torch.tensor([n for _, n in deck], dtype=torch.long)
+    else:
+        idx = cnt = torch.zeros(0, dtype=torch.long)
+    return idx, cnt
+
+
+# A tensorised matchup: (a_idx, a_cnt, b_idx, b_cnt, label).
+TensorMatchup = tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, float]
+
+
+def collate(batch: list[TensorMatchup]) -> dict[str, torch.Tensor]:
+    """Pad both decks of every matchup to the batch max — fully vectorised.
+
+    ``pad_sequence`` pads in C over pre-built per-deck tensors, so there is no
+    Python loop over cards. (The old collate did ~batch*cards scalar tensor
+    assignments per batch, which starved the GPU.) Pad value 0 == ``PAD_IDX``
+    and real card indices are >= 1, so the pad mask is exactly ``idx == PAD_IDX``.
+    """
+    a_idx = pad_sequence([b[0] for b in batch], batch_first=True, padding_value=PAD_IDX)
+    a_cnt = pad_sequence([b[1] for b in batch], batch_first=True, padding_value=PAD_IDX)
+    b_idx = pad_sequence([b[2] for b in batch], batch_first=True, padding_value=PAD_IDX)
+    b_cnt = pad_sequence([b[3] for b in batch], batch_first=True, padding_value=PAD_IDX)
+    y = torch.tensor([b[4] for b in batch], dtype=torch.float32)
+    return {"a_idx": a_idx, "a_cnt": a_cnt, "a_mask": a_idx == PAD_IDX,
+            "b_idx": b_idx, "b_cnt": b_cnt, "b_mask": b_idx == PAD_IDX, "y": y}
 
 
 class MatchupDataset(Dataset):
+    """Pre-tensorises every matchup once so batching is only padding."""
+
     def __init__(self, matchups: list[tuple[Deck, Deck, int]]) -> None:
-        self.matchups = matchups
+        self.items: list[TensorMatchup] = [
+            (*deck_to_tensors(a), *deck_to_tensors(b), float(y)) for a, b, y in matchups
+        ]
 
     def __len__(self) -> int:
-        return len(self.matchups)
+        return len(self.items)
 
-    def __getitem__(self, i: int) -> tuple[Deck, Deck, int]:
-        return self.matchups[i]
+    def __getitem__(self, i: int) -> TensorMatchup:
+        return self.items[i]
 
 
 # --------------------------------------------------------------------------- #
@@ -316,11 +337,12 @@ def resolve_device(device: str = "auto") -> str:
 def evaluate(model: TwoTowerMatchup, matchups: list[tuple[Deck, Deck, int]], *,
              batch_size: int = 256, device: str = "cpu") -> dict[str, float]:
     """Mean BCE loss and matchup accuracy over a set of matchups."""
-    loader = DataLoader(MatchupDataset(matchups), batch_size=batch_size, collate_fn=collate)
+    loader = DataLoader(MatchupDataset(matchups), batch_size=batch_size, collate_fn=collate,
+                        pin_memory=(device == "cuda"))
     model = model.to(device).eval()
     total, correct, loss_sum = 0, 0, 0.0
     for b in loader:
-        b = {k: v.to(device) for k, v in b.items()}
+        b = {k: v.to(device, non_blocking=True) for k, v in b.items()}
         logit = model(b["a_idx"], b["a_cnt"], b["a_mask"], b["b_idx"], b["b_cnt"], b["b_mask"])
         loss = F.binary_cross_entropy_with_logits(logit, b["y"])
         loss_sum += loss.item() * len(b["y"])
@@ -332,14 +354,20 @@ def evaluate(model: TwoTowerMatchup, matchups: list[tuple[Deck, Deck, int]], *,
 def train(model: TwoTowerMatchup, matchups: list[tuple[Deck, Deck, int]], *, epochs: int = 5,
           batch_size: int = 128, lr: float = 1e-3, device: str = "cpu",
           val_matchups: list[tuple[Deck, Deck, int]] | None = None,
+          num_workers: int = 0,
           verbose: bool = True, on_epoch=None) -> tuple[TwoTowerMatchup, list[dict[str, float]]]:
     """Train the two-tower on matchups. Returns (model, history).
 
     history is a list of {"epoch", "loss", "acc"[, "val_loss", "val_acc"]} per
     epoch. Pass ``val_matchups`` to also evaluate a held-out set each epoch, and
     ``on_epoch`` (a callback receiving that dict) to stream progress into a UI.
+    ``num_workers`` parallelises batch prep; with cuda, batches are pinned and
+    copied non-blocking so host prep overlaps GPU compute.
     """
-    loader = DataLoader(MatchupDataset(matchups), batch_size=batch_size, shuffle=True, collate_fn=collate)
+    loader = DataLoader(MatchupDataset(matchups), batch_size=batch_size, shuffle=True,
+                        collate_fn=collate, num_workers=num_workers,
+                        pin_memory=(device == "cuda"),
+                        persistent_workers=num_workers > 0)
     model = model.to(device)
     opt = torch.optim.Adam(model.parameters(), lr=lr)
     history: list[dict[str, float]] = []
@@ -347,7 +375,7 @@ def train(model: TwoTowerMatchup, matchups: list[tuple[Deck, Deck, int]], *, epo
         model.train()
         total, correct, loss_sum = 0, 0, 0.0
         for b in loader:
-            b = {k: v.to(device) for k, v in b.items()}
+            b = {k: v.to(device, non_blocking=True) for k, v in b.items()}
             logit = model(b["a_idx"], b["a_cnt"], b["a_mask"], b["b_idx"], b["b_cnt"], b["b_mask"])
             loss = F.binary_cross_entropy_with_logits(logit, b["y"])
             opt.zero_grad(); loss.backward(); opt.step()
@@ -375,7 +403,8 @@ def embed_decks(model: TwoTowerMatchup, decks: list[Deck], *, device: str = "cpu
     out: list[np.ndarray] = []
     for i in range(0, len(decks), batch_size):
         chunk = decks[i:i + batch_size]
-        b = collate([(d, d, 0) for d in chunk])         # reuse padding; second deck ignored
+        # second deck is ignored by encode(); reuse padding for a valid batch
+        b = collate([(*deck_to_tensors(d), *deck_to_tensors(d), 0.0) for d in chunk])
         e = model.encode(b["a_idx"].to(device), b["a_cnt"].to(device), b["a_mask"].to(device))
         out.append(e.cpu().numpy())
     return np.concatenate(out, axis=0)

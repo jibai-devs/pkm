@@ -89,6 +89,7 @@ def train(
     val_frac: Annotated[float, typer.Option(help="held-out fraction")] = 0.1,
     seed: Annotated[int, typer.Option(help="random seed")] = 0,
     device: Annotated[str, typer.Option(help="'auto' | 'cuda' | 'cpu'")] = "auto",
+    num_workers: Annotated[int, typer.Option(help="DataLoader workers (0 = main process)")] = 0,
     out: Annotated[Path, typer.Option(help="save checkpoint here (.pt)")] = DEFAULT_MODEL,
 ) -> None:
     """Train the two-tower matchup model and save a checkpoint."""
@@ -124,8 +125,8 @@ def train(
             prog.update(task, advance=1, description=desc)
 
         model, history = de.train(model, tr, epochs=epochs, batch_size=batch_size, lr=lr,
-                                   device=dev, val_matchups=val or None, verbose=False,
-                                   on_epoch=on_epoch)
+                                   device=dev, val_matchups=val or None, num_workers=num_workers,
+                                   verbose=False, on_epoch=on_epoch)
 
     # per-epoch metrics table
     t = Table(title="training history", header_style="bold")

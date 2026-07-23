@@ -37,10 +37,14 @@
             pkgs.stdenv.cc.cc.lib
           ];
 
-          # expose libstdc++.so.6 / libgcc_s for ctypes-loaded native libs
-          LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
-            pkgs.stdenv.cc.cc.lib
-          ];
+          # expose libstdc++.so.6 / libgcc_s for ctypes-loaded native libs, and
+          # the NVIDIA driver libs (libcuda.so.1) so the uv/pip torch wheel can
+          # use CUDA. On NixOS the driver lives at /run/opengl-driver/lib, not
+          # /usr/lib — without this torch.cuda.is_available() is False and
+          # training silently falls back to CPU.
+          LD_LIBRARY_PATH =
+            pkgs.lib.makeLibraryPath [pkgs.stdenv.cc.cc.lib]
+            + ":/run/opengl-driver/lib";
 
           shellHook = ''
             export SSL_CERT_FILE="${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
