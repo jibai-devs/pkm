@@ -41,6 +41,7 @@ SCALARS: dict[str, str] = {
     "time/update_s": "t_update",
     "time/total_s": "t_total",
     "time/steps_per_s": "sps",
+    "time/games_per_s": "gps",
     "parallel/rollout_util": "rollout_util",
     "parallel/core_util": "core_util",
     "parallel/serial_frac": "serial_frac",
@@ -66,6 +67,7 @@ CSV_FIELDS = [
     "t_update",
     "t_total",
     "sps",
+    "gps",
     "rollout_util",
     "core_util",
     "serial_frac",
@@ -149,7 +151,7 @@ class ConsoleSink(MetricSink):
             "[dim]"
             f"{'upd':>9}  {'games':>5}  {'steps':>5}  {'pol':>8}  {'val':>7}  "
             f"{'ent':>5}  {'kl':>6}  {'clip':>5}  {'gnorm':>6}  {'evar':>6}  "
-            f"{'p0/p1':>7}  {'t/upd':>6}  {'sps':>5}  {'util':>5}  {'core':>5}  "
+            f"{'p0/p1':>7}  {'t/upd':>6}  {'sps':>5}  {'gps':>5}  {'util':>5}  {'core':>5}  "
             f"{'eta':>7}  eval"
             "[/]"
         )
@@ -183,6 +185,7 @@ class ConsoleSink(MetricSink):
             f"{stats.get('p0_win', 0):>3.0%}/{stats.get('p1_win', 0):<3.0%}  "
             f"[cyan]{stats.get('t_total', 0):>5.1f}s[/]  "
             f"{stats.get('sps', 0):>5.0f}  "
+            f"{stats.get('gps', 0):>5.1f}  "
             f"{util_s}  {core_s}  "
             f"[dim]{eta_s:>7}[/]  "
             f"{ev_s}"

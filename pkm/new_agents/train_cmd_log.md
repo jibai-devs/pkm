@@ -344,3 +344,51 @@ args=(
 )
 python -m pkm.new_agents.agent_000_dragapult.cli train "${args[@]}"
 ```
+
+## 016 — agent_000 · ALAKAZAM · ExIt with the ATTN head (transformer decoder, large)
+
+A **controlled A/B against 015**: the exact same ExIt recipe, changing **only the
+policy head** (`combo` → `attn`). Script:
+`agent_000_dragapult/scripts/016_alakazam_exit_attn_large/train.sh`.
+
+**What's new:** `--policy-head attn --n-dec-layers 3` — the new transformer-
+decoder head (`model.OptionDecoderHead`): the presented options self-attend to
+each other AND cross-attend to the encoder's per-entity board tokens, then read
+out one logit each (agent_001's board-attending decoder over our option/entity
+tokens). **Cleaner ExIt fit than combo:** it emits `[B,L]` *directly*, so under
+`--method exit` its full expressiveness is trained by the MCTS visit-π
+cross-entropy — no marginalized/indirect caveat.
+
+**Depth = 3** balances the large preset's 3-layer encoder; the 13-token board +
+short option lists saturate fast, so deeper decoders mostly add params. The
+higher-leverage capacity knob (if attn proves out) is `--d-entity`, not more
+decoder layers — deferred to keep this a clean comparison vs 015. Params ≈ 3.31 M.
+
+**Engine:** `--engine local-nix` (rebuilt since 015; `engine/result` resolves).
+Not in the config hash. **`--workers 8`** (box is free — 010/015 stopped).
+
+**Compare:** `eval --opponent <015 combo ckpt>` and the marginal 723.4 net (010
+`ckpt_4608`). If attn ≥ marginal, the combo-level transformer decoder ("fusion",
+see `docs/model_configurations.md`) is the justified next step.
+
+📊 metrics: `pkm_data/new_agents/agent_000_dragapult/experiments/016_alakazam_exit_attn_large/logs/train.csv`
+(TB: `…/experiments/016_alakazam_exit_attn_large/runs/016_alakazam_exit_attn_w4_large/`).
+New throughput columns this run: **`sps`** (decisions/sec) + **`gps`** (games/sec).
+
+```bash
+args=(
+  --method exit --policy-head attn --n-dec-layers 3   # ← attn head is the only change vs 015
+  --exit-value-target tdlambda --exit-lambda 0.9 --determinization sample
+  --model large --mcts-worlds 4 --mcts-simulations 32
+  --mcts-c-puct 1.25 --mcts-temperature 1.0
+  --deck alakazam --aux-weight prize_margin=0.25
+  --shaping prize_potential --shaping-coef 1.0
+  --lr 1e-4 --lr-schedule cosine --lr-min 1e-5 --value-coef 0.5 --minibatch-size 64
+  --epochs 4 --gamma 0.997 --lam 0.95 --clip-eps 0.2 --entropy-coef 0.01 --seed 0
+  --updates 8192 --games 16 --workers 8   # ← 8 workers (box free)
+  --device auto --eval-every 128 --eval-games 32 --ckpt-every 128
+  --experiment 016_alakazam_exit_attn_large --run-name 016_alakazam_exit_attn_w4_large
+  --tb --engine local-nix --force
+)
+python -m pkm.new_agents.agent_000_dragapult.cli train "${args[@]}"
+```

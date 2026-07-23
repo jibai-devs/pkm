@@ -69,8 +69,18 @@ class ModelConfig:
     # distribution marginalized to per-option inclusion logits, so MCTS/ExIt are
     # unchanged. Different params (a whole extra head), so it's part of the config
     # hash and checkpoint identity; old checkpoints lack the field and backfill to
-    # "marginal".
+    # "marginal". "attn" adds a transformer-decoder head: the presented options
+    # self-attend and cross-attend to the encoder's per-entity board tokens, then
+    # read out one logit each — agent_001's board-attending decoder over our
+    # option/entity tokens. Its [B,L] output is the same per-option contract as
+    # "marginal" (multi-select still left to sampling), so MCTS/ExIt/inference are
+    # unchanged — see model.OptionDecoderHead.
     policy_head: str = "marginal"
+    # Decoder depth for policy_head == "attn": number of transformer-decoder
+    # layers (option self-attention + cross-attention to the board) in the
+    # per-option head. Inert for every other head. Part of the config hash; old
+    # checkpoints lack the field and backfill to this default.
+    n_dec_layers: int = 2
 
 
 # Named size presets for one-word scaling from the CLI (`--model <name>`).
@@ -270,4 +280,8 @@ def build_model(cfg: Config | ModelConfig | None = None) -> PolicyValueModel:
         attack_enc=AttackEncoder(d_atk=mc.d_atk),
         aux_tasks=aux,
         policy_head=mc.policy_head,
+        n_heads=mc.n_heads,
+        ff_mult=mc.ff_mult,
+        dropout=mc.dropout,
+        n_dec_layers=mc.n_dec_layers,
     )

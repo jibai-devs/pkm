@@ -215,7 +215,8 @@ def train(
                 "t_rollout": t_rollout,
                 "t_update": t_update,
                 "t_total": t_total,
-                "sps": n_steps / t_total if t_total > 0 else 0.0,
+                "sps": n_steps / t_total if t_total > 0 else 0.0,  # decisions/sec (1 step = 1 decision)
+                "gps": games_per_update / t_total if t_total > 0 else 0.0,  # games/sec
                 "eta_s": (target - ts.update_idx) * t_total,
                 "lr": ts.optimizer.param_groups[0]["lr"],
             }

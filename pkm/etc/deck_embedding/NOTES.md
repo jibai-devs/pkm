@@ -91,7 +91,15 @@ top. So the embedding means "similar matchup behaviour", not just "similar list"
    text/type so unseen cards aren't cold-start zeros and synergy is learnable
    beyond co-occurrence. Most likely to raise the ceiling.
 3. **Resume/continue training** (`--init-from`, not built yet) — README roadmap #1.
-4. **A `cluster` command** wrapping the notebook's KMeans + medoid naming.
+4. ~~A `cluster` command wrapping the notebook's KMeans + medoid naming.~~
+   **Done** — `deck_cluster.py`: auto-`k` (silhouette sweep, no manual k),
+   distinctive-card archetype labels, medoid decklist per cluster, writes
+   `deck_clusters.parquet`. `uv run --script deck_cluster.py` (add `--k N` to
+   force, `--embeddings deck_embeddings_emb16.parquet` for the 16-d model). On
+   2026-07-22 it finds **k=3** (silhouette 0.18): the Grimmsnarl ex/Froslass
+   control cluster dominates (~6k games), a Poffin/Dipplin cluster, and a small
+   Great Tusk/Terrakion fighting cluster — weak separation, as expected for a
+   one-day single-archetype field.
 5. Lower-LR larger nets are stable now (emb16 big ran fine at lr 3e-4) — but only
    worth it once (1)/(2) lift the signal.
 

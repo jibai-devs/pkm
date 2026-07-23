@@ -654,10 +654,19 @@ def train(
         "--policy-head",
         help="Policy head: 'marginal' (default, v1 — per-option scorer, multi-select "
         "left to sampling), 'autoreg' (STOP-token head that conditions each pick on "
-        "the already-picked set and learns the count), or 'combo' (scores whole "
+        "the already-picked set and learns the count), 'combo' (scores whole "
         "option combinations in one pass — a categorical over enumerated sets, "
-        "cap 64 — and learns the count by picking a smaller set). Changes params, so "
-        "a checkpoint is tied to its head; part of the config hash.",
+        "cap 64 — and learns the count by picking a smaller set), or 'attn' "
+        "(transformer decoder: options self-attend + cross-attend to the board "
+        "tokens, one logit each; same [B,L] contract as marginal, depth "
+        "--n-dec-layers). Changes params, so a checkpoint is tied to its head; "
+        "part of the config hash.",
+    ),
+    n_dec_layers: Optional[int] = typer.Option(
+        None,
+        "--n-dec-layers",
+        help="Override: transformer-decoder depth for --policy-head attn "
+        "(option self-attn + cross-attn-to-board layers). Inert for other heads.",
     ),
     device: str = typer.Option(
         "cpu",
@@ -781,6 +790,7 @@ def train(
             "dropout": dropout,
             "base_residual": base_residual,
             "policy_head": policy_head,
+            "n_dec_layers": n_dec_layers,
         },
         ckpt_every=ckpt_every,
         deck=deck,

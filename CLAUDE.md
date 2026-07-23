@@ -4,6 +4,34 @@ Full project guide (structure, RL training, decks, submission): @AGENTS.md
 
 ## Active Context
 
+- **Deck/card embeddings — READ `pkm/etc/deck_embedding/observations.md` FIRST
+  when working on card/deck embeddings (2026-07-24).** Set-Transformer two-tower
+  model that learns a per-deck vector (distance ≈ matchup) from real games.
+  Standing workflow + all observations live in that `observations.md` (companions:
+  `README.md` usage, `NOTES.md` narrative). Key facts: trained a 64-d default
+  (`deck_model_2026-07-22.pt`, val 0.634) and a bigger 16-d encoder
+  (`deck_model_2026-07-22_emb16.pt`, val 0.613 but **clusters better**); accuracy
+  is signal-capped ~0.60–0.63 (pilot+RNG dominate), so **more data is the lever**.
+  **New tools this session:** `deck_cluster.py` (auto-`k` clustering via
+  silhouette sweep → `deck_clusters.parquet`, medoids + distinctive-card labels);
+  rewritten `cluster_viz.py` (marimo+plotly: auto-k, PCA scatter, per-cluster deck
+  gallery + **all-clusters grid** with real **card art** via `mo.image`);
+  cluster labels = each cluster's **headline Pokémon** (highest-marquee Pokémon
+  via `cards.json` ex/mega/hp metadata, `_card_marquee` — NOT corpus stats).
+  **No TF-IDF anywhere** (useless for decks — user directive 2026-07-24); deck
+  *similarity* should be **Jaccard/overlap or
+  co-occurrence, NOT Levenshtein** (decks are unordered multisets). **Data
+  pipeline (2026-07-24, disk+parallel):** `daily.py build all --workers N`
+  downloads every published day and builds `decks_with_outcomes*.parquet` via
+  **disk-extract → parallel parse across cores** — NOT streaming (zip
+  decompression is single-threaded and WAS the bottleneck; ~12× faster). Resumable
+  via sidecar `<out>.days.json` (skips done days, reuses cached zips, per-day
+  cleanup). Full lossless 12-table db instead = `replaydb daily sync/ingest`
+  (streaming, slower). **Retrain from scratch and only AFTER the full corpus is
+  built** (vocab is data-derived → embedding table reshapes → old ckpt
+  incompatible). We keep player **usernames** (`games.p0_name`/`p1_name`), **no
+  numeric IDs** exist. Card art: `replay/fetch_card_images.py`. Run marimo from the
+  project `.venv` with `--no-sandbox` (do NOT add packages).
 - **Multi-deck support shipped (2026-07-21):** agent_000 now plays **more than one
   deck** without a per-deck agent. Two concepts split cleanly: (a) *a deck* — a
   60-card list in the `deck.DECKS` registry (`dragapult` + new `alakazam` = Mega
@@ -53,6 +81,15 @@ Full project guide (structure, RL training, decks, submission): @AGENTS.md
   checkpoint, inference mode/K, bundle filename, message, and the score once it
   lands) plus a short note on what the run was testing. Keep it up to date so the
   leaderboard history stays in the repo.
+- **Model-config / feature documentation convention:** whenever you add or change
+  a model/architecture feature or a CLI flag that shapes the net (new policy
+  head, encoder/decoder change, new `--*` dim/flag), record it in
+  `pkm/new_agents/agent_000_dragapult/docs/model_configurations.md` — the feature
+  (what + why + how it plugs in) AND every flag with its **options, default, and
+  effect** (`--flag {choices} · default X`). This doc is the living reference for
+  the whole model-config surface (`--model` presets, `--d-*/--n-*` overrides,
+  `--policy-head`, etc.); keep it current so the architecture options live in the
+  repo (mirrors the `submission_log.md` / `train_cmd_log.md` conventions).
 - **Training/sweep workflow — ALWAYS use a persistent tmux (updated 2026-07-22):**
   EVERY `new_agents` run that trains — **`train`, `sweep`, AND `resume`** — must be
   launched into a tmux session (NOT a foreground/background shell job), so it

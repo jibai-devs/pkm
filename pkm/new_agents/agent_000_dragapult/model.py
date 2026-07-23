@@ -369,6 +369,92 @@ class ComboPolicyHead(nn.Module):
         return logits.masked_fill(combo_valid == 0, MASK_FILL)
 
 
+class OptionDecoderHead(nn.Module):
+    """Per-option transformer-decoder head (``policy_head == "attn"``).
+
+    Scores the presented options with a transformer *decoder*: the ``L`` option
+    tokens **self-attend** (so options are scored jointly — each sees the rest of
+    the slate) and **cross-attend** to the encoder's per-entity board tokens (so
+    each option sees the *whole* board, not just the single entity it points at),
+    then a linear reads out one logit per option. This is agent_001's
+    board-attending decoder idea, but consuming *our* option/entity tokens.
+
+    Contrast with the marginal MLP scorer, which scores each option independently
+    from only its one gathered referenced entity. The output is per-option logits
+    ``[B,L]`` — the same contract every consumer (MCTS priors, the ExIt
+    cross-entropy target, inference-time MCTS) reads — so nothing downstream
+    changes, and multi-select is still left to the sampling layer exactly like
+    ``"marginal"``. It owns no option/entity/context encoding: the model passes in
+    the already-computed pieces (shared with the value path) so the trunk runs
+    once.
+    """
+
+    def __init__(
+        self,
+        d_opt: int,
+        d_state: int,
+        d_ctx_total: int,
+        d_entity: int,
+        n_heads: int,
+        n_layers: int,
+        ff_mult: int = 4,
+        dropout: float = 0.0,
+    ):
+        super().__init__()
+        # The decoder works in the board token width so option tokens (queries)
+        # and entity tokens (keys/values) share a space for cross-attention.
+        d_model = d_entity
+        self.opt_proj = nn.Linear(d_opt, d_model)
+        # Broadcast the state summary + decision context into every option token,
+        # the way the marginal scorer concatenates them.
+        self.cond_proj = nn.Linear(d_state + d_ctx_total, d_model)
+        self.mem_proj = nn.Linear(d_entity, d_model)
+        self.layers = nn.ModuleList(
+            nn.TransformerDecoderLayer(
+                d_model,
+                n_heads,
+                dim_feedforward=ff_mult * d_model,
+                dropout=dropout,
+                activation="relu",
+                batch_first=True,
+                norm_first=True,  # pre-LN: stable to train at depth
+            )
+            for _ in range(max(1, n_layers))
+        )
+        self.readout = nn.Linear(d_model, 1)
+
+    def score(
+        self,
+        opt: torch.Tensor,  # [B,L,d_opt]
+        ent: torch.Tensor,  # [B,12,d_entity] per-entity board tokens (encoder out)
+        state: torch.Tensor,  # [B,d_state]
+        ctx: torch.Tensor,  # [B,d_ctx_total]
+        option_mask: torch.Tensor,  # [B,L] 1 = real option
+        entity_mask: torch.Tensor,  # [B,12] 1 = occupied slot
+    ) -> torch.Tensor:
+        """Per-option logits ``[B,L]`` (caller applies the MASK_FILL on padding)."""
+        cond = self.cond_proj(torch.cat([state, ctx], dim=-1)).unsqueeze(1)  # [B,1,dm]
+        tgt = self.opt_proj(opt) + cond  # [B,L,d_model]
+        mem = self.mem_proj(ent)  # [B,12,d_model]
+        tgt_pad = option_mask == 0  # [B,L] True = ignore (padding)
+        mem_pad = entity_mask == 0  # [B,12] True = ignore (empty slot)
+        out = tgt
+        for layer in self.layers:
+            out = layer(
+                out,
+                mem,
+                tgt_key_padding_mask=tgt_pad,
+                memory_key_padding_mask=mem_pad,
+            )
+        logits = self.readout(out).squeeze(-1)  # [B,L]
+        # A fully-padded option row (a hypothetical 0-option decision collated at
+        # train time) makes the self-attention softmax over an all-masked row emit
+        # NaN; scrub before the caller's MASK_FILL. Real rows (>=1 option, and the
+        # board always has >=1 entity) never reach this. Mirrors the finite-fill
+        # doctrine (MASK_FILL) rather than letting NaN poison gradients.
+        return torch.nan_to_num(logits)
+
+
 class PolicyValueModel(nn.Module):
     """Encoder + option encoder + policy scorer + value head.
 
@@ -386,6 +472,10 @@ class PolicyValueModel(nn.Module):
         attack_enc: AttackEncoder | None = None,
         aux_tasks: list[str] | tuple[str, ...] = (),
         policy_head: str = "marginal",
+        n_heads: int = 4,
+        ff_mult: int = 4,
+        dropout: float = 0.0,
+        n_dec_layers: int = 2,
     ):
         super().__init__()
         self.encoder = encoder or StateEncoder()
@@ -405,16 +495,27 @@ class PolicyValueModel(nn.Module):
         # Policy head selection. Build ONLY the chosen head so state_dict keys are
         # unambiguous per architecture (the config hash pins which one). "marginal"
         # = the v1 per-option scorer; "autoreg" = the STOP-token multi-select head.
-        if policy_head not in ("marginal", "autoreg", "combo"):
+        if policy_head not in ("marginal", "autoreg", "combo", "attn"):
             raise ValueError(
                 f"unknown policy_head {policy_head!r}; choose 'marginal', "
-                f"'autoreg', or 'combo'"
+                f"'autoreg', 'combo', or 'attn'"
             )
         self.policy_head = policy_head
         if policy_head == "autoreg":
             self.autoreg = AutoregPolicyHead(d_opt, d_state, 2 * d_ctx, d_entity)
         elif policy_head == "combo":
             self.combo = ComboPolicyHead(d_opt, d_state, 2 * d_ctx, d_entity)
+        elif policy_head == "attn":
+            self.decoder = OptionDecoderHead(
+                d_opt,
+                d_state,
+                2 * d_ctx,
+                d_entity,
+                n_heads=n_heads,
+                n_layers=n_dec_layers,
+                ff_mult=ff_mult,
+                dropout=dropout,
+            )
         else:
             # policy scorer: per-option MLP over
             #   [option_vec, state, decision-context, referenced-entity]
@@ -524,6 +625,14 @@ class PolicyValueModel(nn.Module):
             )
             logits = self._marginalize(
                 combo_logits, combo_idx, member_mask, b["option_mask"].shape
+            )
+        elif self.policy_head == "attn":
+            # Transformer decoder: options self-attend + cross-attend to the full
+            # per-entity board tokens (`ent`), yielding per-option logits directly
+            # — the same [B,L] the marginal head produces, so sampling / MCTS /
+            # ExIt / inference are all unchanged.
+            logits = self.decoder.score(
+                opt, ent, state, ctx, b["option_mask"], b["entity_mask"]
             )
         else:
             bsz, lmax = opt.shape[0], opt.shape[1]
