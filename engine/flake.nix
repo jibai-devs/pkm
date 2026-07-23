@@ -39,6 +39,16 @@
         in
         {
           default = pkgs.callPackage ./package.nix { stdenv = llvm.libcxxStdenv; };
+          # libtorch C++ driver (NN inference / MCTS self-play trainer). Built
+          # with the DEFAULT GCC/libstdc++ stdenv to match libtorch-bin's ABI —
+          # it talks to cg.so only through the engine's extern "C" boundary.
+          torch-driver = pkgs.callPackage ./torch-driver/torch.nix {
+            engine = pkgs.callPackage ./package.nix { stdenv = llvm.libcxxStdenv; };
+          };
+          torch-driver-cuda = pkgs.callPackage ./torch-driver/torch.nix {
+            engine = pkgs.callPackage ./package.nix { stdenv = llvm.libcxxStdenv; };
+            cudaSupport = true;
+          };
         }
       );
 
@@ -86,6 +96,33 @@
               echo "ptcg dev: $(c++ --version | head -1)"
             '';
           };
+
+          # Separate shell for the libtorch driver: DEFAULT gcc/libstdc++
+          # stdenv (matches libtorch-bin), torch's CMake config on
+          # CMAKE_PREFIX_PATH. Set cudaSupport via `torch.override`.
+          torch =
+            let
+              libtorch = pkgs.libtorch-bin;
+            in
+            pkgs.mkShell {
+              name = "pkm-torch-dev";
+              nativeBuildInputs = [
+                pkgs.cmake
+                pkgs.ninja
+                pkgs.pkg-config
+              ];
+              buildInputs = [
+                libtorch
+                pkgs.nlohmann_json
+                pkgs.cli11
+              ];
+              CMAKE_GENERATOR = "Ninja";
+              CMAKE_EXPORT_COMPILE_COMMANDS = "ON";
+              CMAKE_PREFIX_PATH = "${libtorch.dev}";
+              shellHook = ''
+                echo "pkm-torch dev: $(c++ --version | head -1) + libtorch ${libtorch.version}"
+              '';
+            };
         }
       );
     };
