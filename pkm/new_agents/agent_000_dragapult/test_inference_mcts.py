@@ -7,10 +7,11 @@ actually produces a legal move from a live observation is marked ``slow``.
 
 from pathlib import Path
 
+import numpy as np
 import pytest
 import torch
 
-from pkm.new_agents.agent_000_dragapult import cabt, deck
+from pkm.new_agents.agent_000_dragapult import cabt, deck, mcts
 from pkm.new_agents.agent_000_dragapult.agent import DragapultAgent, InferenceConfig
 from pkm.new_agents.agent_000_dragapult.config import Config, build_model
 
@@ -27,12 +28,53 @@ def test_use_mcts_toggle():
 
 
 def test_inference_config_roundtrip():
-    inf = InferenceConfig(type="mcts", mcts_sims=16, c_puct=2.0, temperature=0.5)
+    inf = InferenceConfig(
+        type="mcts", mcts_sims=16, mcts_worlds=8, c_puct=2.0, temperature=0.5
+    )
     assert InferenceConfig.from_dict(inf.to_dict()) == inf
     # unknown keys are ignored, missing ones backfilled (forward/backward compat)
     loaded = InferenceConfig.from_dict({"type": "mcts", "mcts_sims": 4, "bogus": 1})
     assert loaded.type == "mcts" and loaded.mcts_sims == 4
     assert loaded.c_puct == InferenceConfig().c_puct
+    # old bundles predating multi-world default to W=1 (single-sample IS-MCTS)
+    assert loaded.mcts_worlds == 1
+
+
+def test_search_worlds_averages(monkeypatch):
+    """search_worlds(W) must average W independent single-world policies."""
+    worlds = [
+        np.array([1.0, 0.0, 0.0], dtype=np.float32),
+        np.array([0.0, 1.0, 0.0], dtype=np.float32),
+        np.array([0.0, 0.0, 1.0], dtype=np.float32),
+    ]
+    calls = {"n": 0}
+
+    def fake_search(root_obs, seat, model, cfg, gen):
+        pi = worlds[calls["n"]]
+        calls["n"] += 1
+        return pi
+
+    monkeypatch.setattr(mcts, "search", fake_search)
+    out = mcts.search_worlds(
+        {}, 0, None, None, torch.Generator(), n_worlds=len(worlds)
+    )
+    assert calls["n"] == len(worlds)  # one search per world
+    np.testing.assert_allclose(out, np.full(3, 1 / 3), atol=1e-6)
+
+
+def test_search_worlds_one_is_plain_search(monkeypatch):
+    """W=1 must be exactly `search` (one call, no averaging)."""
+    sentinel = np.array([0.2, 0.8], dtype=np.float32)
+    calls = {"n": 0}
+
+    def fake_search(*a, **k):
+        calls["n"] += 1
+        return sentinel
+
+    monkeypatch.setattr(mcts, "search", fake_search)
+    out = mcts.search_worlds({}, 0, None, None, torch.Generator(), n_worlds=1)
+    assert calls["n"] == 1
+    np.testing.assert_array_equal(out, sentinel)
 
 
 def test_bundle_embeds_and_loads_inference(tmp_path: Path):
@@ -101,7 +143,8 @@ def test_mcts_agent_returns_legal_move():
         model=model,
         greedy=True,
         seed=0,
-        inference=InferenceConfig(type="mcts", mcts_sims=8),
+        # W=2 also exercises the multi-world averaging path end-to-end.
+        inference=InferenceConfig(type="mcts", mcts_sims=8, mcts_worlds=2),
     )
     obs = _root_obs()
     try:

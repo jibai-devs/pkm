@@ -37,7 +37,9 @@ function mergeCurrent(step: Step): CurrentState | null {
 // Hidden zones come through as null (e.g. an opponent's hand, or a player whose
 // own POV `current` is null at the reset / terminal steps). Coerce every card
 // array to [] so the UI can trust the shape and never crash mid-playback.
-function normalizePlayer(p: PlayerState | undefined): PlayerState {
+// Exported so live play (src/live/liveStep.ts) can build a MergedStep from a
+// single observation with the same null-coercion rules the replay path uses.
+export function normalizePlayer(p: PlayerState | undefined): PlayerState {
   if (!p) return emptyPlayer();
   return {
     ...p,
@@ -50,7 +52,7 @@ function normalizePlayer(p: PlayerState | undefined): PlayerState {
   };
 }
 
-function emptyPlayer(): PlayerState {
+export function emptyPlayer(): PlayerState {
   return {
     active: [],
     bench: [],

@@ -1,10 +1,16 @@
 """Tier-1 deterministic heuristics (plan.md §4): exact facts computable from
-the current observation plus static card/attack data. No memory needed --
-every function here ignores `ctx` and is a pure function of `obs` alone.
+the current observation plus static card/attack data. Every function here
+except `lethal_this_turn` ignores `ctx` and is a pure function of `obs`
+alone; `lethal_this_turn` reads `ctx.tracker` indirectly via
+`min_guaranteed_damage` (see attack_damage_estimator.py's Phase 2) for
+deck-composition-dependent attacks, though none of the currently-registered
+*deterministic* patterns there actually use it yet -- it's threaded through
+for forward compatibility, not dead plumbing.
 
-Deliberately depends only on `pkm.types.obs` and `pkm.data.card_data`, not on
-`pkm.rl.features` -- these get registered into that module's PER_SLOT/
-PER_OPTION lists, so importing back from here would cycle.
+Deliberately depends only on `pkm.types.obs`, `pkm.data.card_data`, and
+`pkm.heuristics` (GameContext), not on `pkm.rl.features` -- these get
+registered into that module's PER_SLOT/PER_OPTION lists, so importing back
+from here would cycle.
 
 One correction to plan.md's literal wording, made here because it reflects
 how this engine's data actually works (verified against
@@ -20,6 +26,7 @@ import numpy as np
 
 from pkm.data.card_data import get_attack_data, get_card_by_id
 from pkm.heuristics.context import GameContext
+from pkm.rl.attack_damage_estimator import min_guaranteed_damage
 from pkm.types.obs import MAX_BENCH, Observation, OptionType, board_pokemon
 
 
@@ -27,7 +34,21 @@ def lethal_this_turn(obs: Observation, ctx: GameContext | None) -> np.ndarray:
     """1.0 for an attack option that would knock out the opponent's active
     Pokemon this turn, else 0.0. Ignores type effectiveness and any other
     damage-modifying effect -- see type_effectiveness for that signal;
-    the network combines the two itself."""
+    the network combines the two itself.
+
+    Uses `min_guaranteed_damage`, not the raw `atk.damage` field: an attack
+    whose real damage is computed from card text as a fixed constant (e.g.
+    Cruel Arrow -- declared `damage: 0`, real damage a flat 100) previously
+    could never be flagged lethal here no matter the target's HP.
+    `min_guaranteed_damage` specifically excludes expected-value-only
+    patterns (coin flips, deck-mill effects), so this stays a certainty
+    claim, not a probability -- Mega Abomasnow ex's Hammer-lanche (a
+    deck-mill attack: declared `damage: 0`, real damage 0-600 depending on
+    an as-yet-undrawn card sequence) deliberately still can never be flagged
+    lethal here, by design, even though `attack_damage_estimator.py` can now
+    *estimate* its expected damage for other purposes. See
+    pkm/rl/attack_damage_estimator.py and
+    docs/superpowers/plans/2026-07-20-attack-damage-estimator.md."""
     state = obs.current
     sel = obs.select
     assert state is not None and sel is not None
@@ -39,7 +60,7 @@ def lethal_this_turn(obs: Observation, ctx: GameContext | None) -> np.ndarray:
         lethal = False
         if o.type == OptionType.ATTACK and opp_active is not None:
             atk = attack_data.get(o.attackId or 0)
-            if atk is not None and opp_active.hp - atk.damage <= 0:
+            if atk is not None and opp_active.hp - min_guaranteed_damage(atk, obs, ctx) <= 0:
                 lethal = True
         out.append(1.0 if lethal else 0.0)
     return np.array(out, dtype=np.float32)

@@ -87,10 +87,19 @@ def play_match(
     p1: str,
     deck_path: str = "deck/02_dragapult.csv",
     weights: str | None = None,
+    deck0_path: str | None = None,
+    deck1_path: str | None = None,
+    weights0: str | None = None,
+    weights1: str | None = None,
     html_path: str | None = "result.html",
     replay_path: str | None = "replay.json",
 ):
     """Run one rendered match; returns the finished kaggle environment.
+
+    `deck0_path`/`deck1_path` and `weights0`/`weights1` let each side bring
+    its own deck/policy (e.g. two different population-trained bots);
+    each falls back to the shared `deck_path`/`weights` when not given, so
+    existing single-deck callers are unaffected.
 
     Exception: with a human player the match runs inside the TUI, which owns the
     environment for the lifetime of the app, and this returns None.
@@ -104,12 +113,13 @@ def play_match(
             html_path=html_path,
             replay_path=replay_path,
         )
-    deck = Deck.from_csv(deck_path).card_ids
+    deck0 = Deck.from_csv(deck0_path or deck_path).card_ids
+    deck1 = Deck.from_csv(deck1_path or deck_path).card_ids
     agents = [
-        make_agent_by_name(p0, deck, weights),
-        make_agent_by_name(p1, deck, weights),
+        make_agent_by_name(p0, deck0, weights0 if weights0 is not None else weights),
+        make_agent_by_name(p1, deck1, weights1 if weights1 is not None else weights),
     ]
-    env = make("cabt", configuration={"decks": [deck, deck]})
+    env = make("cabt", configuration={"decks": [deck0, deck1]})
     env.run(agents)
 
     final = env.steps[-1]
@@ -137,18 +147,29 @@ def win_rate(
     games: int,
     deck_path: str = "deck/02_dragapult.csv",
     weights: str | None = None,
+    deck0_path: str | None = None,
+    deck1_path: str | None = None,
+    weights0: str | None = None,
+    weights1: str | None = None,
 ) -> float:
-    """Head-to-head win rate for p0's agent type, alternating sides."""
+    """Head-to-head win rate for p0's agent type, alternating sides.
+
+    `deck0_path`/`deck1_path` and `weights0`/`weights1` let each side bring
+    its own deck/policy, same fallback-to-shared-default convention as
+    `play_match`."""
     if HUMAN in (p0, p1):
         raise ValueError("human play does not support --games > 1")
-    deck = Deck.from_csv(deck_path).card_ids
+    deck0 = Deck.from_csv(deck0_path or deck_path).card_ids
+    deck1 = Deck.from_csv(deck1_path or deck_path).card_ids
+    w0 = weights0 if weights0 is not None else weights
+    w1 = weights1 if weights1 is not None else weights
     score = 0.0
     for g in range(games):
-        a = make_agent_by_name(p0, deck, weights)
-        b = make_agent_by_name(p1, deck, weights)
+        a = make_agent_by_name(p0, deck0, w0)
+        b = make_agent_by_name(p1, deck1, w1)
         agents = [a, b] if g % 2 == 0 else [b, a]
         side = g % 2
-        env = make("cabt", configuration={"decks": [deck, deck]})
+        env = make("cabt", configuration={"decks": [deck0, deck1] if g % 2 == 0 else [deck1, deck0]})
         env.run(agents)
         r = env.steps[-1][side].reward or 0
         score += 1.0 if r > 0 else 0.5 if r == 0 else 0.0
@@ -163,6 +184,13 @@ def win_rate(
 app = typer.Typer(help=__doc__)
 
 
+def _resolve_agent_deck_weights(agent: str) -> tuple[str, str | None]:
+    """AgentProfile -> (deck_path, npz_weights_path or None if unexported)."""
+    profile = AgentProfile(agent)
+    ckpt = profile.checkpoint_dir / "policy.npz"
+    return str(profile.deck_path), str(ckpt) if ckpt.is_file() else None
+
+
 @app.command()
 def main(
     p0: str = typer.Option(
@@ -173,6 +201,18 @@ def main(
     ),
     agent: str | None = typer.Option(
         None, help="agent profile name (resolves deck + weights)"
+    ),
+    p0_agent: str | None = typer.Option(
+        None,
+        "--p0-agent",
+        help="agent profile name for player 0 only -- lets p0/p1 use different "
+        "decks/weights (e.g. two different agents/pool_*/ bots). Overrides "
+        "--agent/--deck/--weights for this side only; needs that profile's "
+        "checkpoints/policy.npz exported first (`pkm export --agent <name> "
+        "agents/<name>/checkpoints/policy.npz`)",
+    ),
+    p1_agent: str | None = typer.Option(
+        None, "--p1-agent", help="same as --p0-agent, for player 1 only"
     ),
     deck: str = typer.Option("deck/02_dragapult.csv", help="path to deck CSV"),
     weights: str | None = typer.Option(None, help="path to policy .npz"),
@@ -187,11 +227,37 @@ def main(
             ckpt = profile.checkpoint_dir / "policy.npz"
             if ckpt.is_file():
                 weights = str(ckpt)
+
+    deck0 = weights0 = deck1 = weights1 = None
+    if p0_agent:
+        deck0, weights0 = _resolve_agent_deck_weights(p0_agent)
+    if p1_agent:
+        deck1, weights1 = _resolve_agent_deck_weights(p1_agent)
+
     if games > 1:
-        win_rate(p0, p1, games, deck_path=deck, weights=weights)
+        win_rate(
+            p0,
+            p1,
+            games,
+            deck_path=deck,
+            weights=weights,
+            deck0_path=deck0,
+            deck1_path=deck1,
+            weights0=weights0,
+            weights1=weights1,
+        )
     else:
         play_match(
-            p0, p1, deck_path=deck, weights=weights, html_path=html, replay_path=replay
+            p0,
+            p1,
+            deck_path=deck,
+            weights=weights,
+            deck0_path=deck0,
+            deck1_path=deck1,
+            weights0=weights0,
+            weights1=weights1,
+            html_path=html,
+            replay_path=replay,
         )
 
 

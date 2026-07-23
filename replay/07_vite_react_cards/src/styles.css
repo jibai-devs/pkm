@@ -254,6 +254,12 @@ body {
   padding: 6px; border-top: 1px dashed rgba(255,255,255,.2); border-bottom: 1px dashed rgba(255,255,255,.2); }
 
 .view-controls { display: flex; gap: 12px; align-items: center; margin-left: auto; }
+.swap-btn {
+  background: var(--panel2); color: var(--text);
+  border: 1px solid var(--line); border-radius: 6px;
+  padding: 3px 10px; cursor: pointer; font-size: 11px; white-space: nowrap;
+}
+.swap-btn:hover { border-color: var(--accent); }
 .view-controls .ctl { display: flex; gap: 5px; align-items: center; font-size: 11px; opacity: .85; }
 .view-controls select { font-size: 11px; }
 
@@ -264,7 +270,7 @@ body {
   background: var(--panel2); border-left: 3px solid var(--muted);
 }
 .subagent-who.who-first_turn { border-left-color: var(--accent); color: var(--accent); }
-.subagent-who.who-neural { border-left-color: var(--p0); color: var(--p0); }
+.subagent-who.who-dragapult_default { border-left-color: var(--p0); color: var(--p0); }
 .subagent-who.who-random { border-left-color: var(--p1); color: var(--p1); }
 .subagent-none { color: var(--muted); font-style: italic; padding: 4px 0; }
 .subagent-notes { margin-top: 6px; display: flex; flex-direction: column; gap: 2px; }
@@ -276,3 +282,70 @@ body {
   background: var(--panel2); color: var(--text); border: 1px solid var(--line);
   border-radius: 6px; padding: 3px 6px; font: inherit;
 }
+/* ============================================================
+   Interactive play (?mode=play) — LiveApp / PreGame / OptionsPane
+   Reuses the replay board; only the play-specific chrome is here.
+   ============================================================ */
+.mode-link {
+  font-size: 11px; color: var(--accent); text-decoration: none;
+  border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; white-space: nowrap;
+}
+.mode-link:hover { border-color: var(--accent); }
+
+/* pre-game screen */
+.pregame { display: flex; align-items: center; justify-content: center; height: 100vh; }
+.pregame-card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  padding: 28px 32px; width: 380px; display: flex; flex-direction: column; gap: 14px;
+}
+.pregame-card h1 { margin: 0; font-size: 20px; }
+.pregame-sub { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.pregame-field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--muted); }
+.pregame-field select {
+  background: var(--panel2); color: var(--text); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 10px; font-size: 13px;
+}
+.pregame-err { color: var(--p1); font-size: 12px; white-space: pre-wrap; }
+.start-btn {
+  margin-top: 4px; background: var(--accent); color: #1a1a1a; border: none;
+  border-radius: 8px; padding: 10px; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.start-btn:disabled { opacity: .5; cursor: default; }
+
+/* status line in the play header */
+.live-status { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.thinking { color: var(--accent); }
+.your-turn { color: var(--p0); font-weight: 600; }
+.live-err { color: var(--p1); }
+
+/* options pane */
+.options-pane { display: flex; flex-direction: column; gap: 8px; }
+.options-header { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+.options-hint { color: var(--accent); }
+.options-list { display: flex; flex-direction: column; gap: 5px; max-height: 42vh; overflow: auto; }
+.option-btn {
+  display: flex; align-items: center; gap: 8px; text-align: left; cursor: pointer;
+  background: var(--panel2); color: var(--text); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 10px; font-size: 13px;
+}
+.option-btn:hover { border-color: var(--accent); }
+.option-btn.selected { border-color: var(--p0); background: #22303f; }
+.option-btn.irreversible.selected { border-color: var(--p1); background: #35262180; }
+.option-btn:disabled { opacity: .5; cursor: default; }
+.option-check { font-size: 14px; }
+.option-key { color: var(--muted); width: 16px; text-align: right; }
+.option-label { flex: 1; }
+.option-flag { font-size: 10px; color: var(--p1); text-transform: uppercase; letter-spacing: .04em; }
+.submit-btn {
+  background: var(--p0); color: #fff; border: none; border-radius: 8px;
+  padding: 9px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.submit-btn:disabled { opacity: .45; cursor: default; }
+.options-confirm { display: flex; align-items: center; gap: 8px; font-size: 12px; flex-wrap: wrap; }
+.confirm-yes { background: var(--p1); color: #fff; border: none; border-radius: 6px; padding: 7px 12px; cursor: pointer; }
+.confirm-no { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 7px 12px; cursor: pointer; }
+
+/* result + notes panels */
+.result-panel .result-text { font-size: 18px; font-weight: 700; margin: 6px 0 12px; }
+.notes-panel .note-row { font-size: 12px; color: var(--muted); padding: 2px 0; border-top: 1px solid var(--line); }
+.result-panel .result-note { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 12px; }

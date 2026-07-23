@@ -11,6 +11,8 @@ interface Props {
   diff: StepDiff;
   backend: CardBackend;
   reveal: "realistic" | "full-info";
+  /** Which player index sits at the bottom (the "player" side). */
+  bottomIndex: 0 | 1;
 }
 
 function winnerText(rewards: [number, number]): string {
@@ -18,7 +20,7 @@ function winnerText(rewards: [number, number]): string {
   return rewards[0] > rewards[1] ? "P0 wins" : "P1 wins";
 }
 
-export function Board({ step, db, diff, backend, reveal }: Props) {
+export function Board({ step, db, diff, backend, reveal, bottomIndex }: Props) {
   const cur = step.current;
   const done = step.statuses.includes("DONE");
 
@@ -34,12 +36,14 @@ export function Board({ step, db, diff, backend, reveal }: Props) {
   const viewer = cur.yourIndex;
   const revealHand = (i: number) => reveal === "full-info" || i === viewer;
 
+  const topIndex = (bottomIndex === 0 ? 1 : 0) as 0 | 1;
+
   return (
     <div className="board board-cards">
       {done && <div className="winner-banner">Game over — {winnerText(step.rewards)}</div>}
 
-      <PlayerBoard player={cur.players[0]} index={0} db={db} diff={diff}
-        active={step.activePlayer === 0} side="top" backend={backend} revealHand={revealHand(0)} />
+      <PlayerBoard player={cur.players[topIndex]} index={topIndex} db={db} diff={diff}
+        active={step.activePlayer === topIndex} side="top" backend={backend} revealHand={revealHand(topIndex)} />
 
       <div className="stadium-strip">
         <span className="zone-label">Stadium</span>
@@ -54,8 +58,8 @@ export function Board({ step, db, diff, backend, reveal }: Props) {
         </span>
       </div>
 
-      <PlayerBoard player={cur.players[1]} index={1} db={db} diff={diff}
-        active={step.activePlayer === 1} side="bottom" backend={backend} revealHand={revealHand(1)} />
+      <PlayerBoard player={cur.players[bottomIndex]} index={bottomIndex} db={db} diff={diff}
+        active={step.activePlayer === bottomIndex} side="bottom" backend={backend} revealHand={revealHand(bottomIndex)} />
     </div>
   );
 }

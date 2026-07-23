@@ -16,7 +16,6 @@ and "Kaggle Submission".
 > (e.g. `winget install --id Casey.Just` or `cargo install just`) if you want
 > the shorter form later; it's a convenience, not a dependency of anything
 > here.
-
 ---
 
 ## 1. Start a training run
@@ -42,37 +41,69 @@ pkm train --agent 03_pult_munki --iterations 200 --games 16 --eval-every 10
   `agents/<name>/checkpoints/ppo_latest.pt` if one exists — you don't need a
   separate "resume" command, `just resume` is literally the same recipe as
   `just train`.
+  **Exception, `03_pult_munki` specifically (as of 2026-07-19):** its
+  existing `ppo_latest.pt` predates the opponent-archetype belief-feature
+  resize (stamped `opponent_archetype_belief` dim=4, current registry expects
+  dim=26) — `profile.ppo_init()`/`check_stamp_sidecar` will raise
+  `FeatureStampMismatch` rather than silently resume from an incompatible
+  checkpoint. Move or delete `agents/03_pult_munki/checkpoints/` first (or
+  train under a fresh agent name) to start the required full retrain from
+  scratch. See `docs/opponent-archetype-classifier-plan.md` Part 3 and
+  `docs/ARCHITECTURE.md` §10.
 
 (with `just` installed, this is `just train agent=03_pult_munki iterations=200 games=16`.)
 
-### Turning on the deck-specific reward-shaping terms
+### Deck-specific reward-shaping terms
 
-`pkm/rl/reward_terms.py` ships every term except prize-differential shaping
-(`"shaping": 0.2`) at `0.0` — the Budew/Dreepy-line/Xerosic/Drakloak bonuses
-this branch ported in are all **off** by default. To turn them on for this
-agent specifically, write `agents/03_pult_munki/reward_weights.json`:
+`pkm/rl/reward_terms.py` is the registry of every term (17 total: 4
+potential-based + 13 direct, see the file for the current list) — its
+built-in `DEFAULT_WEIGHTS` ships everything at `0.0` except prize-differential
+shaping (`"shaping": 0.2`). Per-agent, `agents/<name>/reward_weights.json`
+overrides that default; unknown/missing keys are ignored/defaulted, so it's
+safe if the registry grows a term after the file was written.
 
-```json
-{
-  "shaping": 0.2,
-  "budew_setup": 0.1,
-  "dreepy_field": 0.1,
-  "budew_bonus": 0.3,
-  "wrong_type_penalty": 0.3,
-  "dragapult_bonus": 0.2,
-  "xerosic": 0.2,
-  "dreepy_evolve": 0.2,
-  "dreepy_bench_charge": 0.2,
-  "dreepy_active_charge": 0.3,
-  "drakloak_backup_ready": 0.2
-}
+**`agents/03_pult_munki/reward_weights.json` already exists and is already
+tuned** (not the doc's job to restate the numbers — they drift; read the file
+directly before a run to see current values). `pkm train --agent
+03_pult_munki` picks it up automatically, no extra flag needed. To point at a
+different weights file instead, use `--weights <path>`, which overrides the
+agent-default lookup.
+
+To create a fresh one for a *new* agent, `write_default_weights_file()` (same
+module) writes `DEFAULT_WEIGHTS` verbatim as a starting point — every term at
+`0.0` except `shaping`.
+
+### Cross-archetype opponent sampling (Part 3c) + belief injection (Part 2a)
+
+```bash
+pkm train --agent 03_pult_munki --iterations 200 --games 16 --eval-every 10 \
+           --archetype-pool --archetype-pool-prob 0.2 \
+           --archetype-belief
 ```
 
-(Magnitudes above are a starting guess, not tuned — treat as a sweep
-candidate.) `pkm train --agent 03_pult_munki` picks this file up
-automatically once it exists; no extra flag needed. Or point at any file
-explicitly with `--weights <path>`, which overrides the agent-default
-lookup.
+`--archetype-pool` loads every trained `agents/pool_*/checkpoints/ppo_latest.pt`
+(`pkm/rl/opponent_pool.py:load_pool_bots()`) — 25 pool bots as of 2026-07-19,
+one per `staples.json` archetype (`AGENTS.md` → "Opponent pool decklists" /
+"Pool bots"). `--archetype-pool-prob` (default 0.2) is the fraction of games
+played against a random one of them **on its own deck**, instead of the
+existing `--pool-size`/self-checkpoint-pool behavior (which still applies to
+the remaining fraction, unchanged). Requires the pool bots to already be
+trained (`agents/pool_*/checkpoints/` present); an untrained pool profile is
+skipped, not an error, so a partial pool works fine too.
+
+`--archetype-belief` (default classifier path `pkm/archetype.npz`, override
+with `--archetype-weights <path>`) loads the standalone opponent-archetype
+classifier once and attaches it to the trainee's `TorchPolicy` for the whole
+run — that's what actually populates the encoder's `opponent_archetype_belief`
+feature with a real prediction instead of zeros. **This had never happened in
+any training run before 2026-07-19** — the encoder/network side of Part 2a
+shipped with Parts 1-2, but `train.py` never constructed a classifier to feed
+it, so the dim-4→26 resize alone didn't mean the feature carried information.
+
+Both flags are independent and off by default — omit either (or both) for the
+old single-deck-mirror-only, zero-belief behavior. The `03_pult_munki` retrain
+this doc keeps pointing at should use both together (see the note above about
+why it must be a fresh run, not a resume).
 
 ---
 
@@ -239,10 +270,15 @@ restriction was stale given `main.py`/`neural_agent.py` are already
 deck-agnostic; removed in this session so other agents, like this one,
 can actually be submitted.)
 
-**Sanity check before uploading** — confirm the bundled agent is actually
-callable the way kaggle will call it (use a local scratch dir, not `/tmp` —
-this is a Windows checkout and `/tmp` isn't guaranteed to map anywhere
-useful):
+**Sanity check before uploading — do not skip this.** It would have caught
+the 2026-07-19 bug where `submit.sh` never bundled `staples.json` (needed at
+*import* time by `pkm/rl/features.py`, transitively pulled in by nearly
+everything) — every submission built after the opponent-archetype classifier
+landed failed identically on Kaggle until this step actually got run
+against a real bundle (see `AGENTS.md` → "Kaggle Submission" for the full
+story). Confirm the bundled agent is actually callable the way kaggle will
+call it (use a local scratch dir, not `/tmp` — this is a Windows checkout
+and `/tmp` isn't guaranteed to map anywhere useful):
 ```bash
 mkdir -p .submission_check
 tar -xzf submissions/submission_03_pult_munki_*.tar.gz -C .submission_check
@@ -270,9 +306,15 @@ kaggle competitions submit -c pokemon-tcg-ai-battle \
 (with `just`: `just upload submissions/submission_03_pult_munki_<timestamp>.tar.gz` —
 defaults to the newest `submissions/*.tar.gz` if you omit the path.)
 
-`kaggle --version` / `kaggle config view` confirm the CLI is already
-installed and authenticated on this machine (user `naqibl`) — no extra setup
-needed.
+`kaggle --version` / `kaggle config view` show the CLI is installed with a
+saved username (`naqibl`), but that only proves a config file exists, not
+that its token still works — verified by actually calling an authenticated
+endpoint (`kaggle competitions submissions -c pokemon-tcg-ai-battle`), which
+currently 401s. **The Kaggle CLI is not authenticated on this machine** —
+generate a fresh token first (kaggle.com → Account → API → Create New Token,
+drop the downloaded `kaggle.json` into `~/.kaggle/`) before any of the
+commands below will work. The website upload flow is unaffected if you need
+to submit before fixing this.
 
 Poll until it finishes scoring:
 ```bash

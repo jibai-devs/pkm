@@ -32,7 +32,7 @@ NEUTRAL_TARGET_ID = 119
 
 
 def _attack_obs(
-    target_id: int, target_hp: int, target_max_hp: int = 300
+    target_id: int, target_hp: int, target_max_hp: int = 300, attack_id: int = ATTACK_ID
 ) -> Observation:
     raw = {
         "select": {
@@ -43,7 +43,7 @@ def _attack_obs(
             "remainDamageCounter": 0,
             "remainEnergyCost": 0,
             "option": [
-                {"type": int(OptionType.ATTACK), "attackId": ATTACK_ID},
+                {"type": int(OptionType.ATTACK), "attackId": attack_id},
                 {"type": int(OptionType.END)},
             ],
             "deck": None,
@@ -143,6 +143,35 @@ def test_lethal_this_turn_false_when_damage_insufficient():
     out = lethal_this_turn(obs, None)
     assert out[0] == 0.0
     assert out[1] == 0.0
+
+
+# Cruel Arrow (attackId 183): declared damage=0, text "This attack does 100
+# damage to 1 of your opponent's Pokemon." -- a fixed constant entirely
+# hidden from the raw damage field before attack_damage_estimator.py.
+# Regression coverage for the bug documented in
+# docs/superpowers/plans/2026-07-20-attack-damage-estimator.md.
+CRUEL_ARROW_ID = 183
+CRUEL_ARROW_DAMAGE = 100
+
+# Comet Punch (attackId 6): "Flip 4 coins. This attack does 30 damage for
+# each heads." Expected value is 60, but it's not a guarantee.
+COMET_PUNCH_ID = 6
+
+
+def test_lethal_this_turn_true_for_text_computed_fixed_damage():
+    # Previously: atk.damage == 0 for Cruel Arrow, so this could never be
+    # flagged lethal no matter the target's HP.
+    obs = _attack_obs(WEAK_TARGET_ID, target_hp=CRUEL_ARROW_DAMAGE, attack_id=CRUEL_ARROW_ID)
+    out = lethal_this_turn(obs, None)
+    assert out[0] == 1.0
+
+
+def test_lethal_this_turn_false_for_coin_flip_even_when_expected_damage_suffices():
+    # Expected value (60) would clear this HP threshold, but a coin flip is
+    # never a certainty -- must stay 0.0, not silently claim a guaranteed KO.
+    obs = _attack_obs(WEAK_TARGET_ID, target_hp=60, attack_id=COMET_PUNCH_ID)
+    out = lethal_this_turn(obs, None)
+    assert out[0] == 0.0
 
 
 # --- type_effectiveness -------------------------------------------------------

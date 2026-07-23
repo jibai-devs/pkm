@@ -26,6 +26,7 @@ from pkm.new_agents.agent_000_dragapult.aux_tasks import (
     active_tasks,
     default_weights as _default_aux_weights,
 )
+from pkm.new_agents.agent_000_dragapult.deck import DEFAULT_DECK
 from pkm.new_agents.agent_000_dragapult.encoder import StateEncoder
 from pkm.new_agents.agent_000_dragapult.features import FEATURE_VERSION
 from pkm.new_agents.agent_000_dragapult.model import PolicyValueModel
@@ -52,6 +53,11 @@ class ModelConfig:
     n_layers: int = 1
     ff_mult: int = 4  # FFN width = ff_mult * d_entity in the extra layers
     dropout: float = 0.0  # dropout in the extra transformer layers
+    # Pre-LN residual around the base attention layer. False == v1 (no skip there;
+    # only the extra transformer layers are residual). True makes the whole trunk
+    # uniformly residual — recommended for deep (large/xxl) nets. Changes params
+    # (adds a LayerNorm), so it's part of the config hash and checkpoint identity.
+    base_residual: bool = False
 
 
 # Named size presets for one-word scaling from the CLI (`--model <name>`).
@@ -120,6 +126,11 @@ class TrainConfig:
     minibatch_size: int = 64
     epochs_per_update: int = 4
     lr: float = 3e-4
+    # LR schedule over the run: "constant" (default, v1 — fixed lr) or "cosine"
+    # (CosineAnnealingLR from lr down to lr_min over the planned updates; good for
+    # long runs). Part of the config hash; old checkpoints backfill to constant.
+    lr_schedule: str = "constant"
+    lr_min: float = 0.0  # cosine floor (eta_min); e.g. 1e-5 for a 1e-4 start
     gamma: float = 0.997  # long horizon (~77 decisions/game)
     gae_lambda: float = 0.95
     clip_eps: float = 0.2
@@ -169,6 +180,11 @@ class RunConfig:
     feature_version: str = FEATURE_VERSION
     checkpoint_every_updates: int = 64
     keep_last: int = 5
+    # Which registered deck (deck.DECKS) both self-play seats pilot for this run.
+    # The learned vocabulary spans *all* decks, so this only chooses the 60-card
+    # list played — not the network shape. Part of the config hash (a run's deck
+    # is part of its identity); old checkpoints without it backfill to the default.
+    deck: str = DEFAULT_DECK
 
 
 def _hash_dict(d: dict[str, Any]) -> str:
@@ -212,6 +228,7 @@ def build_model(cfg: Config | ModelConfig | None = None) -> PolicyValueModel:
         n_layers=mc.n_layers,
         ff_mult=mc.ff_mult,
         dropout=mc.dropout,
+        base_residual=mc.base_residual,
     )
     # Auxiliary heads are a *training* concern, so they're built only when a full
     # Config (with a TrainConfig) is given — i.e. training / resume / eval / the

@@ -2,7 +2,7 @@
 
 **Reminder: Update this file whenever something significant changes** — new training results, new agents, architecture changes, submission status, etc. Stale docs are worse than no docs.
 
-## Current Progress (as of 2026-07-18)
+## Current Progress (as of 2026-07-19)
 
 | Phase | Status | Details |
 |-------|--------|---------|
@@ -12,6 +12,14 @@
 | Agent profiles | **Done** | Per-agent directories for checkpoints, metrics, runs. Agents: `00_basic`, `01_psychic`, `02_dragapult`, `03_pult_munki` |
 | Heuristics integration | **Done (Tasks 1-8)** | `GameContext`/`DeckTracker`, `FeatureSpec` registry, Tier-1 deterministic features, pooled deck-ledger, opponent-archetype auxiliary head. Task 9 (hard-rule forced picks) deliberately not built. Full write-up: `docs/ARCHITECTURE.md` |
 | Reward-shaping merge | **Done** | Deck-specific (Dreepy/Drakloak/Dragapult ex/Budew/Xerosic) reward terms merged from `refactor-to-prepare-for-heuristics-integration`, off by default (`pkm/rl/reward_terms.py`) |
+| Opponent-archetype classifier | **Done (Parts 1-2)** | Synthetic-data supervised classifier over 25 `staples.json` archetypes, wired into the encoder (belief feature) + MCTS determinization, both opt-in. Full plan/status: `docs/opponent-archetype-classifier-plan.md`. **Known breakage:** the belief-feature resize invalidated existing policy checkpoints, pending the full retrain Part 3 sets up for. |
+| Opponent pool decklists (Part 3a) | **Done (25/25)** | Real, legal 60-card decklist per `staples.json` archetype, scraped from limitlesstcg tournament lists via `pkm/archetype/scrape_decklist.py` and converted with `pkm/archetype/build_pool_deck.py` → `deck/pool_<id>_<slug>.csv`. |
+| Pool bots (Part 3b, solo PPO) | **Done (25/25)** | Fallback path (plan §3b/3c "as first written", not simultaneous population training): each `deck/pool_*.csv` trained solo via unmodified `pkm/rl/train.py`, 100 iters/16 games/agent, `agents/pool_<id>_<slug>/`. Eval-vs-random 65-100% across all 25 (worst: `pool_361_metagross_metal_maker` 65%, `pool_362_mega_starmie_ex` 70%). **Confirmed via export attempt (2026-07-19):** the known belief-feature-resize breakage is concrete — `03_pult_munki`'s committed checkpoint is stamped `opponent_archetype_belief` dim=4 (old dormant 3-class+Other trunk head), current registry expects dim=26 (25 real archetypes + Other from the live Part 1 classifier); that checkpoint cannot be exported/used until the full retrain. Part 3c (below) closes the "not yet started" gap this line used to flag. |
+| Cross-archetype sampling (Part 3c) | **Done (implementation, 2026-07-19)** | `GameSpec.opponent_deck` (`pkm/rl/rollout.py`) lets a pooled opponent bring its own deck instead of mirroring the trainee's; `pkm/rl/opponent_pool.py:load_pool_bots()` loads all trained `agents/pool_*/` checkpoints; `pkm train --archetype-pool [--archetype-pool-prob 0.2]` opt-in, default off (backward compatible). **Caveat found while wiring it up:** `pkm/cli/__init__.py`'s `train` command is a hand-duplicated shim over `pkm/rl/train.py`'s own typer app (not a passthrough) — any new flag must be added to *both* or it silently no-ops from the actual `pkm train` entry point; hit and fixed this once already for the new flags. Smoke-tested end-to-end against real pool-bot checkpoints (5 iters, throwaway agent). |
+| Belief-in-encoder wired into training (Part 2a → train.py) | **Done (2026-07-19)** | Part 2a's `NumpyArchetypeClassifier`/`compute_belief` were only ever exercised at the `TorchPolicy`-unit level (`tests/test_archetype_integration.py`) — `pkm/rl/train.py` never actually constructed a classifier, so every training run to date (including the original `03_pult_munki` 1000-iter run) saw an all-zero belief feature regardless of the dim-4→26 resize. Now: `pkm train --archetype-belief [--archetype-weights pkm/archetype.npz]` loads the classifier once and attaches it to the trainee's `TorchPolicy` only (never the frozen opponent's) via `play_one`/`parallel_rollout.py` (plumbing verified by `tests/test_rl.py::test_play_one_classifier_reaches_trainee_not_opponent`, a monkeypatch spy test). Smoke-tested standalone, combined with `--archetype-pool`, and under `--workers 2` (confirms the classifier — plain numpy arrays — pickles fine across worker processes). Opt-in, off by default. |
+| `03_pult_munki` full retrain (Milestone 8) | **Done (2026-07-19)** | Fresh run (old checkpoint incompatible, preserved at `agents/03_pult_munki/checkpoints_pre_belief_resize/`): `pkm train --agent 03_pult_munki --iterations 2000 --games 16 --eval-every 10 --archetype-pool --archetype-pool-prob 0.4 --archetype-belief`. `--archetype-pool-prob` bumped from the 0.2 default and iterations doubled from the original run's 1000 — both user calls, not ablation-derived. Finished all 2000 iterations, 100% eval-vs-random. This checkpoint became Milestone 9's population-training starting point (below) — superseded by that run's iter-2370 checkpoint. **The checkpoint itself no longer exists as a separate file** (found 2026-07-20, scoping Phase 3 of the attack-damage-estimator/belief-classifier-routing plans): `train.py` and `population_train.py` write numbered snapshots to the same `checkpoints/` directory with the same naming scheme but independently-restarting iteration counters, so Milestone 9's own iteration 2000 silently overwrote the file Milestone 8's iteration 2000 had written. Verified via `population_train.csv` having its own row at iter=2000 and smooth mtime pacing around that file with no gap. Not backed up to Hugging Face either. So the "Verification #5 ablation" (population training vs. Milestone 8's frozen-pool design) this line used to point at **can no longer be run as originally planned** — there's nothing to compare against except `ppo_latest.pt` itself. See `docs/superpowers/plans/2026-07-20-phase3-retrain-and-measure.md` Finding 1. |
+| Pool bots, 26th addition | **Done (2026-07-19)** | `pool_400_mega_abomasnow_ex` added alongside the original 25: real decklist scraped from a user-supplied limitlesstcg tournament-list URL, solo-trained the same way as Part 3b (100 iters/16 games, 95% eval-vs-random). **Deliberately pool-bot-only, not added to `staples.json`** — no aggregate presence-percentage stats page exists for this archetype (low-representation, ~39% overall win rate on limitlesstcg), and adding it to the classifier would have bumped `BELIEF_DIM` (25→26 archetypes), which is baked into *every* model's input size as a GLOBAL feature (`pkm/rl/features.py:261-262`) — would have invalidated all 26 existing checkpoints simultaneously, including the Milestone 8 retrain that had just finished. Full-archetype/classifier integration for this deck remains a separate, not-yet-done follow-up. |
+| Population training (Milestone 9) | **Run (partial), 2026-07-19/20** | `pkm population-train --iterations 3000 --games-per-pairing 2 --workers 8`, anchor `03_pult_munki` vs all 26 pool bots (25 + Mega Abomasnow). Stopped by user request at iteration ~2375/3000 (not a crash). All 27 members' `ppo_latest.pt` confirmed current as of iteration 2370's checkpoint cycle (verified: present, uniform size, valid stamp sidecars). **Snapshot eval** (`pkm eval-vs-pool --agent 03_pult_munki --games 20`, belief-off, since this predates the Finding-1 fix below): 60.1% average win rate across the 26 pool bots; best `pool_320_n_s_zoroark_ex` (100%), worst `pool_400_mega_abomasnow_ex` (5%). **Corrected (belief-on, matching production) re-run: 62.7% overall, 35% vs `pool_400_mega_abomasnow_ex` — see "Abomasnow Matchup Investigation" below, both findings now root-caused, Finding 1 fixed.** This is the raw material for the plan's Verification #5 ablation (population training vs. Milestone 8's frozen-pool design) once the same eval is run against the Milestone 8 checkpoint. Full plan/status: `docs/opponent-archetype-classifier-plan.md` §3b+3c. |
 | Metrics & monitoring | **Done** | CSV logging + Plotly notebook |
 | Kaggle submission | **Working, verified** | `pkm export --agent <name> pkm/policy.npz` + `bash submit.sh <name>` — see `docs/TRAINING_AND_SUBMISSION.md` for the full runbook |
 
@@ -37,7 +45,14 @@
 4. **Kaggle CLI auth is broken on this machine** — `kaggle competitions submit`/`logs`/`submissions` all 401. `~/.kaggle/kaggle.json` needs a fresh token (kaggle.com → Account → API → Create New Token) before the CLI can be used again; the website upload flow still works.
 5. **Hyperparameter sweep** — LR, games/iter, pool size, eval frequency
 6. **Larger model** — wider MLP, more embedding dims, attention over options
-7. **Multi-deck training** — sample opponent decks from a pool for robustness (also unblocks the opponent-archetype head being anything but single-class)
+7. **Multi-deck training** — all 26 real opponent decklists are sourced (25 from Part 3a + `pool_400_mega_abomasnow_ex`), 26 solo pool bots are trained, cross-archetype sampling is implemented (Part 3c, `pkm train --archetype-pool`), the classifier's belief is wired into training (`--archetype-belief`), Milestone 8's frozen-pool retrain finished (2000 iters), and population training has now actually run (Milestone 9, partial — 2375/3000 iterations, stopped by user; see Current Progress above). **Next:** resume/extend the population-training run if desired, then run the plan's Verification #5 ablation properly (`pkm eval-vs-pool` against both the Milestone 8 checkpoint and the population-trained one, apples-to-apples) before flipping any defaults (Milestone 10). ~~Root-cause the `pool_400_mega_abomasnow_ex` 5%-win-rate outlier~~ — done, see "Abomasnow Matchup Investigation" below: the number itself was an artifact of `eval-vs-pool`'s methodology, and the real (smaller, ~45%) gap traces to a concrete feature bug. See `docs/opponent-archetype-classifier-plan.md` Part 3.
+8. **Bulk-upload the population-trained roster to Hugging Face** — all 27 checkpoints (anchor + 26 pool bots) exist locally only; see "Population-Trained Bot Roster" below for the upload loop and analysis workflow. Not yet done.
+9. ~~Fix the variable-damage blind spot in `lethal_this_turn`/`attack_damage`~~ — **Phase 1 and Phase 2 done 2026-07-20** (`pkm/rl/attack_damage_estimator.py`, 15 patterns incl. Hammer-lanche's own deck-mill estimate, 175 tests passing). **Phase 3 (retrain-and-measure) also done 2026-07-20 — and it didn't help.** Two retrain attempts (300 then 1500 more iterations, bundling both this fix and belief-classifier-routing's) showed no real improvement on the matchup that motivated all of this; a post-retrain replay re-analysis found the underlying casualty pattern unchanged. See "Abomasnow Matchup Investigation" below for the full numbers, and What's Next #13 for the follow-up direction this points to.
+10. ~~Re-measure `eval-vs-pool` with a wired-in archetype classifier~~ — done 2026-07-20, now defaults on (`--no-archetype-belief` for the old baseline). See "Abomasnow Matchup Investigation" below.
+11. **Decide whether `population_train.py` should compute live belief during rollout** — Milestone 8 trained `03_pult_munki` with real `--archetype-belief` values; Milestone 9's `population_train.py` never attaches a classifier, so all 2375 population-training iterations saw belief≡0, likely eroding whatever Milestone 8 learned about that feature before deployment (which does feed it live values). Scoped (Phase 2/3) in `docs/superpowers/plans/2026-07-20-belief-classifier-routing.md`; not yet implemented.
+12. **Rethink how attack card text reaches the network at all — the regex approach has a real, structural ceiling, not just a to-do list of missing patterns.** Checked directly (2026-07-20, not just inferred): of the 195 real attacks whose damage is computed from card text, `pkm/rl/attack_damage_estimator.py`'s 14 patterns match only **86 (44%)** by direct text search, not the "broader than expected" coverage first claimed (that claim was measured against an artificially empty test board, which hid the gap). Of the 109 unmatched: ~25 are correctly still 0 (pure heals/status effects, not damage), ~35-40 are real misses worth adding as more patterns (damage scaled by counters already on a Pokémon, energy attached to the *opponent's* side, "discard up to N energy" — the player's own free choice, so fully computable, not random like Hammer-lanche), and ~40-45 need either a card name a substring the data doesn't tag ("Ancient", "Team Rocket's", specific species names) or genuinely hidden information (opponent's hand *contents*, not just size). That last bucket is the real signal: **hand-writing a regex pattern per mechanism doesn't converge** — every card-set update adds new phrasings, and there will always be a tail no formula-per-shape approach reaches. Worth exploring a fundamentally different representation before sinking more effort into pattern #16, #17, ...: e.g. a one-time LLM-assisted pass that extracts a structured formula for every attack (not just the ones regex happens to recognize, and reviewable/verifiable per-card rather than inferred), and/or feeding a text embedding of the card's raw text as a supplementary network input so the model has *some* signal about mechanics nobody's hand-modeled yet, instead of a hard 0. Not scoped yet — this is a flag to think about the architecture before continuing to extend the current approach piecemeal.
+13. **Give the network a direct, dense training signal for card/attack importance, instead of relying on diffuse win/loss to teach it indirectly.** Motivated by the Abomasnow replay re-analysis (2026-07-20, see "Abomasnow Matchup Investigation" below): after both the attack-damage-estimator fix (Hammer-lanche's real expected damage is now visible via `attack_damage`) and ~1800 additional training iterations with equal-odds exposure to all 26 pool decks, `03_pult_munki` still loses its entire fragile support line to Hammer-lanche at basically the same rate as before (76 vs. 73 KOs scored against it, Hammer-lanche still the dominant/most-decisive move in nearly every game) — the fix changed what the feature *reports*, not what the AI actually *does*. Card ID embeddings (used for board_cards/hand_cards/etc.) could in principle learn "this specific card tends to be dangerous" purely through experience, but the only signal currently reaching them is the final win/loss (+ potential-based shaping) at the end of a ~100-turn game — a very indirect path for a gradient to travel to connect one early/mid-game card to a late-game loss. The archetype-belief head (Task 8) already demonstrates a better pattern for exactly this problem: instead of hoping archetype-recognition would emerge from the policy/value loss alone, it got its own auxiliary training objective (predict the archetype), a much denser and more direct teacher. The same approach could apply to card/attack danger: an auxiliary head trained to predict something like "how much damage will this Pokémon end up dealing this game" or "was this card involved in a KO," giving the embeddings a direct reason to encode danger rather than waiting for it to fall out of diffuse reward. Would pair naturally with #12 above if the auxiliary objective is trained on card-text embeddings rather than card ID alone — the network could then generalize "cards whose text looks like this tend to be dangerous" across cards it's rarely played against, not just ones it's memorized through repeated exposure. Not scoped yet.
+14. **Every existing `pkm/rl/features.py`-based checkpoint is now stamp-incompatible** — merging `feature/opponent-archetype-system` into master (2026-07-21) combined two independent registry extensions: this branch's `opponent_archetype_belief` (26-dim) and master's new always-on `PER_SLOT` `enemy_threat` feature (`pkm/rl/deterministic_features.py`, energy-scaled threat per opposing Pokémon). Discovered via `pytest`: `tests/test_main.py` fails to even collect because `main.py` loads `pkm/policy.npz` at module level, and that checkpoint's stamp (registry without `enemy_threat`) no longer matches the merged registry — a `FeatureStampMismatch`. This isn't a code bug (174/175 tests pass; the mismatch check is working as designed) — it's the same category of breakage as the belief-feature resize documented above, just triggered by combining two independently-evolving feature lists instead of one branch's own change. **Concretely stale:** `pkm/policy.npz` and all 27 checkpoints just pushed to `pkm_data` (`agents/03_pult_munki` + 26 `pool_*`, see "Population-Trained Bot Roster" below) — none were trained with `enemy_threat` in the registry, so none can be exported/loaded through the merged code until retrained. Not yet retrained; next full training run for any of these agents should pick up both feature sets at once (same "bundle it into one retrain, not two" lesson from the Phase 3 attack-damage-estimator work above).
 
 ## Build & Run
 ```bash
@@ -70,6 +85,12 @@ pytest tests/              # run tests
   - `pkm/rl/reward_terms.py` — reward-shaping term registry (`POTENTIAL_TERMS`/`DIRECT_TERMS`/`DEFAULT_WEIGHTS`), per-agent weights JSON
   - `pkm/rl/parallel_rollout.py` — `ProcessPoolExecutor` self-play (`pkm train --workers N`)
 - `pkm/heuristics/` — `GameContext` (per-game memory) + `DeckTracker` (own-deck card-location tracking, prize deduction)
+- `pkm/archetype/` — opponent-archetype classifier (Parts 1-2) + real pool-deck sourcing (Part 3a)
+  - `pkm/archetype/archetypes.py`, `pkm/archetype/aliases.py` — `staples.json` name → engine `card_id` resolution (exact match, then hand-maintained alias table for collisions)
+  - `pkm/archetype/gen.py`, `pkm/archetype/numpy_model.py` — synthetic training-data generator + numpy-forward classifier twin (Kaggle, no torch)
+  - `pkm/archetype/build_pool_deck.py` — converts a real `entries.json` decklist into a legal `deck/pool_<id>_<slug>.csv`; best-effort multi-match resolution (unlike the classifier's strict resolution)
+  - `pkm/archetype/scrape_decklist.py` — scrapes a `limitlesstcg.com/decks/list/<id>` tournament decklist page straight into the same pipeline (`python -m pkm.archetype.scrape_decklist <url> <archetype_id> <slug>`)
+  - `docs/opponent-archetype-classifier-plan.md` — full plan + status (Parts 1/2/3)
 - `pkm/cli_deck.py` — deck management CLI (list, show, convert)
 - `docs/ARCHITECTURE.md` — full technical walkthrough of the heuristics-integration architecture (GameContext/registry/trunk/heads/reward-shaping/MCTS boundary)
 - `docs/TRAINING_AND_SUBMISSION.md` — runbook: start/background/monitor a training run, export, back up to HF, build + upload a Kaggle submission
@@ -85,6 +106,7 @@ pytest tests/              # run tests
 - `deck/01_psychic.csv` — Psychic Toolbox (Slowking + Mega Kangaskhan ex)
 - `deck/02_dragapult.csv` — **default deck**: Dragapult ex / Dusknoir (Psychic/Dark)
 - `deck/03_pult_munki.csv` — Dragapult ex / Munkidori, **no Dusknoir**, carries Xerosic's Machinations — the deck the merged reward-shaping terms actually target
+- `deck/pool_<id>_<slug>.csv` — 26 real, legal 60-card decklists: 25 from `staples.json` archetypes (Part 3a) plus `pool_400_mega_abomasnow_ex` (pool-bot-only, not in `staples.json` — see Current Progress). Opponent pool for population training (Milestone 9, `pkm/rl/population_train.py`)
 - `submit.sh` — creates a Kaggle submission bundle for any agent (`bash submit.sh <agent>`); no longer hardcoded to `02_dragapult`; validates `deck/<agent>.csv` exists first
 - `docs/RL_PLAN.md` — RL self-play design (Phase 1 PPO, Phase 2 IS-MCTS/ExIt)
 - `replay/` — replay viewer + data
@@ -170,6 +192,30 @@ Two things that are easy to get wrong here, both verified by measurement:
   buffer. Use `textual.log`.
 
 Design + rationale: `docs/superpowers/specs/2026-07-13-human-tui-battle-design.md`.
+
+## Human Play (Browser / React GUI)
+Same game as the TUI, but in the browser with real card art — pick opponent and
+deck on a pre-game screen, then click options to play. Reuses the `replay/07`
+board components; the engine side reuses the TUI's `ThreadedEnvSession`.
+```bash
+just play-web-build         # build the SPA + serve everything at :8000
+# open http://localhost:8000/?mode=play
+# --- or, for live UI dev with hot reload (two terminals): ---
+just play-web               # terminal 1: Python API + session bridge (:8000)
+just play-web-dev           # terminal 2: Vite dev server (:5175/?mode=play)
+```
+Architecture: `pkm/web/server.py` is a stdlib `http.server` long-poll bridge —
+a blocking `GET /api/event` *is* `session.next_event`, a `POST /api/submit` *is*
+`session.submit`. No new Python deps, no async; `ThreadingHTTPServer` gives each
+long-poll its own thread. Option **labels are rendered server-side** with the
+TUI's `pkm/tui/labels.option_label` (not reimplemented in TS) and shipped with
+the observation; the React `src/live/` modules turn a single live obs into the
+same `MergedStep` the replay `Board`/`LogPanel` already render. The SPA is served
+by the Python server in prod (`?mode=play`); in dev Vite proxies `/api` to it.
+Two inherited gotchas still apply: kaggle's timeouts are disarmed by
+`ThreadedEnvSession` (or the human loses on the clock), and nothing may `print()`
+while the human agent blocks (kaggle's process-wide `redirect_stdout` swallows
+it) — the server writes to sockets, not stdout, so it is unaffected.
 
 ## Custom Agents
 Agents are plain functions with signature `def agent(obs: dict) -> list[int]`.
@@ -261,6 +307,211 @@ locally (268 MB) and are not on HF. Only `*_latest` checkpoints survive.
 Note: the repo has no LICENSE, so the HF model card omits a license field —
 public but "all rights reserved" by default.
 
+## Population-Trained Bot Roster (Milestone 9 run, 2026-07-19/20)
+27 independently-trained checkpoints from the population-training run above:
+the anchor `03_pult_munki` plus all 26 `agents/pool_*/` bots. All checkpoints
+are gitignored (local-only) — nothing here is backed up yet.
+
+**Locating the weights:**
+- `agents/03_pult_munki/checkpoints/ppo_latest.pt` — the anchor
+- `agents/pool_<id>_<slug>/checkpoints/ppo_latest.pt` — each pool bot (one
+  per `deck/pool_<id>_<slug>.csv`)
+- Per-member training curves: `agents/<name>/metrics/population_train.csv`
+  (kept separate from `ppo_train.csv` so Part 3b's original solo-training
+  history isn't overwritten)
+- `AgentProfile` resolves every name to `deck/<name>.csv` 1:1
+  (`pkm/agents/profile.py`) — this holds for the anchor and every pool bot,
+  no exceptions, which is what the upload loop below relies on.
+
+**Analyzing bot play:**
+```bash
+# aggregate per-archetype win rate for any profile against the whole pool
+# (torch checkpoints directly, no export needed) -- already run for the
+# anchor above, 62.7% overall (belief-on default as of 2026-07-20; pass
+# --no-archetype-belief for the old zero-belief baseline)
+pkm eval-vs-pool --agent 03_pult_munki --games 20 [--pool-glob "pool_*"]
+
+# a single watchable replay between two specific bots, each on its own deck.
+# pkm play's p0/p1 shared one deck+weights pair before 2026-07-20; --p0-agent/
+# --p1-agent (pkm/rl/play.py) resolve each side from its own AgentProfile
+# instead. Needs each side's checkpoint exported to .npz first (pkm play's
+# `neural` agent type is numpy-inference only, same as Kaggle):
+pkm export agents/03_pult_munki/checkpoints/ppo_latest.pt agents/03_pult_munki/checkpoints/policy.npz
+pkm export agents/pool_400_mega_abomasnow_ex/checkpoints/ppo_latest.pt agents/pool_400_mega_abomasnow_ex/checkpoints/policy.npz
+pkm play --p0 neural --p1 neural \
+  --p0-agent 03_pult_munki --p1-agent pool_400_mega_abomasnow_ex \
+  --html result.html --replay replay.json
+just replay-react file=/replay.json    # step through it at localhost:5175
+```
+Verified end-to-end 2026-07-20 (real exported weights, real cross-deck game,
+loadable replay.json). `--p0-agent`/`--p1-agent` fall back to `--agent`/
+`--deck`/`--weights` when omitted, so every pre-existing `pkm play` call is
+unaffected; the CLI shim in `pkm/cli/__init__.py` was updated in the same
+change (see the Part 3c "hand-duplicated shim" gotcha above — still applies
+to every new `pkm play` flag, not just `pkm train`'s).
+
+**Bulk-uploading all 27 to Hugging Face** (not yet done — do before any
+future cleanup of `agents/`, since checkpoints are gitignored and HF is the
+only durable copy, same rationale as the single-agent section above):
+```bash
+for d in agents/03_pult_munki agents/pool_*; do
+  name=$(basename "$d")
+  hf upload TomatoCream/pkm-cabt-ppo "$d/checkpoints/ppo_latest.pt" "population_2026-07-20/$name/ppo_latest.pt" --repo-type model
+  hf upload TomatoCream/pkm-cabt-ppo "$d/checkpoints/ppo_latest.pt.stamp.json" "population_2026-07-20/$name/ppo_latest.pt.stamp.json" --repo-type model
+  hf upload TomatoCream/pkm-cabt-ppo "deck/$name.csv" "population_2026-07-20/$name/deck.csv" --repo-type model
+  hf upload TomatoCream/pkm-cabt-ppo "$d/metrics/population_train.csv" "population_2026-07-20/$name/population_train.csv" --repo-type model
+done
+```
+Needs a **write** token (`hf auth login`), same requirement as the section
+above. Uploads raw torch checkpoints, not `.npz` exports — export per-bot
+only if/when a specific one is actually going to be played with `pkm play`
+or bundled for Kaggle.
+
+## Abomasnow Matchup Investigation (2026-07-20)
+Started from the "5%, worst matchup" line in the Milestone 9 snapshot eval
+(above): `03_pult_munki` vs `pool_400_mega_abomasnow_ex`. Two distinct findings
+came out of it — a methodology bug in how that 5% number was measured, and a
+real (much smaller) matchup weakness with a concrete root cause. Neither fix
+has been applied yet; this is diagnostic only.
+
+**Finding 1 — the 5% figure doesn't reproduce; `eval-vs-pool` measured a
+different input distribution than deployment sees. FIXED 2026-07-20.** Ran 20
+games through the actual production path instead (`pkm play` with each side's
+exported `policy.npz`, alternating who goes first — script:
+`scripts/run_matchup_replays.py`): **9/20 (45%)**, not 5%. Root cause:
+- `pkm/rl/eval_vs_pool.py` built `TorchPolicy` directly with no archetype
+  classifier attached, so the `opponent_archetype_belief` GLOBAL feature was
+  always zero for every game it played.
+- `pkm/agents/neural_agent.py:make_neural_agent` — what `pkm play`, the above
+  script, and **the real Kaggle submission** all use — auto-loads
+  `pkm/archetype.npz` by default (it's present in the repo root and gets
+  bundled by `submit.sh`) and computes a live, non-zero belief every decision.
+
+Fixed by wiring a `NumpyArchetypeClassifier` into both sides of every
+`eval-vs-pool` game (see
+`docs/superpowers/plans/2026-07-20-belief-classifier-routing.md` Phase 1 for
+the full design/rationale — belief now defaults **on** here, unlike
+`pkm train`'s opt-in `--archetype-belief`, specifically because this tool
+exists to measure what a checkpoint actually does and production always
+computes live belief; `--no-archetype-belief` reproduces the old baseline).
+Re-ran the full 26-bot eval after the fix: **62.7% overall** (was 60.1%),
+**35% vs `pool_400_mega_abomasnow_ex` specifically** (was 5%; in the same
+ballpark as the 45% measured via real `pkm play` games above — different
+random sample, same conclusion). The old 5% was a measurement artifact, not
+a real result. Phase 2 (wiring the same classifier into
+`pkm/rl/population_train.py`'s actual training loop, which has the same gap)
+is scoped in that plan file but not yet done.
+
+**Finding 2 — the real, smaller gap traces to a variable-damage blind spot in
+two Tier-1 features. Phase 1 FIXED 2026-07-20.** Decoded the 20 replays' structured `logs` (script:
+`scripts/analyze_matchup_replays.py`; a player's `observation.logs` is a
+since-last-decision buffer, only fresh at that player's `ACTIVE` steps —
+concatenating both players' ACTIVE-step logs and de-duping the union
+reconstructs the full public event history without the double-counting the
+raw per-step buffers would otherwise cause). Across the 20 games, `03_pult_munki`
+("A") lost 73 Pokémon total vs. `pool_400_mega_abomasnow_ex` ("B") losing 31 —
+A's *whole* fragile support/tech line dies repeatedly (Budew, Dreepy, Drakloak,
+Munkidori, Meowth ex, Moltres, Fezandipiti ex), not just its main attacker.
+
+The mechanism: B's signature attack, **Hammer-lanche** (Mega Abomasnow ex,
+`attackId 1046`), was the single most-used move in every game (67 uses across
+20 games) and the most common finishing blow. Its card data declares
+`damage: 0` — the real damage is computed from card text at runtime
+("discard the top 6 cards of your deck; 100 damage per Basic {W} Energy
+discarded that way", i.e. 0–600 damage, genuinely random). Two features read
+the static `damage` field directly and are blind to this:
+- `pkm/rl/deterministic_features.py:lethal_this_turn` (line ~40):
+  `opp_active.hp - atk.damage <= 0` — for Hammer-lanche `atk.damage` is
+  always `0`, so this **never** flags it as lethal no matter how much real
+  damage is about to land.
+- `pkm/rl/features.py:_attack_damage` (line ~364): same static field, fed to
+  the network as the per-option "how hard does this attack hit" input —
+  Hammer-lanche always looks like a 0-damage move to the trained policy.
+
+This is a **general limitation**, not an Abomasnow-specific one: any attack
+whose real damage is computed from card text rather than a flat `damage`
+field (energy-mill, coin-flip, prize-count-based, etc.) defeats both
+features the same way. Abomasnow just leans on this attack shape harder than
+anything else currently in the pool.
+
+Fixed (Phases 1 and 2 of `docs/superpowers/plans/2026-07-20-attack-damage-estimator.md`,
+both done 2026-07-20) by a new `pkm/rl/attack_damage_estimator.py`: 15 regex
+patterns over real card text, verified against all 1556 attacks in the card
+database (0 exceptions, with and without a real `GameContext`). Phase 1 (14
+patterns) covers everything computable from the observation alone -- coin
+flips (expected value), fixed damage-counter placement, energy attached to
+the attacker, discard-pile energy counts, benched-Pokémon count, prizes
+taken, teammate-has-a-named-attack, opponent hand size, Pokémon Tool count,
+and a general fixed "this attack does N damage to ..." constant (the single
+biggest coverage win). Phase 2 adds the 15th pattern: Hammer-lanche's own
+deck-mill shape ("discard the top N cards of your deck, D damage per
+matching card discarded that way"), estimated via a hypergeometric expected
+value over `ctx.tracker`'s (GameContext/DeckTracker) known remaining-deck
+composition -- unbiased even before any full-deck reveal, since the
+undifferentiated deck-or-prize bucket has the same matching-card density as
+the true deck alone, in expectation (see the module's
+`_remaining_deck_energy_fraction` docstring for the exchangeability
+argument). `_attack_damage` and `lethal_this_turn` both wired in; the latter
+uses a separate `min_guaranteed_damage` that excludes all 4
+expected-value-only patterns (3 coin-flip + the deck-mill one), so an attack
+whose *expected* damage clears the KO threshold — including Hammer-lanche
+itself — is never claimed as a guaranteed kill. Combined test suite: 175
+passing. **Retraining on the changed feature (Phase 3) is still not done**
+— this only changes what the feature *reports*; the current checkpoint
+hasn't learned to respond to the new values yet. Bundle both phases' fixes
+into one retrain-and-measure pass, not two, when that happens.
+
+**Phase 3 (retrain-and-measure) result: run, and it didn't work — 2026-07-20.**
+Resumed `03_pult_munki` from `ppo_latest.pt` with both fixes bundled in
+(`pkm train --archetype-pool --archetype-pool-prob 1.0 --archetype-belief`,
+switched from `population-train` to `train`'s frozen-pool mode specifically
+for speed — cut a ~90 min run down to ~7 min/300 iterations). Two attempts,
+300 then 1500 more iterations (`archetype-pool-prob` raised from 0.4 to 1.0
+between them so every game samples one of the 26 decks with equal
+probability, not mostly self-mirror). Neither moved the needle: Abomasnow-specific
+win rate (n=100, the only trustworthy sample size here) went 28.0% (before
+Phase 3) → 22.0% (attempt 1) → 29.0% (attempt 2) — back to baseline, no real
+gain. Overall pool average stayed flat at 60-62% throughout every change made
+today. Re-ran the replay/log analysis on fresh post-retrain games and found
+the underlying pattern **completely unchanged**: KOs scored against
+`03_pult_munki` actually ticked up slightly (76 vs. the original 73),
+Hammer-lanche is still the dominant, most-decisive move in nearly every game,
+and the same fragile support line (Budew/Drakloak/Dreepy/Munkidori/Meowth
+ex/Moltres/Fezandipiti ex) still dies repeatedly. Conclusion: the fix changed
+what the `attack_damage` feature *reports*, not what the AI actually *does*
+— giving it an accurate magnitude estimate didn't translate into different
+in-game behavior, most likely because `lethal_this_turn` (the feature that
+actually drives defensive play) deliberately excludes Hammer-lanche as
+non-deterministic, and/or because per-opponent training exposure is too thin
+to teach a narrow tactical lesson. See What's Next #13 for the follow-up
+direction (a denser, more direct training signal for card/attack danger,
+instead of relying on diffuse win/loss to teach it). Checkpoints/metrics
+from both Phase 3 attempts were backed up before each run
+(`agents/03_pult_munki/checkpoints/ppo_latest_pre_phase3_2026-07-20.pt`,
+`ppo_latest_post_phase3_attempt1_2026-07-20.pt`,
+`agents/03_pult_munki/metrics/ppo_train_milestone8_pre_phase3_2026-07-20.csv`,
+`ppo_train_phase3_attempt1_2026-07-20.csv`) — all gitignored, local only.
+
+**Artifacts** (not committed, useful for repeating/extending this):
+- `scripts/run_matchup_replays.py <agent_a> <agent_b> --games N` — plays N
+  games between two agent profiles via their exported `policy.npz`,
+  alternating who goes first, saving a full JSON replay per game plus a
+  `summary.json` to `runs/<agent_a>_vs_<agent_b>/`.
+- `scripts/analyze_matchup_replays.py <run_dir>` — decodes that directory's
+  replays into per-game attack/KO/energy-attach event lists plus cross-game
+  aggregates (attack usage by side, KO counts by side, finishing-move
+  frequency). KO detection keys off `MoveCard` events with
+  `fromArea=Active(4), toArea=Trash(3)` (a `Change`/type-9 log event is
+  evolution mid-slot replacement, *not* a KO — that assumption was wrong on
+  the first pass and silently produced zero KOs everywhere until fixed).
+  Note: the printed "last hit" damage per KO is keyed by `cardId` (species),
+  not `(cardId, serial)` (specific physical copy) — with multiple copies of
+  the same species in play this can attribute a KO to the wrong copy's last
+  hit; the qualitative KO-count-by-side finding above doesn't depend on this,
+  but don't trust the per-KO damage numbers without fixing that key first.
+- `runs/03_pult_munki_vs_pool_400_mega_abomasnow_ex/` — the 20 replays +
+  summary from this run.
+
 ## Kaggle Submission
 - Full runbook (train → keep running → export → back up → build → upload):
   **`docs/TRAINING_AND_SUBMISSION.md`**.
@@ -298,3 +549,33 @@ If you're unsure whether something's 3.11-safe, the cheapest real check on
 this machine is running the bare system `python` (3.11, no `uv run`) against
 the specific import chain `main.py` pulls in — it reproduces the sandbox's
 parse behavior exactly, which `uv run`'s 3.12 venv does not.
+
+### Critical (fixed 2026-07-19): `submit.sh` didn't bundle `staples.json`
+Same severity class as the PEP 695 bug above — **every submission built via
+`submit.sh` since the opponent-archetype classifier landed (`a836ebd`) failed
+identically on Kaggle**, regardless of agent or deck, caught the same way
+(a failed validation episode's traceback, saved as `error.txt`).
+
+Root cause: `pkm/rl/features.py` computes `NUM_TRACKED_ARCHETYPES =
+len(get_archetypes())` at **module import time** (not lazily), and
+`get_archetypes()` reads `staples.json` from `pkm/archetype/archetypes.py`'s
+`STAPLES_JSON_PATH = Path(__file__).resolve().parents[2] / "staples.json"`
+— two directories above itself, correctly resolving to the sandbox root
+(`/kaggle_simulations/agent/`) on Kaggle, same as repo root in dev. The path
+logic was always right; `submit.sh` just never copied `staples.json` into
+the bundle. Since `pkm.rl.features` is imported transitively by nearly
+everything (`pkm.mcts.search` → `pkm.rl.encoder` → `pkm.rl.features`), this
+broke *importing `pkm` at all* — not just the archetype classifier
+specifically — with `FileNotFoundError:
+'/kaggle_simulations/agent/staples.json'`.
+
+Fixed by adding `cp staples.json submission/` to `submit.sh`. Verified for
+real (not just by reasoning about it): extracted a rebuilt bundle to an
+isolated scratch directory, confirmed `pkm.archetype.archetypes.__file__`
+resolved to the *extracted* copy (not the dev repo, which would have given
+a false pass), and confirmed the exact import chain from the traceback now
+succeeds with `NUM_TRACKED_ARCHETYPES == 25`.
+
+**Any submission tar built before this fix is broken and should be
+discarded, not uploaded** — that includes `submissions/submission_03_pult_munki_20260718_223836.tar.gz`
+(pre-dates the fix).

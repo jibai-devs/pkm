@@ -150,13 +150,18 @@ def make_singaporean_middleman(
     agents: dict[str, AgentFn] | None = None,
     select_agent: SelectAgentFn = _select_agent,
     log_sink: Callable[[str], None] | None = None,
+    archetype_weights_path: str | None = None,
 ) -> AgentFn:
     """Build the kaggle-facing agent that dispatches per turn."""
     registry: dict[str, AgentFn] = (
         agents
         if agents is not None
         else {
-            "dragapult_default": make_dragapult_default_agent(deck, weights_path),
+            "dragapult_default": make_dragapult_default_agent(
+                deck,
+                weights_path,
+                archetype_weights_path=archetype_weights_path,
+            ),
             # its own separately-trained weights (policy_setup.npz); falls
             # back to the default agent when that export doesn't exist yet
             "dragapult_setup": make_dragapult_setup_agent(deck, log_sink=log_sink),

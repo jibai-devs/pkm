@@ -5,6 +5,7 @@ import random
 from dataclasses import dataclass
 
 from pkm.agents.first_turn_agent import make_first_turn_agent
+from pkm.archetype.belief import compute_belief
 from pkm.engine import (
     battle_finish,
     battle_select,
@@ -48,11 +49,21 @@ class TorchPolicy:
     """Wraps a PolicyValueNet into a per-observation actor."""
 
     def __init__(
-        self, model: PolicyValueNet, greedy: bool = False, temperature: float = 1.0
+        self,
+        model: PolicyValueNet,
+        greedy: bool = False,
+        temperature: float = 1.0,
+        archetype_classifier=None,
     ):
         self.model = model
         self.greedy = greedy
         self.temperature = temperature
+        # Optional NumpyArchetypeClassifier (pkm.archetype.numpy_model) --
+        # opt-in, default None. When given, its belief replaces the trunk's
+        # own dormant aux-head belief for the encoder's re-injection feature
+        # (pkm/rl/features.py:_opponent_archetype_belief); see
+        # docs/opponent-archetype-classifier-plan.md Part 2a.
+        self.archetype_classifier = archetype_classifier
 
     def act(
         self, obs: dict, collect: bool, ctx: GameContext | None = None
@@ -67,12 +78,13 @@ class TorchPolicy:
 
         d = encode_decision(parsed, ctx)
         res = self.model.act(d, greedy=self.greedy, temperature=self.temperature)
-        if ctx is not None:
-            # Task 8: carry the belief forward for the *next* decision's
-            # GLOBAL feature read (see pkm/rl/features.py) -- one decision
-            # stale by construction, never recomputed inside a pure
-            # feature function.
-            ctx.archetype_belief = res.belief
+        if ctx is not None and self.archetype_classifier is not None:
+            # Carry the belief forward for the *next* decision's GLOBAL
+            # feature read (see pkm/rl/features.py) -- one decision stale
+            # by construction, never recomputed inside a pure feature
+            # function. Left None (-> zeros) when no classifier is given,
+            # so this is opt-in and doesn't affect existing callers.
+            ctx.archetype_belief = compute_belief(obs, self.archetype_classifier)
         if not collect:
             return res.picks, None
         d.picks = res.picks
@@ -250,24 +262,43 @@ class GameSpec:
     opponent_state: dict | None  # None = mirror self-play (both sides = current)
     side: int  # which side "current" plays if opponent_state is set; -1 if mirror
     collect: tuple[bool, bool]
+    # Part 3c: opponent's own deck when opponent_state came from the
+    # cross-archetype pool. None = mirror `deck` (every pre-3c caller/spec),
+    # so this is backward compatible by construction.
+    opponent_deck: list[int] | None = None
 
 
 def make_game_specs(
-    games_per_iter: int, pool: list[dict], pool_prob: float, rng: random.Random
+    games_per_iter: int,
+    pool: list[dict],
+    pool_prob: float,
+    rng: random.Random,
+    archetype_pool: list[tuple[list[int], dict]] | None = None,
+    archetype_pool_prob: float = 0.0,
 ) -> list[GameSpec]:
     """Decide, up front, the full iteration's matchups — same logic regardless
-    of whether rollout runs sequentially or across worker processes."""
+    of whether rollout runs sequentially or across worker processes.
+
+    Part 3c: when `archetype_pool` (a list of (deck, state_dict) pairs, e.g.
+    from `pkm.rl.opponent_pool.load_pool_bots`) is given, `archetype_pool_prob`
+    of games draw both an opponent deck and its matching pool-bot policy
+    instead of self-mirroring `deck`. Rolled before the existing self-pool
+    check, so `pool_prob`'s meaning (fraction of games vs a past checkpoint of
+    this same deck) is unchanged when `archetype_pool_prob` is 0 (default)."""
     specs = []
     for _ in range(games_per_iter):
-        if rng.random() < pool_prob and len(pool) > 1:
+        if archetype_pool and rng.random() < archetype_pool_prob:
+            opponent_deck, opponent_state = rng.choice(archetype_pool)
+            side = rng.randint(0, 1)
+            collect = (side == 0, side == 1)
+            specs.append(GameSpec(opponent_state, side, collect, opponent_deck))
+        elif rng.random() < pool_prob and len(pool) > 1:
             opponent_state = rng.choice(pool[:-1])
             side = rng.randint(0, 1)
             collect = (side == 0, side == 1)
+            specs.append(GameSpec(opponent_state, side, collect))
         else:
-            opponent_state = None
-            side = -1
-            collect = (True, True)
-        specs.append(GameSpec(opponent_state, side, collect))
+            specs.append(GameSpec(None, -1, (True, True)))
     return specs
 
 
@@ -276,29 +307,53 @@ def play_one(
     opponent_model: PolicyValueNet,
     deck: list[int],
     spec: GameSpec,
+    archetype_classifier=None,
     first_turn_agent=None,
     temperature: float = 1.0,
 ) -> GameResult:
     """Play one game per `spec`, reusing `opponent_model` as scratch space for
     the pooled-opponent case (avoids rebuilding a fresh module every game).
 
+    Part 2a: `archetype_classifier` (a NumpyArchetypeClassifier, see
+    pkm/archetype/numpy_model.py), when given, is attached only to the
+    trainee's ("current") TorchPolicy -- not the frozen opponent's -- so its
+    belief re-injection (docs/opponent-archetype-classifier-plan.md Part 2a)
+    only ever influences the policy actually being trained this run. In the
+    mirror self-play case both sides share one TorchPolicy instance, so both
+    naturally get it too.
+
     If `first_turn_agent` is given, both sides delegate their own first turn
     to it (never collected) -- see `FirstTurnDelegatingPolicy`."""
     if spec.opponent_state is None:
-        cur = TorchPolicy(current_model, temperature=temperature)
+        cur = TorchPolicy(
+            current_model,
+            temperature=temperature,
+            archetype_classifier=archetype_classifier,
+        )
         policies = (cur, cur)
+        decks = (deck, deck)
     else:
         opponent_model.load_state_dict(spec.opponent_state)
         opponent_model.eval()
+        # NOTE: `archetype_classifier` goes to `cur` only, never `opp` -- see
+        # the docstring. The frozen opponent must not get belief re-injection.
+        # `temperature` does go to both: it is an exploration knob on the
+        # rollouts themselves, and a varied sparring partner is the point.
         opp = TorchPolicy(opponent_model, temperature=temperature)
-        cur = TorchPolicy(current_model, temperature=temperature)
+        cur = TorchPolicy(
+            current_model,
+            temperature=temperature,
+            archetype_classifier=archetype_classifier,
+        )
+        opp_deck = spec.opponent_deck if spec.opponent_deck is not None else deck
         policies = (cur, opp) if spec.side == 0 else (opp, cur)
+        decks = (deck, opp_deck) if spec.side == 0 else (opp_deck, deck)
     if first_turn_agent is not None:
         policies = (
             FirstTurnDelegatingPolicy(policies[0], first_turn_agent),
             FirstTurnDelegatingPolicy(policies[1], first_turn_agent),
         )
-    return play_game(policies, (deck, deck), collect=spec.collect)
+    return play_game(policies, decks, collect=spec.collect)
 
 
 def aggregate_result(

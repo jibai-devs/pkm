@@ -431,12 +431,51 @@ two ways:
   (head-to-head vs the policy-only agent is the honest "does search help?" test).
 
 How it works: `agent.DragapultAgent._mcts_pick` calls the existing `mcts.search`
-(PUCT over the engine's `Search*` forward model, K=1 determinization for hidden
-cards). At deployment the search symbols come from **Kaggle's own `libcg.so`** —
-no vendored engine is shipped. `submit_main.py` picks up the bundle's inference
-config automatically (via `from_checkpoint`). **Caveat:** MCTS runs a forward
-search per decision — mind Kaggle's per-turn + cumulative 600 s clock; tune K.
-Tests: `test_inference_mcts.py` (config toggle, bundle round-trip, engine smoke).
+(PUCT over the engine's `Search*` forward model). At deployment the search
+symbols come from **Kaggle's own `libcg.so`** — no vendored engine is shipped.
+`submit_main.py` picks up the bundle's inference config automatically (via
+`from_checkpoint`). **Caveat:** MCTS runs a forward search per decision — mind
+Kaggle's per-turn + cumulative 600 s clock; tune K.
+
+**Multi-world IS-MCTS (`-W`, 2026-07-20).** The hidden info (our own deck order,
+face-down prizes, the opponent's hand/deck) is unknown, so the search
+*determinizes* — guesses one full world — before searching. A single world
+(W=1) is **biased**: the search optimizes hard for that one guessed layout and
+over-commits to draws it merely assumed; raising K makes that *worse* (searches
+the fantasy harder — a likely cause of K=4 < K=1 on the leaderboard). `-W <n>`
+re-samples n worlds per decision, runs an independent search in each, and
+averages the root visit policies (`mcts.search_worlds`) — a move must be good
+across many possible draws. Cost is W× the search time, so trade W against K
+under the budget (`W=8 -K 4` ≈ `W=1 -K 32`). Both `pack` and `eval` take `-W`;
+W is baked into the bundle. This is the principled lever for draw uncertainty —
+`--mcts-sims`/K is not.
+
+Tests: `test_inference_mcts.py` (config toggle + W round-trip, bundle round-trip,
+`search_worlds` averaging, engine smoke incl. W=2).
+
+**Head-to-head (2026-07-20, `002_large_tuned/ckpt_512.pt`, agent-under-test vs
+the SAME checkpoint played as plain policy, matched ~32 searches/decision):**
+
+| inference | searches/decision | 30 games | 100 games |
+|---|---|---|---|
+| `W=1 -K 32` | 32 | 60.0% (18-12) | **56.0% (56-44)** |
+| `W=8 -K 4`  | 32 | 63.3% (19-11) | **47.0% (47-53)** |
+
+Takeaways (the 100-game numbers are the reliable ones; n=30 was too noisy and
+oversold both):
+
+1. **Real search (K=32) beats the raw policy head** — 56% > 50%. Genuine, if
+   modest — the honest signal the leaderboard's moving average couldn't give.
+2. **World-averaging did NOT help at matched compute** — `W=8 -K 4` fell to 47%
+   (*below* policy). Splitting a fixed budget into 8 worlds starved each search
+   to K=4 — too shallow to produce a useful policy, so averaging 8 weak searches
+   lost to one deep one. **At a fixed budget, depth (K) beat breadth (W).**
+3. This does **not** refute the single-world *bias* argument — the clean test of
+   it is "add worlds at a fixed, adequate K" (`W=8 -K 32`, ~8× the compute), not
+   the matched-budget `W=8 -K 4` that robbed K to pay for W. Whether W>1 helps
+   once each per-world search is already strong is still open (and costs W× time,
+   so it must clear Kaggle's 600 s budget to be usable). For now the submittable
+   regime is **`W=1` with a healthy K**.
 
 ### Next lever (not yet built)
 **Opponent-pool training** — self-play against *past checkpoints*, not just the

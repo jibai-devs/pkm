@@ -241,6 +241,8 @@ def _build_config(
     minibatch_size: int,
     seed: int,
     ckpt_every: int,
+    lr_schedule: str = "constant",
+    lr_min: float = 0.0,
     shaping: str = "prize_potential",
     shaping_coef: float = 1.0,
     reward_weights: dict[str, float] | None = None,
@@ -252,6 +254,7 @@ def _build_config(
     determinization: str = "sample",
     model_preset: str = "small",
     model_overrides: dict[str, int | float | None] | None = None,
+    deck: str = "dragapult",
 ) -> Config:
     from pkm.new_agents.agent_000_dragapult.config import (
         Config,
@@ -259,6 +262,13 @@ def _build_config(
         TrainConfig,
         build_model_config,
     )
+    from pkm.new_agents.agent_000_dragapult.deck import DECKS
+
+    if deck not in DECKS:
+        console.print(
+            f"[red]unknown deck {deck!r}; choose from {sorted(DECKS)}[/]"
+        )
+        raise typer.Exit(2)
 
     # Network architecture: a size preset (small=v1) with per-dim overrides.
     try:
@@ -291,6 +301,8 @@ def _build_config(
         epochs_per_update=epochs,
         minibatch_size=minibatch_size,
         seed=seed,
+        lr_schedule=lr_schedule,
+        lr_min=lr_min,
         shaping=shaping,
         shaping_coef=shaping_coef,
         reward_weights=weights,
@@ -301,7 +313,9 @@ def _build_config(
         mcts_temperature=mcts_temperature,
         determinization=determinization,
     )
-    run = dataclasses.replace(RunConfig(), checkpoint_every_updates=ckpt_every)
+    run = dataclasses.replace(
+        RunConfig(), checkpoint_every_updates=ckpt_every, deck=deck
+    )
     return Config(model=model, train=train, run=run)
 
 
@@ -332,7 +346,7 @@ def _config_table(cfg: Config) -> Table:
         ("config_hash", cfg.hash()),
     ]:
         t.add_row(str(k), str(v))
-    if tc.shaping == "heuristic":
+    if tc.shaping in ("dragapult_heuristic", "heuristic"):
         active = {k: v for k, v in sorted(tc.reward_weights.items()) if v}
         t.add_row("reward_weights", str(active) if active else "(all 0.0)")
     aux = {k: v for k, v in sorted(tc.aux_weights.items()) if v}
@@ -546,7 +560,16 @@ def train(
     workers: int = typer.Option(
         8, help="Parallel self-play workers (one engine/process; 1 = single-process)."
     ),
-    lr: float = typer.Option(3e-4, help="Adam learning rate."),
+    lr: float = typer.Option(3e-4, help="Adam learning rate (or cosine start)."),
+    lr_schedule: str = typer.Option(
+        "constant",
+        "--lr-schedule",
+        help="LR schedule: 'constant' (default) or 'cosine' (anneal from --lr "
+        "down to --lr-min over the run; good for long runs).",
+    ),
+    lr_min: float = typer.Option(
+        0.0, "--lr-min", help="Cosine floor (eta_min), e.g. 1e-5 for a 1e-4 start."
+    ),
     gamma: float = typer.Option(0.997, help="Discount factor."),
     lam: float = typer.Option(0.95, help="GAE lambda."),
     clip_eps: float = typer.Option(0.2, help="PPO clip epsilon."),
@@ -557,9 +580,10 @@ def train(
     seed: int = typer.Option(0, help="RNG seed."),
     shaping: str = typer.Option(
         "prize_potential",
-        help="Reward shaping: 'prize_potential' (default), 'terminal' (sparse "
-        "+/-1), or 'heuristic' (full deck-specific reward stack; weight it with "
-        "--reward-weight).",
+        help="Reward shaping: 'prize_potential' (default, deck-agnostic), "
+        "'terminal' (sparse +/-1), or 'dragapult_heuristic' (the Dragapult-specific "
+        "reward-term stack — do NOT use for other decks; weight it with "
+        "--reward-weight). 'heuristic' is a deprecated alias for the latter.",
     ),
     shaping_coef: float = typer.Option(
         1.0, help="Scale on the shaping term (0.0 == terminal)."
@@ -584,6 +608,13 @@ def train(
         help="Network size preset: small (v1, default), medium, large, xl. "
         "Override individual dims with the --d-*/--n-layers/--n-heads flags.",
     ),
+    deck: str = typer.Option(
+        "dragapult",
+        "--deck",
+        help="Which registered deck both self-play seats pilot: dragapult "
+        "(default) or alakazam. The learned vocabulary spans all decks, so this "
+        "chooses only the 60-card list played, not the network shape.",
+    ),
     n_layers: Optional[int] = typer.Option(
         None, help="Override: entity-attention layers in the trunk (1 = v1 depth)."
     ),
@@ -604,6 +635,13 @@ def train(
     ),
     dropout: Optional[float] = typer.Option(
         None, help="Override: dropout in the extra transformer layers (regularization)."
+    ),
+    base_residual: Optional[bool] = typer.Option(
+        None,
+        "--base-residual/--no-base-residual",
+        help="Override: pre-LN residual around the base attention (uniform-residual "
+        "trunk). Recommended for deep large/xxl nets. Off = v1. Changes params, so "
+        "a flag-on checkpoint isn't interchangeable with a flag-off one.",
     ),
     device: str = typer.Option(
         "cpu",
@@ -680,6 +718,8 @@ def train(
     cfg = _build_config(
         workers=workers,
         lr=lr,
+        lr_schedule=lr_schedule,
+        lr_min=lr_min,
         gamma=gamma,
         lam=lam,
         clip_eps=clip_eps,
@@ -706,8 +746,10 @@ def train(
             "d_opt": d_opt,
             "d_card": d_card,
             "dropout": dropout,
+            "base_residual": base_residual,
         },
         ckpt_every=ckpt_every,
+        deck=deck,
     )
     _run_training(
         cfg,
@@ -828,9 +870,22 @@ def eval(
     mcts_sims: int = typer.Option(
         0, "--mcts-sims", "-K", help="MCTS simulation budget K (0 = policy only)."
     ),
+    mcts_worlds: int = typer.Option(
+        1,
+        "--mcts-worlds",
+        "-W",
+        help="IS-MCTS determinizations averaged per decision (W>1 de-biases the "
+        "single guessed world). Costs W× the search time.",
+    ),
     mcts_c_puct: float = typer.Option(1.25, help="PUCT exploration constant for MCTS."),
     mcts_temperature: float = typer.Option(
         0.0, help="Root visit-count temperature for the MCTS pick (0 = most-visited)."
+    ),
+    deck: Optional[str] = typer.Option(
+        None,
+        "--deck",
+        help="Deck both seats pilot for the match. Defaults to the deck recorded "
+        "in the checkpoint's own config (falling back to dragapult).",
     ),
 ) -> None:
     """Report a checkpoint's win-rate vs the random baseline (alternating seats).
@@ -853,6 +908,7 @@ def eval(
     inf = InferenceConfig(
         type=inference,
         mcts_sims=mcts_sims,
+        mcts_worlds=mcts_worlds,
         c_puct=mcts_c_puct,
         temperature=mcts_temperature,
     )
@@ -862,11 +918,16 @@ def eval(
     if not ckpt.exists():
         console.print(f"[red]no checkpoint at[/] {ckpt}")
         raise typer.Exit(1)
-    model = TrainState.load(ckpt).model
+    ts = TrainState.load(ckpt)
+    model = ts.model
+    # Default the match deck to the one this checkpoint was trained on.
+    deck_name: str = deck or getattr(ts.cfg.run, "deck", "dragapult")
+    console.print(f"[dim]deck:[/] {deck_name}")
     if inf.use_mcts:
         console.print(
             f"[dim]agent-under-test uses[/] MCTS "
-            f"[dim](K={inf.mcts_sims}, c_puct={inf.c_puct}, temp={inf.temperature})[/]"
+            f"[dim](K={inf.mcts_sims}, W={inf.mcts_worlds}, "
+            f"c_puct={inf.c_puct}, temp={inf.temperature})[/]"
         )
     if opponent is not None:
         if not opponent.exists():
@@ -876,11 +937,15 @@ def eval(
             f"[dim]head-to-head[/] {ckpt.name} [dim]vs[/] {opponent.name} "
             f"[dim]over[/] {games} [dim]games…[/]"
         )
-        ev = winrate_vs_checkpoint(model, str(opponent), n_games=games)
+        ev = winrate_vs_checkpoint(
+            model, str(opponent), n_games=games, inference=inf, deck_name=deck_name
+        )
         title = f"vs {opponent.name}"
     else:
         console.print(f"[dim]evaluating[/] {ckpt} [dim]vs random over[/] {games} [dim]games…[/]")
-        ev = winrate_vs_random(model, n_games=games, seed=seed)
+        ev = winrate_vs_random(
+            model, n_games=games, seed=seed, inference=inf, deck_name=deck_name
+        )
         title = "vs random"
 
     t = Table(title=title, title_style="bold")
@@ -946,7 +1011,26 @@ def sweep(
         "--model",
         help="Network size preset every trial trains at: small (v1, default), "
         "medium, large, xl. Architecture is fixed across the sweep; only the "
-        "hyperparameters (and, with --tune-rewards, reward weights) are searched.",
+        "hyperparameters (and, with --tune-rewards, reward weights) are searched. "
+        "Push beyond xl (an 'xxl') with the per-dim overrides below.",
+    ),
+    n_layers: Optional[int] = typer.Option(
+        None, help="Override: trunk attention layers (every trial)."
+    ),
+    d_state: Optional[int] = typer.Option(
+        None, help="Override: state (trunk output) dim (every trial)."
+    ),
+    d_entity: Optional[int] = typer.Option(
+        None, help="Override: per-entity dim (every trial)."
+    ),
+    n_heads: Optional[int] = typer.Option(
+        None, help="Override: attention heads, must divide d_entity (every trial)."
+    ),
+    d_opt: Optional[int] = typer.Option(
+        None, help="Override: option/scorer width (every trial)."
+    ),
+    d_card: Optional[int] = typer.Option(
+        None, help="Override: card embedding dim (every trial)."
     ),
     device: str = typer.Option(
         "cpu",
@@ -977,6 +1061,11 @@ def sweep(
         DEFAULT_EXPERIMENT, "--experiment", "-e", help=_EXPERIMENT_HELP
     ),
     engine: str = typer.Option(_DEFAULT_ENGINE, help=_ENGINE_HELP),
+    deck: str = typer.Option(
+        "dragapult",
+        "--deck",
+        help="Deck every trial trains + evals on: dragapult (default) or alakazam.",
+    ),
 ) -> None:
     """Optuna hyperparameter sweep — maximize eval win-rate vs random.
 
@@ -1047,7 +1136,7 @@ def sweep(
         if tune_rewards:
             from pkm.rl.reward_terms import TERM_NAMES
 
-            shaping = "heuristic"
+            shaping = "dragapult_heuristic"
             reward_weights = {
                 name: trial.suggest_float(f"rw_{name}", 0.0, 1.0)
                 for name in TERM_NAMES
@@ -1066,7 +1155,16 @@ def sweep(
             shaping=shaping,
             reward_weights=reward_weights,
             model_preset=model,
+            model_overrides={
+                "n_layers": n_layers,
+                "d_state": d_state,
+                "d_entity": d_entity,
+                "n_heads": n_heads,
+                "d_opt": d_opt,
+                "d_card": d_card,
+            },
             ckpt_every=updates,
+            deck=deck,
         )
         trial_dir = p["sweeps"] / study / f"trial_{trial.number}"
         pruning = PruningSink(trial)
@@ -1265,6 +1363,15 @@ def pack(
         help="MCTS simulation budget K per decision. 0 turns MCTS off (so "
         "'--inference mcts --mcts-sims 0' still deploys as plain policy).",
     ),
+    mcts_worlds: int = typer.Option(
+        1,
+        "--mcts-worlds",
+        "-W",
+        help="IS-MCTS determinizations averaged per decision (W). 1 = single "
+        "guessed world (biased); W>1 re-samples the hidden info W times and "
+        "averages, so a move must be good across many possible draws. Costs W× "
+        "the search time — trade against -K under the time budget.",
+    ),
     mcts_c_puct: float = typer.Option(1.25, help="PUCT exploration constant for MCTS."),
     mcts_temperature: float = typer.Option(
         0.0,
@@ -1300,6 +1407,7 @@ def pack(
     inf = InferenceConfig(
         type=inference,
         mcts_sims=mcts_sims,
+        mcts_worlds=mcts_worlds,
         c_puct=mcts_c_puct,
         temperature=mcts_temperature,
         determinization=determinization,
@@ -1330,10 +1438,29 @@ def pack(
     model_config = (
         (blob.get("config") or {}).get("model") if isinstance(blob, dict) else None
     )
+    # Bake the deck this checkpoint was trained on into the bundle so the deployed
+    # agent pilots the right 60-card list (from_checkpoint reads blob["deck"]).
+    # Without this the agent would fall back to the default deck at inference.
+    run_config = (blob.get("config") or {}).get("run") if isinstance(blob, dict) else None
+    deck_name = (run_config or {}).get("deck", "dragapult")
+
+    # Only source + the small static data files (spec.json, vocab.json, deck csvs)
+    # are needed at inference. Exclude bytecode and — critically — model/artifact
+    # blobs from OTHER agents and training output dirs, which would otherwise
+    # balloon the bundle past Kaggle's size limit (our own weights are added
+    # separately as weights.pt). Nothing on disk is touched; this only filters
+    # what enters the tarball.
+    _SKIP_SUFFIX = (".pyc", ".pyo", ".pth", ".pt", ".npz", ".safetensors",
+                    ".onnx", ".ckpt", ".bin", ".h5")
+    _SKIP_DIRS = {"__pycache__", "out", "experiments", "submissions", "runs",
+                  "logs", "wandb", ".git", ".ipynb_checkpoints"}
 
     def _no_pycache(info: tarfile.TarInfo):
+        parts = set(Path(info.name).parts)
         base = Path(info.name).name
-        if "__pycache__" in info.name or base.endswith((".pyc", ".pyo")):
+        if parts & _SKIP_DIRS:
+            return None
+        if base.endswith(_SKIP_SUFFIX) or base.endswith("-bak") or ".stale-" in base:
             return None
         return info
 
@@ -1346,6 +1473,7 @@ def pack(
                 "state_dict": state_dict,
                 "model_config": model_config,
                 "inference": inf.to_dict(),
+                "deck": deck_name,
             },
             weights_file,
         )
@@ -1366,19 +1494,21 @@ def pack(
         )
     )
     mode = (
-        f"mcts (K={inf.mcts_sims}, c_puct={inf.c_puct}, temp={inf.temperature})"
+        f"mcts (K={inf.mcts_sims}, W={inf.mcts_worlds}, "
+        f"c_puct={inf.c_puct}, temp={inf.temperature})"
         if inf.use_mcts
         else "policy (no search)"
     )
     console.print(f"[dim]inference:[/] {mode}")
+    console.print(f"[dim]deck baked:[/] {deck_name}")
     console.print(
         "[yellow]note:[/] inference uses torch; the bundle assumes the cabt "
         "sandbox provides it (no torch is bundled)."
     )
     if inf.use_mcts:
         console.print(
-            "[yellow]note:[/] MCTS runs a forward search per decision — watch "
-            "Kaggle's per-turn + cumulative 600s time budget; tune K accordingly."
+            "[yellow]note:[/] MCTS runs W×K forward searches per decision — watch "
+            "Kaggle's per-turn + cumulative 600s time budget; tune K and W accordingly."
         )
     console.print("[dim]submit with:[/] pkm new_agents 000_dragapult submit")
 

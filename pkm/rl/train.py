@@ -20,6 +20,7 @@ from pkm.data import Deck
 
 from .features import archetype_index, write_stamp_sidecar
 from .model import PolicyValueNet
+from .opponent_pool import PoolBot, load_pool_bots
 from .ppo import ppo_update
 from .reward_terms import DEFAULT_WEIGHTS, load_weights, write_default_weights_file
 from .rollout import (
@@ -90,6 +91,9 @@ def train(
     weights: dict[str, float] | None = None,
     pool_size: int = 8,
     pool_prob: float = 0.4,
+    archetype_pool: list[PoolBot] | None = None,
+    archetype_pool_prob: float = 0.0,
+    archetype_classifier=None,
     eval_every: int = 5,
     eval_games: int = 20,
     checkpoint_dir: str = "checkpoints",
@@ -131,6 +135,14 @@ def train(
     # loss is real machinery, but degenerately single-class until that
     # roadmap item lands.
     archetype_label = archetype_index(deck_path)
+    # Part 3c: (deck, state_dict) pairs for make_game_specs' cross-archetype
+    # sampling; None when archetype_pool wasn't loaded (default, backward
+    # compatible with the pre-3c self-mirror-only behavior).
+    archetype_pool_pairs = (
+        [(bot.deck, bot.state_dict) for bot in archetype_pool]
+        if archetype_pool
+        else None
+    )
     model = PolicyValueNet()
     if init_checkpoint:
         model.load_state_dict(
@@ -162,6 +174,9 @@ def train(
                 "weights": effective_weights,
                 "pool_size": pool_size,
                 "pool_prob": pool_prob,
+                "archetype_pool_size": len(archetype_pool) if archetype_pool else 0,
+                "archetype_pool_prob": archetype_pool_prob,
+                "archetype_belief": archetype_classifier is not None,
                 "games_per_iter": games_per_iter,
                 "seed": seed,
                 "deck": deck_path,
@@ -204,15 +219,36 @@ def train(
             w = losses = d = 0
             total_decisions = 0
 
-            specs = make_game_specs(games_per_iter, pool, pool_prob, rng)
+            specs = make_game_specs(
+                games_per_iter,
+                pool,
+                pool_prob,
+                rng,
+                archetype_pool=archetype_pool_pairs,
+                archetype_pool_prob=archetype_pool_prob,
+            )
             if executor is not None:
                 results = collect_parallel(
-                    executor, workers, model.state_dict(), deck, specs
+                    executor,
+                    workers,
+                    model.state_dict(),
+                    deck,
+                    specs,
+                    archetype_classifier=archetype_classifier,
                 )
             else:
                 results = [
                     play_one(
-                        model, opponent_model, deck, spec, ft_agent,
+                        model,
+                        opponent_model,
+                        deck,
+                        spec,
+                        # Keyword-only from here: `play_one`'s 5th positional
+                        # is `archetype_classifier`, so passing `ft_agent`
+                        # positionally (as this call used to) silently binds it
+                        # to the wrong parameter.
+                        archetype_classifier=archetype_classifier,
+                        first_turn_agent=ft_agent,
                         temperature=temperature,
                     )
                     for spec in specs
@@ -331,6 +367,32 @@ def main(
         "use) when --agent is given, otherwise the built-in defaults.",
     ),
     pool_size: int = typer.Option(8, help="opponent checkpoint pool size"),
+    use_archetype_pool: bool = typer.Option(
+        False,
+        "--archetype-pool",
+        help="sample cross-archetype opponents from trained agents/pool_*/ "
+        "bots (Part 3c) in addition to the self-checkpoint pool above; "
+        "requires deck/pool_*.csv + agents/pool_*/checkpoints/ppo_latest.pt "
+        "(see pkm/rl/opponent_pool.py)",
+    ),
+    archetype_pool_prob: float = typer.Option(
+        0.2,
+        help="fraction of games played against a random pool bot on its own "
+        "deck, when --archetype-pool is set",
+    ),
+    use_archetype_belief: bool = typer.Option(
+        False,
+        "--archetype-belief",
+        help="inject the standalone opponent-archetype classifier's belief "
+        "into the encoder for the trainee's decisions (Part 2a) -- loads "
+        "--archetype-weights once and attaches it to the trainee's "
+        "TorchPolicy only, never the frozen opponent's",
+    ),
+    archetype_weights: str = typer.Option(
+        "pkm/archetype.npz",
+        help="path to the exported NumpyArchetypeClassifier weights, used "
+        "when --archetype-belief is set",
+    ),
     eval_every: int = typer.Option(5, help="evaluate every N iterations"),
     eval_games: int = typer.Option(20, help="games for evaluation"),
     checkpoint_dir: str = typer.Option("checkpoints", help="checkpoint directory"),
@@ -378,6 +440,11 @@ def main(
         if weights is None:
             write_default_weights_file(profile.reward_weights_path)
             weights = str(profile.reward_weights_path)
+    archetype_classifier = None
+    if use_archetype_belief:
+        from pkm.archetype.numpy_model import NumpyArchetypeClassifier
+
+        archetype_classifier = NumpyArchetypeClassifier.load(archetype_weights)
     train(
         deck_path=deck,
         iterations=iterations,
@@ -386,6 +453,9 @@ def main(
         gamma=gamma,
         weights=load_weights(weights),
         pool_size=pool_size,
+        archetype_pool=load_pool_bots() if use_archetype_pool else None,
+        archetype_pool_prob=archetype_pool_prob,
+        archetype_classifier=archetype_classifier,
         eval_every=eval_every,
         eval_games=eval_games,
         checkpoint_dir=checkpoint_dir,

@@ -15,7 +15,11 @@ Recent policy-only baseline (for comparison), newest first:
 
 | Date (UTC+8) | Checkpoint | Inference | Bundle | Message | Score |
 |---|---|---|---|---|---|
-| 2026-07-20 08:48 | `002_large_tuned/ckpt_512.pt` | **MCTS K=1** | `submission_20260720_084819.tar.gz` | 002_large_tuned ckpt_512 + MCTS K=1 (inference-time search smoke) | **600.0** ✅ |
+| 2026-07-21 01:11 | `007_alakazam_large/latest.pt` (256 upd) | **MCTS K=1** | `submission_20260721_011110.tar.gz` | **NEW DECK: alakazam** (Mega Alakazam/Dudunsparce) · large + base_residual · prize_potential shaping · MCTS K=1 | _rejected: HTTP 400 at CreateSubmission (upload OK); likely daily submission-limit — retry when the window resets_ |
+| 2026-07-20 21:30 | `007_xl_residual/latest.pt` (256 upd) | **MCTS K=1** | `submission_20260720_213058.tar.gz` | 007 xl + base_residual (skip conns) + swept trial-16 + prize_margin aux + MCTS K=1 | _pending_ |
+| 2026-07-20 20:12 | `003_aux_loss/latest.pt` (1024 upd) | **MCTS K=1** | `submission_20260720_201252.tar.gz` | 003_aux_loss latest (large + heuristic + prize_margin aux) + MCTS K=1 | _pending_ |
+| 2026-07-20 09:06 | `002_large_tuned/ckpt_512.pt` | **MCTS K=4** | `submission_20260720_090651.tar.gz` | 002_large_tuned ckpt_512 + MCTS K=4 (more search than the K=1) | **448.9** |
+| 2026-07-20 08:48 | `002_large_tuned/ckpt_512.pt` | **MCTS K=1** | `submission_20260720_084819.tar.gz` | 002_large_tuned ckpt_512 + MCTS K=1 (inference-time search smoke) | **487.2** (drifted down from an early 600) |
 
 ## Notes
 
@@ -31,3 +35,20 @@ Recent policy-only baseline (for comparison), newest first:
   the inference-MCTS path runs cleanly in the sandbox against its `libcg.so`
   search symbols. **Next:** try higher K (8 / 16 / 32) — watch the per-turn +
   cumulative 600 s clock as K grows — to see how far search pushes the score.
+- **2026-07-20 — scores drift; the early "600" was not stable.** The K=1 smoke
+  above read 600.0 shortly after landing but has since settled to ~487 as more
+  league matches played out — leaderboard scores here are a moving average, so
+  treat any fresh score as provisional for a while.
+- **2026-07-20 — K=4 did NOT beat K=1 (448.9 vs 487.2), same ckpt_512.** More
+  search made it *worse* here. Plausible reads: with only a value-net leaf eval
+  and no learned search-time exploration tuning, deeper determinized rollouts
+  amplify value-head error / imperfect-info variance rather than averaging it
+  out; or the extra per-decision time ate into the budget. Net: K=1 (one-ply
+  lookahead) is the sweet spot so far — don't assume monotonic gains in K.
+- **2026-07-20 — first `003_aux_loss` submission (K=1).** First submission of the
+  new default recipe: large net + tuned low-LR PPO + heuristic rewards + the
+  `prize_margin` auxiliary loss, trained 1024 updates. Packed at MCTS K=1 (the
+  best-performing inference mode so far). The aux head is training-only and was
+  stripped at pack time (4 tensors), so this measures whether the aux-shaped
+  trunk produced a stronger policy/value — compare against the 002 K=1 (487.2)
+  same-architecture baseline once the score settles.

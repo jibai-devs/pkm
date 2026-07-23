@@ -90,10 +90,19 @@ class StateEncoder(nn.Module):
         n_layers: int = 1,
         ff_mult: int = 4,
         dropout: float = 0.0,
+        base_residual: bool = False,
     ):
         super().__init__()
         self.d_state = d_state  # exposed so consumers (heads/MCTS) can size off it
         self.d_entity = d_entity
+        # Optional pre-LN residual around the base attention (below). Off = the
+        # v1 behaviour (base attn output replaces its input, no skip). On makes
+        # the WHOLE trunk uniformly residual, which helps gradient flow at depth
+        # — recommended for large/xxl. It adds a LayerNorm (params), so a flag-on
+        # checkpoint is NOT loadable into a flag-off model and vice versa; the
+        # flag is in ModelConfig + the config hash, so this can't be mismatched.
+        self.base_residual = base_residual
+        self.attn_norm = nn.LayerNorm(d_entity) if base_residual else None
         self.card = CardEncoder(d_card)
         self.entity_proj = nn.Sequential(nn.Linear(d_card + F, d_entity), nn.ReLU())
         # A learnable CLS token, always unmasked, is prepended to the entity set.
@@ -129,7 +138,12 @@ class StateEncoder(nn.Module):
         seq = torch.cat([self.cls.expand(bsz, -1, -1), h], dim=1)  # [B,13,d_entity]
         cls_pad = torch.zeros(bsz, 1, dtype=torch.bool, device=h.device)
         pad = torch.cat([cls_pad, b["entity_mask"] == 0], dim=1)  # CLS never padded
-        out, _ = self.attn(seq, seq, seq, key_padding_mask=pad)  # [B,13,d_entity]
+        if self.base_residual:
+            # Pre-LN residual: out = seq + attn(norm(seq)). Uniform-residual trunk.
+            att, _ = self.attn(*(self.attn_norm(seq),) * 3, key_padding_mask=pad)
+            out = seq + att
+        else:
+            out, _ = self.attn(seq, seq, seq, key_padding_mask=pad)  # [B,13,d_entity]
         # Extra depth (empty for n_layers == 1). CLS is never padded, so every
         # row keeps >=1 valid key and no fully-masked-row NaN can arise.
         for layer in self.extra_layers:
