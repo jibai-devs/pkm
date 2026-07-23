@@ -13,6 +13,7 @@ dependencies = [
     "numpy>=2.0",
     "pandas>=2.0",
     "polars>=1.43.0",
+    "pyarrow>=25.0.0",
     "pydantic>=2.13.4",
     "requests>=2.28.1",
     "textual>=8.2.8",
