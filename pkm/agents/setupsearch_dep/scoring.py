@@ -20,7 +20,7 @@ and every choice it makes is directly attributable to a number you can read.
 
 from __future__ import annotations
 
-from pkm.rl.setup_turn_score import score_end_of_turn
+from pkm.rl.setup_turn_score import MIN_DRAKLOAK_FOR_CRISPIN, score_end_of_turn
 from pkm.types.obs import Observation
 
 
@@ -58,4 +58,12 @@ def evaluate(final_obs: dict, events: dict, went_first: bool) -> float:
         seat=state.get("yourIndex", 0),
         meowth_excused=meowth_excused,
         retreats=int(events.get("retreats", 0)),
+        # Policy applied here, not in the shared search: the event log records
+        # only the board facts, so the first-turn agent (same search class,
+        # different rubric) is completely unaffected by these setup rules.
+        crispin_early=(
+            events.get("drakloak_at_crispin") is not None
+            and events["drakloak_at_crispin"] < MIN_DRAKLOAK_FOR_CRISPIN
+        ),
+        judge_over_lillies=bool(events.get("lillies_in_hand_at_judge")),
     ).total

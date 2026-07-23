@@ -52,7 +52,7 @@ from pkm.engine import (
 from pkm.mcts.determinize import infer_opponent_decklist, sample_determinization
 from pkm.rl.rollout import _is_own_first_turn
 from pkm.agents.turn1agent_dep.search import _apply_events
-from pkm.rl.setup_turn_score import score_end_of_turn
+from pkm.rl.setup_turn_score import MIN_DRAKLOAK_FOR_CRISPIN, score_end_of_turn
 from pkm.types.obs import Observation, forced_picks
 
 from .config import DarwinConfig
@@ -82,6 +82,11 @@ def _score(board: dict, events: dict):
             events.get("lillies_played") or events.get("judge_no_dreepy")
         ),
         retreats=int(events.get("retreats", 0)),
+        crispin_early=(
+            events.get("drakloak_at_crispin") is not None
+            and events["drakloak_at_crispin"] < MIN_DRAKLOAK_FOR_CRISPIN
+        ),
+        judge_over_lillies=bool(events.get("lillies_in_hand_at_judge")),
     )
 
 
@@ -286,6 +291,14 @@ def main(
         "removes machine-load sensitivity, but does NOT make runs reproducible "
         "-- the engine deals from std::random_device (see below)",
     ),
+    no_default: bool = typer.Option(
+        False,
+        "--no-default",
+        help="drop the default-net column and drive the lead-up turns with the "
+        "setup net instead. Needed when pkm/policy.npz is stale (e.g. after a "
+        "feature-registry change): results are NOT comparable with runs that "
+        "included the default net, since the boards are generated differently.",
+    ),
     seed: int = typer.Option(0),
 ) -> None:
     random.seed(seed)
@@ -332,7 +345,11 @@ def main(
         seed=seed if search_sims > 0 else None,
         log_sink=lambda _m: None,
     )
-    default_agent = make_dragapult_default_agent(deck)
+    default_agent = None if no_default else make_dragapult_default_agent(deck)
+    # Whoever drives turns before the setup turn. Normally the default net; with
+    # --no-default the setup net stands in, since it is the only trained policy
+    # that still loads. It is a full policy, so it can answer any decision.
+    driver = default_agent if default_agent is not None else setup_agent
     ft = make_first_turn_agent(deck)
     rnd = make_random_agent(deck)
 
@@ -368,9 +385,12 @@ def main(
                     a_obs, a_moves, a_ev = _play_turn(
                         before, det, setup_agent, 0, turn_no
                     )
-                    b_obs, b_moves, b_ev = _play_turn(
-                        before, det, default_agent, 0, turn_no
-                    )
+                    if default_agent is not None:
+                        b_obs, b_moves, b_ev = _play_turn(
+                            before, det, default_agent, 0, turn_no
+                        )
+                    else:
+                        b_obs, b_moves, b_ev = None, None, None
                     # Score from each agent's own event log, not the bare board.
                     # Scoring statically zeroed `itchy_pollen` for everyone --
                     # the rubric's single largest bonus (+7) could never fire in
@@ -379,7 +399,7 @@ def main(
                     # even on turns that had earned the waiver.
                     ss = _score(s_obs, s_ev)
                     sa = _score(a_obs, a_ev)
-                    sb = _score(b_obs, b_ev)
+                    sb = _score(b_obs, b_ev) if b_obs is not None else None
                     blocks.append(
                         _sample_html(
                             got + 1,
@@ -400,7 +420,7 @@ def main(
                 picks = (
                     ft(obs)
                     if (p == 0 and _is_own_first_turn(obs))
-                    else (default_agent(obs) if p == 0 else rnd(obs))
+                    else (driver(obs) if p == 0 else rnd(obs))
                 )
                 obs = battle_select(picks)
                 n += 1
@@ -425,7 +445,7 @@ def _sample_html(
     idx, before, s_obs, ss, s_moves, a_obs, sa, a_moves, b_obs, sb, b_moves
 ) -> str:
     turn = (before.get("current") or {}).get("turn")
-    best = max(ss.total, sa.total, sb.total)
+    best = max(x.total for x in (ss, sa, sb) if x is not None)
 
     def col(title, obs, score, moves, note=""):
         cls = "win" if score.total >= best - 1e-9 else "lose"
@@ -439,15 +459,21 @@ def _sample_html(
             + "</ul></div>"
         )
 
+    head = f"search {ss.total:+.2f} | RL net {sa.total:+.2f}"
+    default_col = ""
+    if sb is not None:
+        head += f" | default {sb.total:+.2f}"
+        default_col = col(
+            "4. default net", b_obs, sb, b_moves, "forked, shared world"
+        )
     return f"""
 <div class="sample">
-  <h2>Sample {idx} &middot; engine turn {turn} &middot;
-      search {ss.total:+.2f} | RL net {sa.total:+.2f} | default {sb.total:+.2f}</h2>
+  <h2>Sample {idx} &middot; engine turn {turn} &middot; {head}</h2>
   <div class="cols4">
     <div class="col"><h3>1. BEFORE the turn</h3>{_board_html(before, 0)}</div>
     {col("2. SEARCH setup agent", s_obs, ss, s_moves, "live game (own draws)")}
     {col("3. RL setup net", a_obs, sa, a_moves, "forked, shared world")}
-    {col("4. default net", b_obs, sb, b_moves, "forked, shared world")}
+    {default_col}
   </div>
 </div>"""
 

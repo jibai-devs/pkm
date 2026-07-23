@@ -62,7 +62,10 @@ from .rollout import (
 )
 from .setup_turn_score import (
     BUDEW_CARD_ID,
+    CRISPIN_CARD_ID,
+    DRAKLOAK_CARD_ID,
     DREEPY_CARD_ID,
+    MIN_DRAKLOAK_FOR_CRISPIN,
     JUDGE_CARD_ID,
     LILLIES_DETERMINATION_CARD_ID,
     TurnScore,
@@ -133,6 +136,59 @@ def _budew_attack_ids() -> set[int]:
 
     card = get_card_by_id(BUDEW_CARD_ID)
     return {a.attack_id for a in card.attacks} if card else set()
+
+
+def _judge_over_lillies(obs: dict, picks: list[int]) -> bool:
+    """Judge played with Lillie's still in hand (see W_JUDGE_OVER_LILLIES)."""
+    sel = obs.get("select") or {}
+    options = sel.get("option") or []
+    state = obs["current"]
+    me = state["players"][state["yourIndex"]]
+    hand = me.get("hand") or []
+    for i in picks:
+        if not 0 <= i < len(options):
+            continue
+        opt = options[i]
+        if opt.get("type") != int(OptionType.PLAY):
+            continue
+        cid = opt.get("cardId") or 0
+        if not cid and opt.get("index") is not None and 0 <= opt["index"] < len(hand):
+            cid = hand[opt["index"]]["id"]
+        if cid == JUDGE_CARD_ID:
+            return any(
+                c.get("id") == LILLIES_DETERMINATION_CARD_ID for c in hand
+            )
+    return False
+
+
+def _crispin_played_early(obs: dict, picks: list[int]) -> bool:
+    """Crispin played while the board is short of Drakloak (see W_CRISPIN_EARLY).
+
+    Mirrors `_apply_events` in pkm/agents/turn1agent_dep/search.py so the RL
+    agent trains against the same rubric the search agent optimises.
+    """
+    sel = obs.get("select") or {}
+    options = sel.get("option") or []
+    state = obs["current"]
+    me = state["players"][state["yourIndex"]]
+    hand = me.get("hand") or []
+    for i in picks:
+        if not 0 <= i < len(options):
+            continue
+        opt = options[i]
+        if opt.get("type") != int(OptionType.PLAY):
+            continue
+        cid = opt.get("cardId") or 0
+        if not cid and opt.get("index") is not None and 0 <= opt["index"] < len(hand):
+            cid = hand[opt["index"]]["id"]
+        if cid == CRISPIN_CARD_ID:
+            in_play = [
+                c for c in [*(me.get("active") or []), *(me.get("bench") or [])] if c
+            ]
+            n = sum(1 for c in in_play if c.get("id") == DRAKLOAK_CARD_ID)
+            if n < MIN_DRAKLOAK_FOR_CRISPIN:
+                return True
+    return False
 
 
 def _count_retreats(obs: dict, picks: list[int]) -> int:
@@ -242,6 +298,8 @@ def play_setup_episode(
     itchy = [False, False]
     excused = [False, False]
     retreats = [0, 0]
+    crispin_early = [False, False]
+    judge_over_lil = [False, False]
     # Board snapshot taken the moment each seat's setup turn ends. Captured at
     # the turn boundary rather than reconstructed at the end, because the
     # first player's turn-3 board is already stale by the time turn 4 resolves.
@@ -285,6 +343,10 @@ def play_setup_episode(
                 if _excuses_meowth(obs, picks):
                     excused[p] = True
                 retreats[p] += _count_retreats(obs, picks)
+                if _crispin_played_early(obs, picks):
+                    crispin_early[p] = True
+                if _judge_over_lillies(obs, picks):
+                    judge_over_lil[p] = True
             if record is not None:
                 trajectories[p].append(record)
             obs = battle_select(picks)
@@ -308,6 +370,8 @@ def play_setup_episode(
                 seat=seat,
                 meowth_excused=excused[seat],
                 retreats=retreats[seat],
+                crispin_early=crispin_early[seat],
+                judge_over_lillies=judge_over_lil[seat],
             )
         )
 

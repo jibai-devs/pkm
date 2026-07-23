@@ -246,6 +246,7 @@ ULTRA_BALL_CARD_ID = 1121
 # The two Supporters that can excuse a Meowth ex -- see W_MEOWTH_EX_IN_PLAY.
 LILLIES_DETERMINATION_CARD_ID = 1227
 JUDGE_CARD_ID = 1213
+CRISPIN_CARD_ID = 1198
 W_DRAKLOAK_IN_HAND = 0.0  # deliberately zero -- see above
 W_ULTRA_BALL_UNPLAYED = -1.0  # only while no Drakloak is in play
 
@@ -284,6 +285,37 @@ W_MEOWTH_EX_IN_PLAY = -1.0
 # the Meowth was justified by the Supporter it fetched, which says nothing
 # about whether feeding it energy afterwards was.
 W_MEOWTH_BENCH_ENERGY = -20.0
+
+# (spec) Crispin played while the board is still short of Drakloak.
+#
+# Crispin is a **Supporter**, and you get one Supporter per turn -- so playing
+# it does not merely cost a card, it *forfeits Lillie's Determination for the
+# turn*. That trade is: one energy attached plus one in hand, against a fresh
+# six-card hand. While the line is still being assembled the refresh is worth
+# far more, because what the board lacks is Drakloak, not energy.
+#
+# Allowed once three Drakloak are already down: at that point the board is
+# built, there is nothing left to dig for, and attaching energy is the useful
+# thing to do with the Supporter slot.
+#
+# Evaluated when Crispin is *played*, not at end of turn -- playing it into an
+# empty board is the mistake regardless of what the rest of the turn recovers.
+# Priced to dominate any energy it could attach (a 0->1 energy Drakloak is
+# +2.0), so this is a prohibition expressed as a weight.
+MIN_DRAKLOAK_FOR_CRISPIN = 3
+W_CRISPIN_EARLY = -15.0
+
+# (spec) Judge played while Lillie's Determination was sitting in hand.
+#
+# Same one-Supporter-per-turn economics as Crispin, but a worse trade: Judge
+# cuts *both* hands to four, so it hands the opponent a fresh grip too, while
+# Lillie's gives us six and costs them nothing. With Lillie's available there
+# is no board state on the setup turn where Judge is the better use of the
+# slot, so this is priced as a flat prohibition.
+#
+# Judge remains fine when Lillie's is *not* in hand -- that is the desperation
+# dig the Meowth ex waiver already recognises (see W_MEOWTH_EX_IN_PLAY).
+W_JUDGE_OVER_LILLIES = -15.0
 
 # (spec) A second Budew on the field. One Budew is the deck's intended active
 # staller (free Itchy Pollen, one prize); a *second* is dead weight -- it eats a
@@ -430,6 +462,8 @@ def score_end_of_turn(
     seat: int | None = None,
     meowth_excused: bool = False,
     retreats: int = 0,
+    crispin_early: bool = False,
+    judge_over_lillies: bool = False,
 ) -> TurnScore:
     """Score the board the setup agent leaves at the end of its turn.
 
@@ -452,6 +486,11 @@ def score_end_of_turn(
     board property, so like `itchy_pollen_used` it has to come from the caller's
     event log. Callers without one leave it 0 and the term never fires.
 
+    `judge_over_lillies` means Judge was played with Lillie's in hand.
+
+    `crispin_early` likewise comes from the caller's event log: it means Crispin
+    was played while fewer than MIN_DRAKLOAK_FOR_CRISPIN Drakloak were in play.
+
     `meowth_excused` waives the Meowth ex charge, and is another caller-supplied
     fact for the same reason as `itchy_pollen_used`: it depends on *which*
     Supporter was played and on the board at the time, neither of which survives
@@ -471,7 +510,9 @@ def score_end_of_turn(
     _score_tempo(score, me, itchy_pollen_used, prizes_taken)
     _score_bench(score, me)
     _score_active(score, me)
-    _score_liabilities(score, me, meowth_excused, retreats)
+    _score_liabilities(
+        score, me, meowth_excused, retreats, crispin_early, judge_over_lillies
+    )
     _score_hand(score, me, bool(state.energyAttached))
     _score_readiness(score, me)
     _score_energy_discipline(score, me)
@@ -547,8 +588,14 @@ def _score_liabilities(
     me: Player,
     meowth_excused: bool = False,
     retreats: int = 0,
+    crispin_early: bool = False,
+    judge_over_lillies: bool = False,
 ) -> None:
     """Cards whose presence on our board costs us regardless of where."""
+    if crispin_early:
+        score.add("crispin_early", W_CRISPIN_EARLY)
+    if judge_over_lillies:
+        score.add("judge_over_lillies", W_JUDGE_OVER_LILLIES)
     # Never waived -- see the weight's note.
     fed_meowths = sum(
         1 for p in _bench(me) if p.id == MEOWTH_EX_CARD_ID and p.energies

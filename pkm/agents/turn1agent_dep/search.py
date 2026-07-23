@@ -27,6 +27,8 @@ from pkm.types.obs import OptionType, SearchState, forced_picks
 from . import scoring
 from .cards import (
     BUDEW,
+    CRISPIN,
+    DRAKLOAK,
     DREEPY,
     DREEPY_LINE,
     JUDGE,
@@ -34,6 +36,7 @@ from .cards import (
     ULTRA_BALL,
     XEROSICS_MACHINATIONS,
     count_in_play,
+    hand_ids,
 )
 
 _MAX_FORCED_SKIP = 100
@@ -90,6 +93,13 @@ def _apply_events(events: dict, obs: dict, picks: list[int]) -> dict:
                 out = dict(out)
                 opp = state["players"][1 - state["yourIndex"]]
                 out["xerosic_opp_hand"] = opp.get("handCount", 0)
+            elif cid == CRISPIN:
+                # Record the board as a *fact*; whether it is too early is the
+                # setup rubric's call, applied in setupsearch_dep/scoring.py.
+                # This module is shared with the first-turn agent, so it must
+                # stay free of any one objective's policy.
+                out = dict(out)
+                out.setdefault("drakloak_at_crispin", count_in_play(me, {DRAKLOAK}))
             elif cid == LILLIES_DETERMINATION:
                 out = dict(out)
                 out["lillies_played"] = True
@@ -100,6 +110,11 @@ def _apply_events(events: dict, obs: dict, picks: list[int]) -> dict:
                 # worked. See W_MEOWTH_EX_IN_PLAY in pkm/rl/setup_turn_score.py.
                 out = dict(out)
                 out["judge_played"] = True
+                # Judge and Lillie's compete for the one Supporter slot, so
+                # holding Lillie's while playing Judge is a fact worth
+                # recording; the setup rubric decides what it costs.
+                if LILLIES_DETERMINATION in hand_ids(me):
+                    out["lillies_in_hand_at_judge"] = True
                 if count_in_play(me, {DREEPY}) == 0:
                     out["judge_no_dreepy"] = True
     return out
