@@ -50,3 +50,4 @@ pkm/new_agents/agent_001_transformer/logs/
 
 # Stale weight backups
 pkm/policy.npz.*-bak
+__marimo__/
