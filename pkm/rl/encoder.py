@@ -53,6 +53,17 @@ DREEPY_CARD_ID = 119
 DRAKLOAK_CARD_ID = 120
 DRAGAPULT_EX_CARD_ID = 121
 DREEPY_LINE_CARD_IDS = {DREEPY_CARD_ID, DRAKLOAK_CARD_ID, DRAGAPULT_EX_CARD_ID}
+# The line's un-evolved middle: pieces that exist to evolve, not to take hits.
+# Dragapult ex is excluded on purpose -- it *is* the attacker, so it being the
+# active Pokemon is exactly what the deck wants.
+DREEPY_LINE_FRAGILE_CARD_IDS = {DREEPY_CARD_ID, DRAKLOAK_CARD_ID}
+# Line members worth spending energy on while they hold the active spot.
+# Dreepy is excluded: it technically has a Fire+Psychic attack (Bite), but an
+# active Dreepy is a position to fix by retreating or evolving, not one to
+# invest in -- rewarding its charge would pull against
+# dreepy_line_bench_safety_potential. Drakloak stays in: it can actually use
+# Dragon Headbutt, and its energy carries into the Dragapult ex it becomes.
+DREEPY_LINE_ACTIVE_CHARGE_CARD_IDS = {DRAKLOAK_CARD_ID, DRAGAPULT_EX_CARD_ID}
 XEROSIC_MACHINATIONS_CARD_ID = 1197
 PHANTOM_DIVE_ATTACK_ID = 154
 
@@ -110,6 +121,7 @@ class EncodedDecision:
     board_setup_potential: float = 0.0
     budew_setup_potential: float = 0.0
     dreepy_line_field_potential: float = 0.0
+    dreepy_line_bench_safety_potential: float = 0.0
     energy_penalty: float = 0.0
     budew_bonus: float = 0.0
     wrong_type_energy_penalty: float = 0.0
@@ -388,6 +400,29 @@ def dreepy_line_field_potential(obs: Observation) -> float:
     if count >= 4:
         return -1.0
     return count / 3.0
+
+
+def dreepy_line_bench_safety_potential(obs: Observation) -> float:
+    """1.0 while your active is *not* a Dreepy or Drakloak, 0.0 while it is.
+
+    Those two are the line's fragile middle: they exist to evolve, not to
+    take hits, and losing one in the active spot costs both the prize and
+    the Dragapult ex it was going to become -- so the deck wants them
+    parked on the bench. Dragapult ex is deliberately not counted; it's the
+    attacker, and its being active is the goal, not a mistake.
+
+    Potential-based, so the reward lands on the action that actually fixes
+    the exposure -- retreating the Dreepy out, or evolving it into
+    something that belongs up front -- rather than paying out on every step
+    a safe board happens to persist.
+    """
+    state = obs.current
+    if state is None:
+        return 0.0
+    active = state.players[state.yourIndex].active_pokemon
+    if active is None:
+        return 0.0
+    return 0.0 if active.id in DREEPY_LINE_FRAGILE_CARD_IDS else 1.0
 
 
 def _active_energy_already_sufficient(obs: Observation) -> bool:
@@ -786,11 +821,30 @@ def dreepy_evolve_bonus(obs: Observation, picks: list[int]) -> float:
     return 0.0
 
 
+# How much a clean bench charge is worth, by what's being charged. Energy
+# carries through evolution, so the payoff arrives sooner the further along
+# the line the target already is: a charged Drakloak is one evolution from
+# attacking, a charged Dreepy is two. Same progress, later payoff -- hence
+# the same sign but a smaller number, which is what makes the policy reach
+# for the Drakloak first when it can only afford one attach.
+_BENCH_CHARGE_PRIORITY: dict[int, float] = {
+    DRAGAPULT_EX_CARD_ID: 1.0,
+    DRAKLOAK_CARD_ID: 1.0,
+    DREEPY_CARD_ID: 0.5,
+}
+
+
 def dreepy_line_bench_charge_bonus(obs: Observation, picks: list[int]) -> float:
-    """+1.0 if `picks` attach energy to a bench Dreepy/Drakloak/Dragapult ex
+    """Rewards attaching energy to a *bench* Dreepy/Drakloak/Dragapult ex
     such that it ends up with exactly 1 Fire, 1 Psychic, or one of each --
     clean progress toward the Fire+Psychic combo their strongest attacks
-    need. -1.0 if the attach instead pushes it to 3 energy total: only 2
+    need.
+
+    The payout is graded by target (`_BENCH_CHARGE_PRIORITY`): +1.0 for a
+    Drakloak or Dragapult ex, +0.5 for a Dreepy, so charging the piece
+    closest to actually attacking is preferred when both are available.
+
+    -1.0 if the attach instead pushes the target to 3 energy total: only 2
     are ever needed, so a third is wasted (worse still on the bench, where
     it can't even attack this turn). 0.0 otherwise.
     """
@@ -817,17 +871,22 @@ def dreepy_line_bench_charge_bonus(obs: Observation, picks: list[int]) -> float:
             return -1.0
         type_set = set(resulting)
         if len(type_set) == n and type_set <= {EnergyType.FIRE, EnergyType.PSYCHIC}:
-            return 1.0
+            return _BENCH_CHARGE_PRIORITY.get(target.id, 0.0)
     return 0.0
 
 
 def dreepy_line_active_charge_bonus(obs: Observation, picks: list[int]) -> float:
-    """+1.0 if `picks` attach energy to your *active* Dreepy/Drakloak/
-    Dragapult ex such that it now has both 1 Fire and 1 Psychic energy --
-    the exact combo their strongest attacks need -- and it didn't have both
-    before this attach. Only fires on the attach that actually completes
-    the combo, not on every attach made after it's already complete, so it
+    """+1.0 if `picks` attach energy to your *active* Drakloak or Dragapult
+    ex such that it now has both 1 Fire and 1 Psychic energy -- the exact
+    combo their strongest attacks need -- and it didn't have both before
+    this attach. Only fires on the attach that actually completes the
+    combo, not on every attach made after it's already complete, so it
     can't be farmed by re-attaching once the active can already attack.
+
+    An active *Dreepy* is deliberately not rewarded
+    (`DREEPY_LINE_ACTIVE_CHARGE_CARD_IDS`): that position is one to fix by
+    retreating or evolving rather than to sink energy into, so paying for
+    its charge would pull against dreepy_line_bench_safety_potential.
 
     Nothing else rewards this: energy_penalty only discourages *over*-
     attaching to an already-sufficient active, and
@@ -841,7 +900,7 @@ def dreepy_line_active_charge_bonus(obs: Observation, picks: list[int]) -> float
         return 0.0
     you = state.yourIndex
     active = state.players[you].active_pokemon
-    if active is None or active.id not in DREEPY_LINE_CARD_IDS:
+    if active is None or active.id not in DREEPY_LINE_ACTIVE_CHARGE_CARD_IDS:
         return 0.0
     for i in picks:
         if i < 0 or i >= len(sel.option):

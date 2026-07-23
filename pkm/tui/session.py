@@ -120,6 +120,11 @@ class ThreadedEnvSession:
         weights: str | None = None,
         html_path: str | None = "result.html",
         replay_path: str | None = "replay.json",
+        # Two ways to inject an opponent, both with live callers:
+        #   opponent_agent   -- an already-built agent (darwinian_ml/play_human.py)
+        #   opponent_factory -- built per session from the deck, so per-game
+        #                       state is never shared across games (pkm/web/server.py)
+        opponent_agent: Callable[[dict], list[int]] | None = None,
         opponent_factory: Callable[[list[int]], Callable[[dict], list[int]]]
         | None = None,
     ) -> None:
@@ -127,6 +132,11 @@ class ThreadedEnvSession:
         self.human_index = human_index
         self.opponent = opponent
         self.weights = weights
+        # An already-built opponent, injected instead of named. This is the
+        # seam for opponents `pkm` cannot construct itself — notably a packed
+        # submission bundle running in its own process (`darwinian_ml`), which
+        # brings its own deck, so the two sides need not play a mirror match.
+        self.opponent_agent = opponent_agent
         self.html_path = html_path
         self.replay_path = replay_path
         # When set, this builds the opponent callable instead of resolving
@@ -219,7 +229,9 @@ class ThreadedEnvSession:
 
         from pkm.rl.play import make_agent_by_name
 
-        if self.opponent_factory is not None:
+        if self.opponent_agent is not None:
+            opponent_agent = self.opponent_agent
+        elif self.opponent_factory is not None:
             opponent_agent = self.opponent_factory(self.deck)
         elif self.opponent == "singaporean_middleman":
             # Give it a sink so its prize log lands in our own EventLog

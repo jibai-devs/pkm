@@ -263,6 +263,25 @@ body {
 .view-controls .ctl { display: flex; gap: 5px; align-items: center; font-size: 11px; opacity: .85; }
 .view-controls select { font-size: 11px; }
 
+/* ---- sub-agent routing panel ---- */
+.subagent-who {
+  font-weight: 700; font-size: 15px; letter-spacing: 0.02em;
+  padding: 6px 10px; border-radius: 6px; text-transform: uppercase;
+  background: var(--panel2); border-left: 3px solid var(--muted);
+}
+.subagent-who.who-first_turn { border-left-color: var(--accent); color: var(--accent); }
+.subagent-who.who-dragapult_default { border-left-color: var(--p0); color: var(--p0); }
+.subagent-who.who-random { border-left-color: var(--p1); color: var(--p1); }
+.subagent-none { color: var(--muted); font-style: italic; padding: 4px 0; }
+.subagent-notes { margin-top: 6px; display: flex; flex-direction: column; gap: 2px; }
+.subagent-note { font-size: 12px; color: var(--muted); padding: 1px 6px; }
+
+/* ---- replay batch chooser ---- */
+.replay-chooser { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.replay-chooser select {
+  background: var(--panel2); color: var(--text); border: 1px solid var(--line);
+  border-radius: 6px; padding: 3px 6px; font: inherit;
+}
 /* ============================================================
    Interactive play (?mode=play) — LiveApp / PreGame / OptionsPane
    Reuses the replay board; only the play-specific chrome is here.

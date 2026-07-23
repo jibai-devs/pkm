@@ -328,7 +328,9 @@ app = typer.Typer(help=__doc__)
 
 @app.command()
 def main(
-    agent: str | None = typer.Option(None, help="agent profile name (e.g. 00_basic, 01_psychic)"),
+    agent: str | None = typer.Option(
+        None, help="agent profile name (e.g. 00_basic, 01_psychic)"
+    ),
     deck: str = typer.Option("deck/02_dragapult.csv", help="path to deck CSV"),
     iterations: int = typer.Option(3, help="number of training iterations"),
     games: int = typer.Option(4, help="games per iteration"),
@@ -340,7 +342,9 @@ def main(
     metrics: str = typer.Option("metrics/exit_train.csv", help="metrics CSV path"),
     log_dir: str = typer.Option("runs/exit", help="TensorBoard log directory"),
     seed: int = typer.Option(0, help="random seed"),
-    wandb_project: str | None = typer.Option(None, help="wandb project name (enables wandb logging)"),
+    wandb_project: str | None = typer.Option(
+        None, help="wandb project name (enables wandb logging)"
+    ),
     wandb_run_name: str | None = typer.Option(None, help="wandb run name"),
 ) -> None:
     if agent:

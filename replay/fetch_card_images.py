@@ -103,6 +103,14 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--force", action="store_true", help="re-download even if file exists")
     args = p.parse_args(argv)
 
+    # Card names contain non-ASCII (e.g. "Pokémon"); on Windows the default
+    # console codec (cp932/cp1252) raises UnicodeEncodeError mid-run. Force
+    # UTF-8 output so printing a name never crashes the download loop.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
     names = load_card_names(args.cards_json)
     ids = resolve_ids(args, names)
     args.out.mkdir(parents=True, exist_ok=True)
@@ -142,7 +150,9 @@ def main(argv: list[str] | None = None) -> int:
             index = existing
     except ValueError:
         pass
-    index_path.write_text(json.dumps(index, indent=2, ensure_ascii=False))
+    index_path.write_text(
+        json.dumps(index, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
     print(f"\nDone: {downloaded} downloaded, {skipped} skipped, "
           f"{len(missing)} missing. Index → {index_path}")

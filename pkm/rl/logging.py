@@ -96,7 +96,9 @@ class CsvBackend:
         if not self._row:
             return
         if self._writer is None:
-            self._writer = self._csv.DictWriter(self._f, fieldnames=list(self._row.keys()))
+            self._writer = self._csv.DictWriter(
+                self._f, fieldnames=list(self._row.keys())
+            )
             self._writer.writeheader()
         self._writer.writerow(self._row)
         self._f.flush()
@@ -128,7 +130,11 @@ class MetricLog:
         log_dir: str | None = None,
     ) -> None:
         """Add a wandb backend."""
-        self.add(WandbBackend(project=project, config=config, run_name=run_name, log_dir=log_dir))
+        self.add(
+            WandbBackend(
+                project=project, config=config, run_name=run_name, log_dir=log_dir
+            )
+        )
 
     def add_csv(self, path: str) -> None:
         """Add a CSV backend."""

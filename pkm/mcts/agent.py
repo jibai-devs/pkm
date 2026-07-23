@@ -3,7 +3,10 @@
 import random
 from typing import Callable
 
-from pkm.agents.neural_agent import _find_weights, _load_archetype_classifier
+from pkm.agents.dragapult_default_agent import (
+    _find_weights,
+    _load_archetype_classifier,
+)
 from pkm.heuristics.context import GameContext
 from pkm.heuristics.deck_tracker import DeckTracker
 from pkm.rl.numpy_policy import NumpyPolicy

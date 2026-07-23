@@ -43,6 +43,32 @@ agents/*/*stdout*.log
 # agent_001_transformer training output (checkpoints + bundles)
 out_transformer/
 out/
+
+# Replay recordings / local scratch.
+# NOTE: replay/07_vite_react_cards is deliberately NOT ignored -- it holds 41
+# tracked source files (the browser-play GUI). Ignoring it, as this side of the
+# merge did, would silently untrack every future change under it.
+replay/05_vite_react
+replay/05_vite_react_app/
+
+# Ian tools (local training launchers, intentionally untracked)
+ian_tools/
+
+# Exported inference weights (regenerate with `python -m pkm.rl.export`)
+pkm/policy_setup.npz
+
+# Setup-agent training log (mirrors agents/*/train_loop.log)
+agents/*/*.log
+
+# Replay viewer: local scratch + fetched card art, never committed
+replay/07_vite_react_cards/public/cards/
+replay/07_vite_react_cards/public/ian/
+replay/07_vite_react_cards/vite.log
+replay/07_vite_react_cards/package-lock.json
+
+# Local checkpoint backups (never committed)
+backups/
+
 pkm/new_agents/agent_001_transformer/logs/
 
 # Claude Code local state (settings, worktrees — large, not source)

@@ -118,7 +118,9 @@ def sweep(
     games: int = typer.Option(8, help="games per iteration"),
     seed: int = typer.Option(0, help="base random seed"),
     study_name: str = typer.Option("ppo_sweep", help="Optuna study name"),
-    storage: str | None = typer.Option(None, help="Optuna storage URL (e.g. sqlite:///sweep.db)"),
+    storage: str | None = typer.Option(
+        None, help="Optuna storage URL (e.g. sqlite:///sweep.db)"
+    ),
 ) -> None:
     """PPO hyperparameter sweep."""
     if not HAS_OPTUNA:

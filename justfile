@@ -115,11 +115,16 @@ export agent="03_pult_munki":
     pkm export --agent {{agent}} pkm/policy.npz
 
 # play one rendered match and write result.html + replay.json
-play p0="neural" p1="random" agent="02_dragapult":
+play p0="dragapult_default" p1="random" agent="02_dragapult":
     pkm play --agent {{agent}} --p0 {{p0}} --p1 {{p1}}
 
+# play BY HAND against a packed submission bundle, which brings its own deck
+# (so this is a cross-deck match, unlike `just play human ...` which mirrors)
+play-bundle bundle="darwinian_ml/runs/opponents/alakazam_df" deck="deck/03_pult_munki.csv":
+    python -m darwinian_ml.play_human --bundle {{bundle}} --deck-path {{deck}}
+
 # head-to-head win rate over N games (no replay files)
-eval p0="neural" p1="random" games="30" agent="02_dragapult":
+eval p0="dragapult_default" p1="random" games="30" agent="02_dragapult":
     pkm play --agent {{agent}} --p0 {{p0}} --p1 {{p1}} --games {{games}}
 
 # open the latest match replay in the browser

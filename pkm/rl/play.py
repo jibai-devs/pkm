@@ -1,12 +1,12 @@
 """Play a match between two named agents; save an HTML replay + JSON log.
 
 Usage:
-    pkm play --p0 neural --p1 random
-    pkm play --p0 mcts --p1 neural --html mcts_vs_neural.html
-    pkm play --p0 neural --p1 random --games 20   # win-rate only
-    pkm play --agent 01_psychic --p0 neural --p1 random
+    pkm play --p0 dragapult_default --p1 random
+    pkm play --p0 mcts --p1 dragapult_default --html mcts_vs_default.html
+    pkm play --p0 dragapult_default --p1 random --games 20   # win-rate only
+    pkm play --agent 01_psychic --p0 dragapult_default --p1 random
 
-Agents: random | neural (greedy policy, needs pkm/policy.npz) | mcts | singaporean_middleman
+Agents: random | dragapult_default (greedy policy, needs pkm/policy.npz) | mcts | singaporean_middleman
 The HTML file is self-contained — open it in a browser to watch the match.
 The JSON log is kaggle-environments' full episode record (per-step
 observations, actions, rewards); reload it with json.load for analysis.
@@ -19,7 +19,7 @@ from typing import Callable
 from kaggle_environments import make
 
 from pkm.agents import (
-    make_neural_agent,
+    make_dragapult_default_agent,
     make_random_agent,
     make_singaporean_middleman,
 )
@@ -38,8 +38,8 @@ def make_agent_by_name(
         )
     if name == "random":
         return make_random_agent(deck)
-    if name == "neural":
-        return make_neural_agent(deck, weights)
+    if name == "dragapult_default":
+        return make_dragapult_default_agent(deck, weights)
     if name == "mcts":
         from pkm.mcts.agent import make_mcts_agent
 
@@ -48,7 +48,7 @@ def make_agent_by_name(
         return make_singaporean_middleman(deck, weights)
     raise ValueError(
         "unknown agent: "
-        f"{name!r} (expected random|neural|mcts|singaporean_middleman|human)"
+        f"{name!r} (expected random|dragapult_default|mcts|singaporean_middleman|human)"
     )
 
 
@@ -193,9 +193,15 @@ def _resolve_agent_deck_weights(agent: str) -> tuple[str, str | None]:
 
 @app.command()
 def main(
-    p0: str = typer.Option("neural", help="player 0 agent: random|neural|mcts|human"),
-    p1: str = typer.Option("random", help="player 1 agent: random|neural|mcts|human"),
-    agent: str | None = typer.Option(None, help="agent profile name (resolves deck + weights)"),
+    p0: str = typer.Option(
+        "dragapult_default", help="player 0 agent: random|dragapult_default|mcts|human"
+    ),
+    p1: str = typer.Option(
+        "random", help="player 1 agent: random|dragapult_default|mcts|human"
+    ),
+    agent: str | None = typer.Option(
+        None, help="agent profile name (resolves deck + weights)"
+    ),
     p0_agent: str | None = typer.Option(
         None,
         "--p0-agent",

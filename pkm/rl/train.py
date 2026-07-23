@@ -84,6 +84,8 @@ def train(
     iterations: int = 50,
     games_per_iter: int = 8,
     lr: float = 3e-4,
+    entropy_coef: float = 0.01,
+    temperature: float = 1.0,
     gamma: float = 0.99,
     lam: float = 0.95,
     weights: dict[str, float] | None = None,
@@ -207,8 +209,7 @@ def train(
                 # isn't instant -- it finishes the in-flight iteration first,
                 # which is what lets the unconditional save below still run.
                 print(
-                    f"stop file {stop_file} found after {it - 1} iterations; "
-                    "stopping",
+                    f"stop file {stop_file} found after {it - 1} iterations; stopping",
                     flush=True,
                 )
                 break
@@ -238,7 +239,17 @@ def train(
             else:
                 results = [
                     play_one(
-                        model, opponent_model, deck, spec, archetype_classifier, ft_agent
+                        model,
+                        opponent_model,
+                        deck,
+                        spec,
+                        # Keyword-only from here: `play_one`'s 5th positional
+                        # is `archetype_classifier`, so passing `ft_agent`
+                        # positionally (as this call used to) silently binds it
+                        # to the wrong parameter.
+                        archetype_classifier=archetype_classifier,
+                        first_turn_agent=ft_agent,
+                        temperature=temperature,
                     )
                     for spec in specs
                 ]
@@ -254,7 +265,7 @@ def train(
                 dec.true_archetype = archetype_label
 
             model.train()
-            stats = ppo_update(model, optimizer, data)
+            stats = ppo_update(model, optimizer, data, entropy_coef=entropy_coef)
             model.eval()
 
             pool.append(copy.deepcopy(model.state_dict()))
@@ -340,6 +351,12 @@ def main(
     iterations: int = typer.Option(50, help="number of training iterations"),
     games: int = typer.Option(8, help="games per iteration"),
     lr: float = typer.Option(3e-4, help="learning rate"),
+    entropy_coef: float = typer.Option(
+        0.01, help="exploration bonus; higher keeps the policy less certain"
+    ),
+    temperature: float = typer.Option(
+        1.0, help="sampling temperature during rollout; >1 flattens the policy"
+    ),
     gamma: float = typer.Option(0.99, help="discount factor"),
     weights: str | None = typer.Option(
         None,
@@ -451,6 +468,7 @@ def main(
         workers=workers,
         first_turn_delegate=first_turn_delegate,
         max_seconds=max_seconds,
+        stop_file=stop_file,
     )
 
 

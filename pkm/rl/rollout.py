@@ -29,6 +29,7 @@ from .encoder import (
     dreepy_evolve_bonus,
     dreepy_line_active_charge_bonus,
     dreepy_line_bench_charge_bonus,
+    dreepy_line_bench_safety_potential,
     dreepy_line_field_potential,
     encode_decision,
     energy_overattach_penalty,
@@ -94,6 +95,9 @@ class TorchPolicy:
         d.board_setup_potential = dragapult_backup_potential(parsed)
         d.budew_setup_potential = budew_active_second_potential(parsed)
         d.dreepy_line_field_potential = dreepy_line_field_potential(parsed)
+        d.dreepy_line_bench_safety_potential = dreepy_line_bench_safety_potential(
+            parsed
+        )
         d.energy_penalty = energy_overattach_penalty(parsed, res.picks)
         d.budew_bonus = budew_first_turn_attack_bonus(parsed, res.picks)
         d.wrong_type_energy_penalty = wrong_type_energy_penalty(parsed, res.picks)
@@ -148,7 +152,7 @@ class FirstTurnDelegatingPolicy:
     collected into the trajectory (returns `record=None`, exactly like a
     forced pick) -- the policy is only trained on the turns it actually plays,
     matching how `singaporean_middleman` deploys it (turn 1 = scripted, turn
-    2+ = neural)."""
+    2+ = dragapult_default)."""
 
     def __init__(self, inner, first_turn_agent):
         self.inner = inner
@@ -163,13 +167,35 @@ class FirstTurnDelegatingPolicy:
 
 
 def make_training_first_turn_agent(deck: list[int]):
-    """A first-turn agent tuned for self-play speed (a small search budget),
-    not deployment strength: it's called on both sides of every game, so the
-    full 6s/decision deployment budget would throttle rollout to a crawl.
-    Setup picks are priority-table lookups either way; only the in-turn MCTS
-    scales with these knobs."""
+    """The first-turn agent as used inside self-play.
+
+    Matches deployment on the two knobs that decide *what the search finds*
+    (determinizations and simulations), and caps wall-clock only as a safety
+    net -- 40 simulations resolve in ~10ms/decision here, so the budget
+    effectively never binds.
+
+    It used to run at 1 determinization / 6 simulations for speed, and that
+    was a real train-deploy mismatch rather than a harmless economy. Measured
+    over 50 handoffs, the weak search left a *charged* Dreepy on the bench
+    4% of the time versus 38% at this budget -- same rubric, same deck, purely
+    a matter of whether the search explored the line. Because energy survives
+    evolution, that one statistic gates the whole Dragapult plan: the setup
+    agent gets a single attachment per turn, so it can only finish a
+    Fire+Psychic Drakloak if turn 1 already charged the Dreepy. Training
+    against the throttled opening meant the setup agent's main objective was
+    ~1% reachable and it plateaued against a board it would never actually
+    face.
+
+    The honest cost is ~4x slower rollout (0.7s -> 3.1s per 16-episode
+    iteration). Worth it: the cheap budget was not buying speed so much as
+    training the wrong game.
+    """
+    # Kept deliberately equal to `make_first_turn_agent`'s deployment defaults.
+    # Any gap here is a train-deploy mismatch, which is precisely the bug
+    # described above -- so if the deployment simulation count moves, this
+    # moves with it.
     return make_first_turn_agent(
-        deck, n_determinizations=1, n_simulations=6, time_budget_s=0.75
+        deck, n_determinizations=2, n_simulations=100, time_budget_s=1.0
     )
 
 
@@ -283,6 +309,7 @@ def play_one(
     spec: GameSpec,
     archetype_classifier=None,
     first_turn_agent=None,
+    temperature: float = 1.0,
 ) -> GameResult:
     """Play one game per `spec`, reusing `opponent_model` as scratch space for
     the pooled-opponent case (avoids rebuilding a fresh module every game).
@@ -298,14 +325,26 @@ def play_one(
     If `first_turn_agent` is given, both sides delegate their own first turn
     to it (never collected) -- see `FirstTurnDelegatingPolicy`."""
     if spec.opponent_state is None:
-        cur = TorchPolicy(current_model, archetype_classifier=archetype_classifier)
+        cur = TorchPolicy(
+            current_model,
+            temperature=temperature,
+            archetype_classifier=archetype_classifier,
+        )
         policies = (cur, cur)
         decks = (deck, deck)
     else:
         opponent_model.load_state_dict(spec.opponent_state)
         opponent_model.eval()
-        opp = TorchPolicy(opponent_model)
-        cur = TorchPolicy(current_model, archetype_classifier=archetype_classifier)
+        # NOTE: `archetype_classifier` goes to `cur` only, never `opp` -- see
+        # the docstring. The frozen opponent must not get belief re-injection.
+        # `temperature` does go to both: it is an exploration knob on the
+        # rollouts themselves, and a varied sparring partner is the point.
+        opp = TorchPolicy(opponent_model, temperature=temperature)
+        cur = TorchPolicy(
+            current_model,
+            temperature=temperature,
+            archetype_classifier=archetype_classifier,
+        )
         opp_deck = spec.opponent_deck if spec.opponent_deck is not None else deck
         policies = (cur, opp) if spec.side == 0 else (opp, cur)
         decks = (deck, opp_deck) if spec.side == 0 else (opp_deck, deck)
