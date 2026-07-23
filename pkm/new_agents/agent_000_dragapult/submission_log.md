@@ -15,6 +15,8 @@ Recent policy-only baseline (for comparison), newest first:
 
 | Date (UTC+8) | Checkpoint | Inference | Bundle | Message | Score |
 |---|---|---|---|---|---|
+| 2026-07-22 19:50 | `010_alakazam_exit_tdlambda_medium/latest.pt` (~1581/8192 upd, still training) | **MCTS K=256, W=2** | `submission_20260722_195039.tar.gz` | 010_alakazam_exit_tdlambda_medium: latest.pt iter ~1581/8192, MCTS K=256 W=2 — real per-decision timing measured first on 2 vCPU (pinned via `taskset`), same checkpoint's own build: mean 644ms, p50 624ms, p90 985ms, **p99/max 1.14s**, safely under a 2s/decision budget (K=512,W=2 was measured first and rejected: p99 2.28s, over budget) (ref 54901809) | _pending — check `pkm new_agents 000_dragapult status --watch`_ |
+| 2026-07-22 19:27 | `010_alakazam_exit_tdlambda_medium/latest.pt` (1483/8192 upd, still training) | policy (no MCTS) | `submission_20260722_192735.tar.gz` | 010_alakazam_exit_tdlambda_medium: latest.pt iter 1483/8192, ExIt TD(lambda)+w4 medium, policy (no MCTS) (ref 54901418) | _pending — check `pkm new_agents 000_dragapult status --watch`_ |
 | 2026-07-21 08:08 | `009_alakazam_xl/latest.pt` (6341/8192 upd) | **MCTS K=1** | `submission_20260721_080835.tar.gz` | **alakazam · XL + base_residual · cosine LR 1e-4→1e-5 · prize_potential · MCTS K=1** (ref 54864754) | **600.0** |
 | 2026-07-21 01:11 | `007_alakazam_large/latest.pt` (256 upd) | **MCTS K=1** | `submission_20260721_011110.tar.gz` | **NEW DECK: alakazam** (Mega Alakazam/Dudunsparce) · large + base_residual · prize_potential shaping · MCTS K=1 | _not submitted: HTTP 400 (daily limit); superseded by the 009 XL bundle above_ |
 | 2026-07-20 21:30 | `007_xl_residual/latest.pt` (256 upd) | **MCTS K=1** | `submission_20260720_213058.tar.gz` | 007 xl + base_residual (skip conns) + swept trial-16 + prize_margin aux + MCTS K=1 | _pending_ |
@@ -53,3 +55,22 @@ Recent policy-only baseline (for comparison), newest first:
   stripped at pack time (4 tensors), so this measures whether the aux-shaped
   trunk produced a stronger policy/value — compare against the 002 K=1 (487.2)
   same-architecture baseline once the score settles.
+- **2026-07-23 — first ALAKAZAM submission (010, ExIt TD(λ), K=32 W=4).**
+  Bundle `submission_20260723_084117.tar.gz` (2.2 MiB), from run
+  `010_alakazam_exit_tdlambda_medium` `latest.pt` (~update 3210), medium net,
+  marginal head, deck **alakazam**. Inference-time MCTS **K=32, W=4**
+  (c_puct=1.25, temp=0.0, determinization=sample) — the biggest search budget
+  submitted so far (prior runs were dragapult at K=1/4). This is (a) the first
+  *alakazam* deck on the leaderboard and (b) a test of whether more search
+  (K=32) + IS-MCTS world-averaging (W=4) helps here, unlike the earlier
+  dragapult finding that K=4 < K=1. Aux head stripped (4 tensors). Watch the
+  per-turn + cumulative 600 s budget — 32×4 = 128 forward searches/decision is a
+  lot. **Score: TBD** (moving average; treat fresh score as provisional).
+- **2026-07-23 — same u3210 checkpoint, POLICY only (K=0) — the A/B control.**
+  Bundle `submission_20260723_084332.tar.gz`, packed from the SAME
+  `/tmp/010_latest_snapshot.pt` (~update 3210) as the K=32/W=4 entry above, but
+  `--inference policy` (no search). This is the clean control: same net, same
+  weights, only the inference mode differs — so the pair isolates "does search
+  help at u3210?" for the alakazam deck. Prior alakazam data (u1483 policy 478.2
+  > u1581 K=256/W=2 378.3) said search *hurt* at earlier checkpoints; this A/B
+  re-tests at a much more-trained one. **Score: TBD.**
