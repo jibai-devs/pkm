@@ -83,6 +83,8 @@ def train(
     iterations: int = 50,
     games_per_iter: int = 8,
     lr: float = 3e-4,
+    entropy_coef: float = 0.01,
+    temperature: float = 1.0,
     gamma: float = 0.99,
     lam: float = 0.95,
     weights: dict[str, float] | None = None,
@@ -209,7 +211,10 @@ def train(
                 )
             else:
                 results = [
-                    play_one(model, opponent_model, deck, spec, ft_agent)
+                    play_one(
+                        model, opponent_model, deck, spec, ft_agent,
+                        temperature=temperature,
+                    )
                     for spec in specs
                 ]
 
@@ -224,7 +229,7 @@ def train(
                 dec.true_archetype = archetype_label
 
             model.train()
-            stats = ppo_update(model, optimizer, data)
+            stats = ppo_update(model, optimizer, data, entropy_coef=entropy_coef)
             model.eval()
 
             pool.append(copy.deepcopy(model.state_dict()))
@@ -310,6 +315,12 @@ def main(
     iterations: int = typer.Option(50, help="number of training iterations"),
     games: int = typer.Option(8, help="games per iteration"),
     lr: float = typer.Option(3e-4, help="learning rate"),
+    entropy_coef: float = typer.Option(
+        0.01, help="exploration bonus; higher keeps the policy less certain"
+    ),
+    temperature: float = typer.Option(
+        1.0, help="sampling temperature during rollout; >1 flattens the policy"
+    ),
     gamma: float = typer.Option(0.99, help="discount factor"),
     weights: str | None = typer.Option(
         None,

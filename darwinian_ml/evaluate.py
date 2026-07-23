@@ -127,7 +127,7 @@ def main(
     random.seed(seed)
     torch.manual_seed(seed)
     deck = Deck.from_csv(deck_path).card_ids
-    bundle_dir = extract_bundle(bundle, Path(out_dir) / "opponent_bundle")
+    bundle_dir = extract_bundle(bundle, Path(out_dir) / "opponents")
 
     contenders = []
     if Path(checkpoint).is_file():

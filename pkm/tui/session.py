@@ -120,11 +120,17 @@ class ThreadedEnvSession:
         weights: str | None = None,
         html_path: str | None = "result.html",
         replay_path: str | None = "replay.json",
+        opponent_agent: Callable[[dict], list[int]] | None = None,
     ) -> None:
         self.deck = deck
         self.human_index = human_index
         self.opponent = opponent
         self.weights = weights
+        # An already-built opponent, injected instead of named. This is the
+        # seam for opponents `pkm` cannot construct itself — notably a packed
+        # submission bundle running in its own process (`darwinian_ml`), which
+        # brings its own deck, so the two sides need not play a mirror match.
+        self.opponent_agent = opponent_agent
         self.html_path = html_path
         self.replay_path = replay_path
         self._events: queue.Queue[Event] = queue.Queue()
@@ -212,7 +218,9 @@ class ThreadedEnvSession:
 
         from pkm.rl.play import make_agent_by_name
 
-        if self.opponent == "singaporean_middleman":
+        if self.opponent_agent is not None:
+            opponent_agent = self.opponent_agent
+        elif self.opponent == "singaporean_middleman":
             # Give it a sink so its prize log lands in our own EventLog
             # instead of the terminal (which Textual owns during play).
             from pkm.agents import make_singaporean_middleman

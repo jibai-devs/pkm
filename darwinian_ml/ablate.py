@@ -41,7 +41,7 @@ def main(
     random.seed(seed)
     torch.manual_seed(seed)
     deck = Deck.from_csv(deck_path).card_ids
-    bundle_dir = extract_bundle(bundle, Path(out_dir) / "opponent_bundle")
+    bundle_dir = extract_bundle(bundle, Path(out_dir) / "opponents")
     quiet = {"log_sink": lambda _m: None}
 
     def full():
@@ -107,20 +107,58 @@ def main(
             **quiet,
         )
 
+    def search_setup():
+        """Setup turn played by SEARCH over the rubric, not a trained net.
+
+        Same slot, same routing as `full` -- the only change is that the
+        agent answering the setup turn maximises the rubric by simulating
+        real move sequences instead of approximating it from weights.
+        """
+        from pkm.agents.dragapult_setup_search_agent import (
+            make_dragapult_setup_search_agent,
+        )
+
+        return make_singaporean_middleman(
+            deck,
+            agents={
+                "dragapult_default": make_dragapult_default_agent(deck),
+                "dragapult_setup": make_dragapult_setup_search_agent(deck, **quiet),
+                "first_turn": make_first_turn_agent(deck),
+                "random": make_random_agent(deck),
+            },
+            **quiet,
+        )
+
+    def darwin_search_setup():
+        """Evolved policy in the default slot + SEARCH setup + first-turn."""
+        from pkm.agents.dragapult_setup_search_agent import (
+            make_dragapult_setup_search_agent,
+        )
+
+        return make_singaporean_middleman(
+            deck,
+            agents={
+                "dragapult_default": _evolved_agent(checkpoint, deck),
+                "dragapult_setup": make_dragapult_setup_search_agent(deck, **quiet),
+                "first_turn": make_first_turn_agent(deck),
+                "random": make_random_agent(deck),
+            },
+            **quiet,
+        )
+
     contenders = [
         (
             "raw dragapult_default (policy.npz)",
             lambda: make_dragapult_default_agent(deck),
         ),
-        ("middleman: full (all 3 agents)", full),
-        ("middleman: setup -> default", no_setup),
+        ("middleman: full (RL setup agent)", full),
+        ("middleman: setup -> default (none)", no_setup),
+        ("middleman: SEARCH setup agent", search_setup),
         ("middleman: setup+first_turn -> default", no_first_turn),
     ]
     if Path(checkpoint).is_file():
         contenders += [
-            ("raw darwinian (best.pt)", lambda: _evolved_agent(checkpoint, deck)),
-            ("middleman: DARWINIAN default + setup", darwinian_default),
-            ("middleman: DARWINIAN default, no setup", darwinian_no_setup),
+            ("middleman: DARWINIAN + SEARCH setup", darwin_search_setup),
         ]
     else:
         print(f"! no evolved checkpoint at {checkpoint}; darwinian variants skipped")

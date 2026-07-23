@@ -51,13 +51,35 @@ sys.stdout = sys.stderr
 import main
 
 def _fresh_agent():
-    # Rebuild so each game starts with a clean GameContext/DeckTracker --
-    # reusing one agent across games leaks card knowledge between them and
-    # quietly degrades the opponent we are measuring ourselves against.
+    # Rebuild so each game starts with clean per-game memory: reusing one
+    # agent across games leaks card knowledge between them and quietly
+    # weakens the very opponent we are measuring ourselves against.
+    #
+    # Only some bundles can be rebuilt. The singaporean_middleman lineage
+    # exposes its factory and deck; the agent_000_dragapult lineage exposes
+    # just `agent`, and holds no per-game state, so reusing it is correct
+    # there. Fall back rather than assume one shape.
     try:
         return main.make_singaporean_middleman(main.DECK)
     except Exception:
         return main.agent
+
+def _find_deck():
+    # `main.DECK` exists in some bundles but not others. The kaggle contract
+    # itself is the portable answer: an agent handed an observation with no
+    # `select` must return its 60-card deck. Ask it that way, so any
+    # conforming bundle works regardless of internal layout.
+    deck = getattr(main, "DECK", None)
+    if deck:
+        return list(deck)
+    for probe in ({"select": None, "current": None}, {"select": None}):
+        try:
+            got = main.agent(dict(probe))
+            if isinstance(got, list) and len(got) >= 40:
+                return [int(c) for c in got]
+        except Exception:
+            continue
+    raise RuntimeError("cannot determine this bundle's deck")
 
 agent = _fresh_agent()
 
@@ -65,7 +87,7 @@ def reply(obj):
     _protocol.write(json.dumps(obj) + "\n")
     _protocol.flush()
 
-reply({"ok": True, "deck": list(main.DECK)})
+reply({"ok": True, "deck": _find_deck()})
 for line in sys.stdin:
     line = line.strip()
     if not line:
@@ -88,8 +110,16 @@ for line in sys.stdin:
 
 
 def extract_bundle(tarball: str | Path, dest: str | Path) -> Path:
-    """Unpack a submission tarball once; reuse it if already unpacked."""
-    dest = Path(dest)
+    """Unpack a submission tarball once; reuse it if already unpacked.
+
+    `dest` is treated as a *parent* and the bundle lands in a subdirectory
+    named after the tarball. Extracting straight into a shared `dest` would
+    silently reuse whichever bundle got there first -- the "already unpacked"
+    check can't tell two bundles apart -- so a second opponent would be
+    quietly replaced by the first and every result attributed to the wrong
+    agent.
+    """
+    dest = Path(dest) / Path(tarball).name.replace(".tar.gz", "").replace(".tgz", "")
     if (dest / "main.py").is_file():
         return dest
     dest.mkdir(parents=True, exist_ok=True)

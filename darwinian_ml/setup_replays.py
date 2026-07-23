@@ -128,7 +128,7 @@ def main(
 ) -> None:
     random.seed(seed)
     deck = Deck.from_csv(deck_path).card_ids
-    bundle_dir = extract_bundle(bundle, Path(out_dir) / "opponent_bundle")
+    bundle_dir = extract_bundle(bundle, Path(out_dir) / "opponents")
     for d in VIEWER_DIRS:
         d.mkdir(parents=True, exist_ok=True)
 
@@ -141,6 +141,25 @@ def main(
             agents={
                 "dragapult_default": make_dragapult_default_agent(deck),
                 "dragapult_setup": make_dragapult_default_agent(deck),
+                "first_turn": make_first_turn_agent(deck),
+                "random": make_random_agent(deck),
+            },
+            log_sink=cap.sink,
+        )
+
+    def search_setup(cap):
+        """Setup turn played by SEARCH over the rubric instead of a net."""
+        from pkm.agents.dragapult_setup_search_agent import (
+            make_dragapult_setup_search_agent,
+        )
+
+        return make_singaporean_middleman(
+            deck,
+            agents={
+                "dragapult_default": make_dragapult_default_agent(deck),
+                "dragapult_setup": make_dragapult_setup_search_agent(
+                    deck, log_sink=cap.sink
+                ),
                 "first_turn": make_first_turn_agent(deck),
                 "random": make_random_agent(deck),
             },
@@ -177,7 +196,11 @@ def main(
 
     configs: list[tuple[str, object]] = []
     if variants in ("all", "setup"):
-        configs += [("setup_ON", with_setup), ("setup_OFF", without_setup)]
+        configs += [
+            ("setup_RL", with_setup),
+            ("setup_SEARCH", search_setup),
+            ("setup_NONE", without_setup),
+        ]
     if variants in ("all", "darwin"):
         if not Path(checkpoint).is_file():
             raise SystemExit(f"no evolved checkpoint at {checkpoint}")
@@ -188,20 +211,31 @@ def main(
     if not configs:
         raise SystemExit(f"unknown --variants {variants!r} (all | setup | darwin)")
 
+    # Prefix by opponent at *write* time. Renaming files afterwards leaves
+    # index.json pointing at paths that no longer exist, and Vite answers a
+    # missing file with index.html -- which surfaces as the JSON parser
+    # choking on "<!doctype". Naming them correctly here keeps the manifest
+    # true by construction.
+    tag = Path(bundle).name.split("_")[0][:4].lower()
+    if "abomasnow" in Path(bundle).name:
+        tag = "abom"
+    elif "alakazam" in Path(bundle).name:
+        tag = "alak"
+
     manifest = []
     with BundleOpponent(bundle_dir) as opponent:
         print(f"opponent: {Path(bundle).name}\n")
         for label, factory in configs:
             for g in range(games):
                 data, info = _play(factory, opponent, deck, our_seat=g % 2)
-                fname = f"{label}_{g:02d}.json"
+                fname = f"{tag}_{label}_{g:02d}.json"
                 for d in VIEWER_DIRS:
                     with open(d / fname, "w") as fh:
                         json.dump(data, fh)
                 manifest.append(
                     {
                         "file": fname,
-                        "title": f"{label} #{g} ({info['outcome']})",
+                        "title": f"vs {tag} - {label} #{g} ({info['outcome']})",
                         "outcome": info["outcome"],
                         "steps": info["steps"],
                     }
@@ -212,9 +246,23 @@ def main(
                     flush=True,
                 )
 
+    # Merge, don't clobber: the other opponent's replays are still on disk and
+    # a fresh manifest listing only this run would orphan them in the picker.
     for d in VIEWER_DIRS:
-        with open(d / "index.json", "w") as fh:
-            json.dump(manifest, fh, indent=2)
+        existing = []
+        idx = d / "index.json"
+        if idx.is_file():
+            try:
+                existing = [
+                    e
+                    for e in json.load(open(idx))
+                    if (d / e["file"]).is_file()
+                    and e["file"] not in {m["file"] for m in manifest}
+                ]
+            except Exception:
+                existing = []
+        with open(idx, "w") as fh:
+            json.dump(existing + manifest, fh, indent=2)
 
     print(f"\nwrote {len(manifest)} replays to {VIEWER_DIRS[0]}/")
     print("Open, e.g.:")

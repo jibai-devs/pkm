@@ -60,7 +60,14 @@ from .rollout import (
     _is_own_first_turn,
     make_training_first_turn_agent,
 )
-from .setup_turn_score import BUDEW_CARD_ID, TurnScore, score_end_of_turn
+from .setup_turn_score import (
+    BUDEW_CARD_ID,
+    DREEPY_CARD_ID,
+    JUDGE_CARD_ID,
+    LILLIES_DETERMINATION_CARD_ID,
+    TurnScore,
+    score_end_of_turn,
+)
 
 # The episode stops once the second player has finished its second turn.
 LAST_SETUP_TURN = 4
@@ -128,6 +135,52 @@ def _budew_attack_ids() -> set[int]:
     return {a.attack_id for a in card.attacks} if card else set()
 
 
+def _count_retreats(obs: dict, picks: list[int]) -> int:
+    """How many of these picks are a retreat (see W_RETREAT)."""
+    options = (obs.get("select") or {}).get("option") or []
+    return sum(
+        1
+        for i in picks
+        if 0 <= i < len(options)
+        and options[i].get("type") == int(OptionType.RETREAT)
+    )
+
+
+def _excuses_meowth(obs: dict, picks: list[int]) -> bool:
+    """Did this pick play a Supporter that justifies having benched Meowth ex?
+
+    Mirrors `_apply_events` in `pkm/agents/turn1agent_dep/search.py` so the RL
+    agent trains against the same rubric the search agent optimises. Without
+    this the trainer scored every Meowth ex at a flat -1.00 while deployment
+    waived it, which is exactly the kind of train/deploy divergence that makes
+    a learned policy disagree with its own objective.
+
+    Judge counts only when no Dreepy is in play *at this moment* -- see the
+    note on W_MEOWTH_EX_IN_PLAY for why it is not tested at end of turn.
+    """
+    sel = obs.get("select") or {}
+    options = sel.get("option") or []
+    state = obs["current"]
+    me = state["players"][state["yourIndex"]]
+    hand = me.get("hand") or []
+    for i in picks:
+        if not 0 <= i < len(options):
+            continue
+        opt = options[i]
+        if opt.get("type") != int(OptionType.PLAY):
+            continue
+        cid = opt.get("cardId") or 0
+        if not cid and opt.get("index") is not None and 0 <= opt["index"] < len(hand):
+            cid = hand[opt["index"]]["id"]
+        if cid == LILLIES_DETERMINATION_CARD_ID:
+            return True
+        if cid == JUDGE_CARD_ID:
+            in_play = [c for c in [*(me.get("active") or []), *(me.get("bench") or [])] if c]
+            if not any(c.get("id") == DREEPY_CARD_ID for c in in_play):
+                return True
+    return False
+
+
 def _used_itchy_pollen(obs: dict, picks: list[int], budew_ids: set[int]) -> bool:
     sel = obs.get("select") or {}
     options = sel.get("option") or []
@@ -187,6 +240,8 @@ def play_setup_episode(
     )
     trajectories: tuple[list[EncodedDecision], list[EncodedDecision]] = ([], [])
     itchy = [False, False]
+    excused = [False, False]
+    retreats = [0, 0]
     # Board snapshot taken the moment each seat's setup turn ends. Captured at
     # the turn boundary rather than reconstructed at the end, because the
     # first player's turn-3 board is already stale by the time turn 4 resolves.
@@ -227,6 +282,9 @@ def play_setup_episode(
                 picks, record = policy.act(obs, collect=True, ctx=contexts[p])
                 if _used_itchy_pollen(obs, picks, budew_ids):
                     itchy[p] = True
+                if _excuses_meowth(obs, picks):
+                    excused[p] = True
+                retreats[p] += _count_retreats(obs, picks)
             if record is not None:
                 trajectories[p].append(record)
             obs = battle_select(picks)
@@ -244,7 +302,13 @@ def play_setup_episode(
         board = _with_own_hand(end_obs[seat], seat, own_hand.get(seat))
         parsed = Observation.model_validate(board)
         scores.append(
-            score_end_of_turn(parsed, itchy_pollen_used=itchy[seat], seat=seat)
+            score_end_of_turn(
+                parsed,
+                itchy_pollen_used=itchy[seat],
+                seat=seat,
+                meowth_excused=excused[seat],
+                retreats=retreats[seat],
+            )
         )
 
     parts: dict[str, float] = {}

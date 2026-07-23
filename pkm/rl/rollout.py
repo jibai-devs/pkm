@@ -277,6 +277,7 @@ def play_one(
     deck: list[int],
     spec: GameSpec,
     first_turn_agent=None,
+    temperature: float = 1.0,
 ) -> GameResult:
     """Play one game per `spec`, reusing `opponent_model` as scratch space for
     the pooled-opponent case (avoids rebuilding a fresh module every game).
@@ -284,13 +285,13 @@ def play_one(
     If `first_turn_agent` is given, both sides delegate their own first turn
     to it (never collected) -- see `FirstTurnDelegatingPolicy`."""
     if spec.opponent_state is None:
-        cur = TorchPolicy(current_model)
+        cur = TorchPolicy(current_model, temperature=temperature)
         policies = (cur, cur)
     else:
         opponent_model.load_state_dict(spec.opponent_state)
         opponent_model.eval()
-        opp = TorchPolicy(opponent_model)
-        cur = TorchPolicy(current_model)
+        opp = TorchPolicy(opponent_model, temperature=temperature)
+        cur = TorchPolicy(current_model, temperature=temperature)
         policies = (cur, opp) if spec.side == 0 else (opp, cur)
     if first_turn_agent is not None:
         policies = (

@@ -25,7 +25,16 @@ from pkm.mcts.determinize import infer_opponent_decklist, sample_determinization
 from pkm.types.obs import OptionType, SearchState, forced_picks
 
 from . import scoring
-from .cards import BUDEW, DREEPY_LINE, ULTRA_BALL, XEROSICS_MACHINATIONS, count_in_play
+from .cards import (
+    BUDEW,
+    DREEPY,
+    DREEPY_LINE,
+    JUDGE,
+    LILLIES_DETERMINATION,
+    ULTRA_BALL,
+    XEROSICS_MACHINATIONS,
+    count_in_play,
+)
 
 _MAX_FORCED_SKIP = 100
 _MAX_ROLLOUT_STEPS = 80
@@ -59,7 +68,13 @@ def _apply_events(events: dict, obs: dict, picks: list[int]) -> dict:
             continue
         opt = sel["option"][i]
         t = opt.get("type")
-        if t == OptionType.ATTACK:
+        if t == OptionType.RETREAT:
+            # An action, not a board property, so the rubric cannot see it
+            # without this. Whether it is penalised depends on who ends up
+            # active -- see W_RETREAT in pkm/rl/setup_turn_score.py.
+            out = dict(out)
+            out["retreats"] = out.get("retreats", 0) + 1
+        elif t == OptionType.ATTACK:
             out = dict(out)
             out["attacked"] = True
             active = (me.get("active") or [None])[0]
@@ -75,6 +90,18 @@ def _apply_events(events: dict, obs: dict, picks: list[int]) -> dict:
                 out = dict(out)
                 opp = state["players"][1 - state["yourIndex"]]
                 out["xerosic_opp_hand"] = opp.get("handCount", 0)
+            elif cid == LILLIES_DETERMINATION:
+                out = dict(out)
+                out["lillies_played"] = True
+            elif cid == JUDGE:
+                # Recorded *now*, not at end of turn: Judge is excused as a
+                # desperation dig when the line has not started, and a Judge
+                # that then finds a Dreepy must not lose its excuse for having
+                # worked. See W_MEOWTH_EX_IN_PLAY in pkm/rl/setup_turn_score.py.
+                out = dict(out)
+                out["judge_played"] = True
+                if count_in_play(me, {DREEPY}) == 0:
+                    out["judge_no_dreepy"] = True
     return out
 
 
@@ -156,7 +183,7 @@ class _Node:
         ):
             fo = self.final_obs
             self.leaf_value = (
-                scoring.evaluate(fo, events, search.went_first) if fo else 0.0
+                search.evaluate_fn(fo, events, search.went_first) if fo else 0.0
             )
             self.actions = []
         else:
@@ -182,12 +209,23 @@ class Turn1Search:
         ucb_c: float = 1.4,
         time_budget_s: float = 6.0,
         rng: random.Random | None = None,
+        rollout_policy=None,
+        evaluate_fn=None,
     ):
         self.n_determinizations = n_determinizations
         self.n_simulations = n_simulations
         self.ucb_c = ucb_c
         self.time_budget_s = time_budget_s
         self.rng = rng or random.Random()
+        # How an end-of-turn board is scored: ``(final_obs, events,
+        # went_first) -> float``. Defaults to the first-turn rubric, so the
+        # deployed first-turn agent is unchanged. Swapping it is what lets the
+        # same turn-scoped search optimise a *different* turn's goal --
+        # `dragapult_setup_search_agent` passes the setup rubric instead.
+        self.evaluate_fn = evaluate_fn or scoring.evaluate
+        # Optional playout policy. None keeps the original uniform-random
+        # playout, which is what the first-turn agent still uses.
+        self.rollout_policy = rollout_policy
         # per-choose() context, set in choose()
         self.me = 0
         self.turn = 0
@@ -205,8 +243,45 @@ class Turn1Search:
         span = self._vmax - self._vmin
         return (v - self._vmin) / span if span > 0 else 0.5
 
+    def _rollout_picks(self, obs: dict, sel: dict) -> list[int]:
+        """One playout decision: the rollout policy if it has one, else random.
+
+        **Why a policy matters here.** A playout estimates a branch by *some*
+        continuation, but the real game would take the *best* one -- so the
+        estimate is short of the truth by roughly (max - mean) over the
+        continuations, and that gap grows with how many continuations exist.
+        The error is therefore not uniform across branches: END TURN has none
+        left and is scored exactly, while a hand-refresh like Lillie's opens up
+        dozens and is scored by an average. Playing randomly makes every move
+        that *widens* the position look worse than it is, which is exactly the
+        bias that had the setup agent declining Lillie's, Judge and Ultra Ball
+        and sometimes ending its turn having done nothing at all.
+
+        Playing the continuation competently shrinks (max - mean) and with it
+        the bias. The cost is real -- a numpy forward pass measured 0.294ms
+        against 0.004ms for a random pick, ~8.6x per rollout -- so this trades
+        many noisy estimates for fewer accurate ones.
+
+        Falls back to random on anything unexpected: a playout is a heuristic,
+        and an exception here would abort a search that random picks can finish.
+        """
+        if self.rollout_policy is not None:
+            picks = None
+            try:
+                picks = self.rollout_policy(obs)
+            except Exception:
+                picks = None
+            if picks is not None:
+                n = len(sel["option"])
+                lo = int(sel.get("minCount") or 0)
+                hi = max(int(sel.get("maxCount") or 0), lo)
+                if lo <= len(picks) <= hi and all(0 <= i < n for i in picks):
+                    return list(picks)
+        acts = _enumerate_actions(sel, self.rng)
+        return list(self.rng.choice(acts)) if acts else []
+
     def _rollout(self, state: SearchState, events: dict) -> float:
-        """Uniform-random playout from `state` to the end of our turn."""
+        """Playout from `state` to the end of our turn (see _rollout_picks)."""
         obs = state.raw_observation
         final_obs = obs if _is_ours(obs, self.me) else None
         for _ in range(_MAX_ROLLOUT_STEPS):
@@ -220,14 +295,13 @@ class Turn1Search:
             sel = obs["select"]
             picks = forced_picks(sel)
             if picks is None:
-                acts = _enumerate_actions(sel, self.rng)
-                picks = list(self.rng.choice(acts)) if acts else []
+                picks = self._rollout_picks(obs, sel)
             events = _apply_events(events, obs, picks)
             state = search_step(state.search_id, picks)
             obs = state.raw_observation
         if final_obs is None:
             return 0.0
-        return scoring.evaluate(final_obs, events, self.went_first)
+        return self.evaluate_fn(final_obs, events, self.went_first)
 
     def _ucb_index(self, node: _Node) -> int:
         import math
@@ -295,13 +369,21 @@ class Turn1Search:
 
         opp_decklist = infer_opponent_decklist(obs)
         agg: dict[tuple[int, ...], int] = {}
-        deadline = time.monotonic() + self.time_budget_s
+        # `time_budget_s` is the budget for the whole decision, split evenly
+        # across determinizations. A single shared deadline would let the
+        # first sampled world spend everything and leave later ones zero
+        # simulations -- silently collapsing to one determinization, which is
+        # exactly the hedge against a bad guess about hidden cards that having
+        # several is for. Only bites when simulations are time-bound rather
+        # than count-bound (see `n_simulations`).
+        per_det = self.time_budget_s / max(self.n_determinizations, 1)
         try:
             for _ in range(self.n_determinizations):
                 det = sample_determinization(obs, my_decklist, opp_decklist, self.rng)
                 root = _Node(self, search_begin(obs, **det), {})
                 if root.leaf_value is not None or not root.actions:
                     continue
+                deadline = time.monotonic() + per_det
                 for _ in range(self.n_simulations):
                     if time.monotonic() > deadline:
                         break
