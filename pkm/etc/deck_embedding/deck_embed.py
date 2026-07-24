@@ -260,13 +260,18 @@ def load_matchups_from_parquet(path: str) -> tuple[list[tuple[Deck, Deck, int]],
     """
     import polars as pl
 
-    df = pl.read_parquet(path)
+    # Deck cards ALWAYS go into the model sorted by card_id. The Set-Transformer
+    # is permutation-invariant, but sorting makes the input deterministic no
+    # matter how the parquet rows happen to be ordered (reproducibility + stable
+    # padding). Sort the whole frame, then sort each deck again to be explicit.
+    df = pl.read_parquet(path).sort("episode_id", "player", "card_id")
     vocab = build_vocab(df["card_id"].to_list())
 
     decks: dict[tuple[int, int], Deck] = {}
     won: dict[tuple[int, int], bool] = {}
     for (eid, player), g in df.group_by(["episode_id", "player"]):
         key = (int(eid), int(player))
+        g = g.sort("card_id")
         decks[key] = deck_from_pairs(g["card_id"].to_list(), g["count"].to_list(), vocab)
         won[key] = bool(g["won"][0])
 

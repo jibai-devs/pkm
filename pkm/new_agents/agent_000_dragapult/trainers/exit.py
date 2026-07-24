@@ -155,15 +155,21 @@ class ExItTrainer:
                 mb = [samples[i] for i in idx[start:start + tc.minibatch_size]]
                 if not mb:
                     continue
-                b = collate([s.features for s in mb])
+                # Move the collated batch + targets to the learner's device: the
+                # model may be on CUDA (--device cuda/auto) while collate() builds
+                # CPU tensors, and an index tensor left on CPU crashes the CUDA
+                # embedding/gather (index_select device mismatch).
+                dev = next(model.parameters()).device
+                b = {k: v.to(dev) for k, v in collate([s.features for s in mb]).items()}
                 logits, value = model(b)  # logits [B,L], value [B]
                 logp = torch.log_softmax(logits.masked_fill(b["option_mask"] == 0, -1e9), dim=-1)
                 L = logits.shape[1]
                 tgt = torch.zeros(len(mb), L)
                 for i, s in enumerate(mb):
                     tgt[i, : len(s.policy_target)] = torch.from_numpy(s.policy_target)
+                tgt = tgt.to(dev)
                 policy_loss = -(tgt * logp).sum(dim=-1).mean()
-                z = torch.tensor([s.value_target for s in mb], dtype=torch.float32)
+                z = torch.tensor([s.value_target for s in mb], dtype=torch.float32, device=dev)
                 value_loss = F.mse_loss(value, z)
                 loss = policy_loss + tc.value_coef * value_loss
                 opt.zero_grad()

@@ -144,8 +144,42 @@ class ConsoleSink(MetricSink):
 
     def __init__(self, console: Any):
         self.console = console
+        self._progress = None  # rich.progress.Progress (spinner + bar), lazily built
+        self._task = None      # its task id, added on the first log() (needs `total`)
 
     def start(self, ctx: RunContext) -> None:
+        # A live spinner + progress bar pinned at the bottom, with per-update rows
+        # scrolling above it. The bar auto-refreshes (its spinner animates during
+        # the multi-second rollout gap between rows). On a non-TTY (e.g. output
+        # piped to a file) rich disables the live region automatically, so the
+        # rows still print and nothing errors — graceful degradation.
+        try:
+            from rich.progress import (
+                BarColumn,
+                MofNCompleteColumn,
+                Progress,
+                SpinnerColumn,
+                TextColumn,
+                TimeElapsedColumn,
+                TimeRemainingColumn,
+            )
+
+            self._progress = Progress(
+                SpinnerColumn(),
+                TextColumn("[bold cyan]train[/]"),
+                BarColumn(bar_width=None),
+                MofNCompleteColumn(),
+                TextColumn("[dim]elapsed[/]"),
+                TimeElapsedColumn(),
+                TextColumn("[dim]eta[/]"),
+                TimeRemainingColumn(),
+                TextColumn("{task.fields[status]}"),
+                console=self.console,
+                transient=False,
+            )
+            self._progress.start()
+        except Exception:
+            self._progress = None  # any rich hiccup → fall back to plain prints
         # Column header (matches the field order printed in `log`).
         self.console.print(
             "[dim]"
@@ -190,6 +224,22 @@ class ConsoleSink(MetricSink):
             f"[dim]{eta_s:>7}[/]  "
             f"{ev_s}"
         )
+        # Advance the live bar (added lazily now that we know `total`).
+        if self._progress is not None:
+            status = (
+                f"[magenta]{stats.get('sps', 0):>4.0f}[/] sps  "
+                f"{stats.get('gps', 0):>4.1f} gps  {ev_s}"
+            )
+            if self._task is None:
+                self._task = self._progress.add_task(
+                    "train", total=max(total, 1), status=status
+                )
+            self._progress.update(self._task, completed=update, status=status)
+
+    def close(self) -> None:
+        if self._progress is not None:
+            self._progress.stop()
+            self._progress = None
 
 
 class CsvSink(MetricSink):

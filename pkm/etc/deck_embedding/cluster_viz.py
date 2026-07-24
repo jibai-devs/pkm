@@ -75,8 +75,8 @@ def _(dd, emb_file, mo, pl):
         )
         .with_columns(pl.col("cards").cast(pl.List(pl.Utf8)).list.join(",").alias("sig"))
     )
-    # deck_key -> [(card_id, count), …] for the art gallery (most-played first)
-    COUNTS = {r["deck_key"]: sorted(zip(r["ci"], r["cn"]), key=lambda t: -t[1])
+    # deck_key -> [(card_id, count), …] for the art gallery, SORTED BY card_id
+    COUNTS = {r["deck_key"]: sorted(zip(r["ci"], r["cn"]), key=lambda t: t[0])
               for r in per_deck.select("deck_key", "ci", "cn").iter_rows(named=True)}
 
     emb = pl.read_parquet(dd.DATA_DIR / emb_file.value)
@@ -212,6 +212,7 @@ def _(IMG_DIR, NAMES, agg, arche, labels, mo, pl):
                 out.append(cid)
                 if len(out) == top:
                     break
+            out.sort()
             return out
 
         def _thumb(cid):

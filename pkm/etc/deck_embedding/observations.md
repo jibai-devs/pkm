@@ -154,6 +154,12 @@ $VENV deck_cluster.py --embeddings <...emb16.parquet> --out <...clusters_emb16.p
 $VENV -m marimo edit cluster_viz.py --no-sandbox                # http://localhost:2718
 ```
 
+**Decks are always SORTED by `card_id`** — in the dataset parquet (every builder
+`.sort(...)`s, `episode_deck_rows` emits `sorted(cnt.items())`) AND going into
+training (`load_matchups_from_parquet` sorts the frame + re-sorts each deck).
+The Set-Transformer is permutation-invariant so this doesn't change results, but
+sorted input is required for determinism/reproducibility — keep it that way.
+
 **Always:** dedup to unique decklists before clustering; remember win-rate is
 empirical and ~0.5-centred; record any model/flag change in
 `docs/model_configurations.md` and each training command in
